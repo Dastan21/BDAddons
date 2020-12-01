@@ -1,1 +1,1 @@
-# BDPlugins
+# BDAddons
