@@ -1,0 +1,129 @@
+/**
+ * @name BetterAudio
+ * @version 1.0.0
+ * @description Fancy audio files
+ * @author Dastan21
+ *
+ * @website http://github.com/Dastan21
+ * @source https://github.com/Dastan21/BDAddons/themes/BetterAudio.theme.css
+ */
+
+.wrapperAudio-1jDe0Q, .audioControls-2HsaU6 {
+	background: unset !important;
+	border: none;
+}
+
+.wrapperAudio-1jDe0Q .metadataContent-3c_ZXw,
+.wrapperAudio-1jDe0Q .audioMetadata-3zOuGv::before,
+.wrapperAudio-1jDe0Q .horizontal-3Sq5iO,
+.durationTimeDisplay-jww5fr:first-child,
+.durationTimeSeparator-2_xpJ7 {
+    display: none;
+}
+
+.durationTimeDisplay-jww5fr {
+    margin-top: -2.7em;
+    margin-left: -0.8em;
+}
+
+.volumeButton-2XwKVs {
+    margin-bottom: -2.7em;
+    margin-left: -1.5em;
+}
+
+.volumeButton-2XwKVs .controlIcon-3cRbti {
+    height: 1.5em;
+    width: 1.5em;
+}
+
+.volumeButtonSlider-3U2qy1 {
+    height: 0;
+    width: 0;
+}
+
+.vertical-1gJnJQ {
+    height: auto;
+    width: auto;
+}
+
+.vertical-1gJnJQ {
+    position: absolute;
+    bottom: -1.9em;
+    left: 4.2em;
+}
+
+.wrapperAudio-1jDe0Q {
+    padding: 4px;
+}
+
+.audioControls-2HsaU6 {
+    width: fit-content;
+}
+
+.audioControls-2HsaU6 > div:first-child {
+    border: 1px solid #7289DA;
+    border-radius: 50%;
+    padding: 0.7em;
+    transition: 0.3s;
+    opacity: 1;
+    height: 50px;
+    max-width: 50px;
+    width: 50px;
+}
+
+.audioControls-2HsaU6 > div:first-child svg {
+    background-image: url("http://d.craft.free.fr/audio.svg");
+    background-size: contain;
+    background-repeat: space;
+    background-position: center;
+    height: 100%;
+    width: 100%;
+    color: transparent;
+    transition: 0;
+	margin: -4px;
+}
+
+.controlIcon-3cRbti:active {
+    transform: none;
+}
+
+
+.audioControls-2HsaU6 div[aria-label]:hover {
+    filter: grayscale(300%) saturate(300%) contrast(300%) brightness(1000%);
+}
+
+
+div[aria-label="Pause"] {
+    overflow: hidden;
+    filter: grayscale(300%) saturate(300%) contrast(300%) brightness(1000%);
+}
+
+div[aria-label="Pause"] > svg:first-child {
+    margin: auto 0;
+    height: 40px;
+    width: 800px;
+    animation: tone 4s linear infinite;
+}
+
+.audioMetadata-3zOuGv a {
+    width: 2.3em;
+    position: absolute;
+    top: 0;
+    left: 4.2em;
+    z-index: 1;
+}
+
+.audioMetadata-3zOuGv svg {
+    display: none;
+}
+
+@keyframes tone {
+	0% {
+	    transform: translateX(-750px);
+		background-repeat: round;
+	}
+	100% {
+	    transform: translateX(0);
+		background-repeat: space;
+	}
+}
