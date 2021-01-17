@@ -16,7 +16,7 @@ class FavoriteImageVideo {
             name: "FavoriteImageVideo",
             author: "Dastan21",
             version: "1.0.0",
-            description: "Adds two buttons, on the chat buttons, to bookmark images and videos."
+            description: "Adds two buttons, on the GIF/Emojis tab, to bookmark images and videos."
         }
     };
     sectiondiv = null;
