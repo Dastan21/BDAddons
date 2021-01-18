@@ -4,11 +4,6 @@
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteImageVideo
  */
 
-const favsvg_filled = '<svg class="icon-38TLpf da-icon" aria-hidden="false" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12.5,17.6l3.6,2.2a1,1,0,0,0,1.5-1.1l-1-4.1a1,1,0,0,1,.3-1l3.2-2.8A1,1,0,0,0,19.5,9l-4.2-.4a.87.87,0,0,1-.8-.6L12.9,4.1a1.05,1.05,0,0,0-1.9,0l-1.6,4a1,1,0,0,1-.8.6L4.4,9a1.06,1.06,0,0,0-.6,1.8L7,13.6a.91.91,0,0,1,.3,1l-1,4.1a1,1,0,0,0,1.5,1.1l3.6-2.2A1.08,1.08,0,0,1,12.5,17.6Z"></path></svg>';
-const favsvg_notfilled = '<svg class="icon-38TLpf da-icon" aria-hidden="false" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M19.6,9l-4.2-0.4c-0.4,0-0.7-0.3-0.8-0.6l-1.6-3.9c-0.3-0.8-1.5-0.8-1.8,0L9.4,8.1C9.3,8.4,9,8.6,8.6,8.7L4.4,9 c-0.9,0.1-1.2,1.2-0.6,1.8L7,13.6c0.3,0.2,0.4,0.6,0.3,1l-1,4.1c-0.2,0.9,0.7,1.5,1.5,1.1l3.6-2.2c0.3-0.2,0.7-0.2,1,0l3.6,2.2 c0.8,0.5,1.7-0.2,1.5-1.1l-1-4.1c-0.1-0.4,0-0.7,0.3-1l3.2-2.8C20.9,10.2,20.5,9.1,19.6,9z M12,15.4l-3.8,2.3l1-4.3l-3.3-2.9 l4.4-0.4l1.7-4l1.7,4l4.4,0.4l-3.3,2.9l1,4.3L12,15.4z"></path></svg>';
-const favbtn_tab = '<div class="favButton-_fxLew size-3rN-gI gifFavoriteButton-3Zycl7 selected-1mBDsA" tabindex="-1" role="button">'+favsvg_filled+'</div>';
-const classes_selected = 'navButton-2gQCx- da-navButton navButtonActive-1MkytQ da-navButtonActive button-38aScr da-button lookBlank-3eh9lL colorBrand-3pXr91 grow-q77ONN da-grow';
-const classes_notselected = 'navButton-2gQCx- da-navButton button-38aScr da-button lookBlank-3eh9lL colorBrand-3pXr91 grow-q77ONN da-grow';
 
 class FavoriteImageVideo {
     config = {
@@ -19,12 +14,43 @@ class FavoriteImageVideo {
             description: "Adds two buttons, on the GIF/Emojis tab, to bookmark images and videos."
         }
     };
+    clipboard = null;
     sectiondiv = null;
     navlist = null;
     imgtab = null;
     imglist = null;
     videotab = null;
     videolist = null;
+    classes = {
+        size: BdApi.findModuleByProps("size", "gifFavoriteButton", "selected").size,
+        icon: BdApi.findModuleByProps("size", "gifFavoriteButton", "selected").icon,
+        gifFavoriteButton: BdApi.findModuleByProps("size", "gifFavoriteButton", "selected").gifFavoriteButton,
+        selected: BdApi.findModuleByProps("size", "gifFavoriteButton", "selected").selected,
+        favButton: BdApi.findModuleByProps("desiredItemWidth", "results", "result").favButton,
+        navButtonActive: BdApi.findModuleByProps("positionContainer", "positionContainerEditingMessage", "drawerSizingWrapper").navButtonActive,
+        button: BdApi.findModuleByProps("button", "lookFilled", "colorBrand").button,
+        lookBlank: BdApi.findModuleByProps("button", "lookFilled", "colorBrand").lookBlank,
+        colorBrand: BdApi.findModuleByProps("button", "lookFilled", "colorBrand").colorBrand,
+        grow: BdApi.findModuleByProps("button", "lookFilled", "colorBrand").grow,
+        tabContainer: BdApi.findModuleByProps("gutterSize", "container", "content").container,
+        parentContent: BdApi.findModuleByProps("scrollerBase", "thin", "fade").content,
+        itemContainer: BdApi.findModuleByProps("container", "categoryFade", "categoryFadeBlurple").container,
+        thin: BdApi.findModuleByProps("scrollerBase", "thin", "fade").thin,
+        scrollerBase: BdApi.findModuleByProps("scrollerBase", "thin", "fade").scrollerBase,
+        fade: BdApi.findModuleByProps("scrollerBase", "thin", "fade").fade,
+        childContent: BdApi.findModuleByProps("gutterSize", "container", "content").content,
+        header: BdApi.findModuleByProps("gutterSize", "container", "content").header,
+        result: BdApi.findModuleByProps("desiredItemWidth", "results", "result").result,
+        gif: BdApi.findModuleByProps("desiredItemWidth", "results", "result").gif,
+        message: BdApi.findModuleByProps("ephemeral", "mentioned", "replying").message.split(' ')[0],
+        wrapper: BdApi.findModuleByProps("wrapper", "wrapperAudio", "wrapperControlsHidden").wrapper.split(' ')[0]
+    };
+    favsvg_filled = '<svg class="' + this.classes.size + '" aria-hidden="false" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12.5,17.6l3.6,2.2a1,1,0,0,0,1.5-1.1l-1-4.1a1,1,0,0,1,.3-1l3.2-2.8A1,1,0,0,0,19.5,9l-4.2-.4a.87.87,0,0,1-.8-.6L12.9,4.1a1.05,1.05,0,0,0-1.9,0l-1.6,4a1,1,0,0,1-.8.6L4.4,9a1.06,1.06,0,0,0-.6,1.8L7,13.6a.91.91,0,0,1,.3,1l-1,4.1a1,1,0,0,0,1.5,1.1l3.6-2.2A1.08,1.08,0,0,1,12.5,17.6Z"></path></svg>';
+    favsvg_notfilled = '<svg class="' + this.classes.icon + '" aria-hidden="false" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M19.6,9l-4.2-0.4c-0.4,0-0.7-0.3-0.8-0.6l-1.6-3.9c-0.3-0.8-1.5-0.8-1.8,0L9.4,8.1C9.3,8.4,9,8.6,8.6,8.7L4.4,9 c-0.9,0.1-1.2,1.2-0.6,1.8L7,13.6c0.3,0.2,0.4,0.6,0.3,1l-1,4.1c-0.2,0.9,0.7,1.5,1.5,1.1l3.6-2.2c0.3-0.2,0.7-0.2,1,0l3.6,2.2 c0.8,0.5,1.7-0.2,1.5-1.1l-1-4.1c-0.1-0.4,0-0.7,0.3-1l3.2-2.8C20.9,10.2,20.5,9.1,19.6,9z M12,15.4l-3.8,2.3l1-4.3l-3.3-2.9 l4.4-0.4l1.7-4l1.7,4l4.4,0.4l-3.3,2.9l1,4.3L12,15.4z"></path></svg>';
+    favbtn_tab = '<div class="' + this.classes.favButton + ' ' + this.classes.size + ' ' + this.classes.gifFavoriteButton + ' ' + this.classes.selected + '" tabindex="-1" role="button">' + this.favsvg_filled + '</div>';
+    classes_notselected = BdApi.findModuleByProps("positionContainer", "positionContainerEditingMessage", "drawerSizingWrapper").navButton + ' ' + this.classes.button + ' ' + this.classes.lookBlank + ' ' + this.classes.colorBrand + ' ' + this.classes.grow;
+    classes_selected = this.classes_notselected + ' ' + this.classes.navButtonActive;
+
 
     getName() { return this.config.info.name; }
     getAuthor() { return this.config.info.author; }
@@ -32,12 +58,15 @@ class FavoriteImageVideo {
     getVersion() { return this.config.info.version; }
 
     start() {
+        this.clipboard = require('electron').clipboard;
+        if (!Array.isArray(BdApi.loadData(this.getName(), "image"))) BdApi.saveData(this.getName(), "image", []);
+        if (!Array.isArray(BdApi.loadData(this.getName(), "video"))) BdApi.saveData(this.getName(), "video", []);
         BdApi.injectCSS('FavoriteImageVideo', `
-            .message-2qnXI6 .container-1ov-mD:hover #favbtn_image {
+            .${this.classes.message} div:hover #favbtn_image {
                 transform: translateY(0.4em) scale(1);
                 opacity: 1;
             }
-            .wrapper-2TxpI8:hover #favbtn_video {
+            .${this.classes.wrapper}:hover #favbtn_video {
                 transform: translateX(-0.4em) scale(1);
                 opacity: 1;
             }
@@ -46,7 +75,7 @@ class FavoriteImageVideo {
                 color: #fff;
                 opacity: 0;
                 cursor: pointer;
-                transition: 0.1s;
+                transition: 0.2s;
                 transform: scale(0.7);
             }
             #favbtn_image {
@@ -67,8 +96,6 @@ class FavoriteImageVideo {
                 justify-content: space-between;
             }
         `);
-        if (!Array.isArray(BdApi.loadData(this.getName(), "image"))) BdApi.saveData(this.getName(), "image", []);
-        if (!Array.isArray(BdApi.loadData(this.getName(), "video"))) BdApi.saveData(this.getName(), "video", []);
     }
     stop() {
         BdApi.clearCSS('FavoriteImageVideo');
@@ -96,31 +123,31 @@ class FavoriteImageVideo {
     }
     observer(e) {
         // On GIF tab
-        if (e.addedNodes[0] && e.addedNodes[0].textContent && e.addedNodes[0].textContent.startsWith("GIF") && !e.addedNodes[0].nextSibling) this.updateTabButtons(e.addedNodes[0]);
+        if (e.addedNodes[0] && e.addedNodes[0].tagName && e.addedNodes[0].tagName === "SECTION" && e.previousSibling) this.updateTabButtons(e.addedNodes[0]);
         // On image preview
-        if (e.target && e.target.id.startsWith("chat-messages-") && e.target.childNodes[1].firstChild && e.target.childNodes[1].firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.tagName === "IMG") this.addFavButtonOnImage(e.target.childNodes[1]);
-        if (e.target && e.target.id.startsWith("chat-messages-") && e.target.childNodes[1].firstChild && e.target.childNodes[1].firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.tagName === "A" && e.target.childNodes[1].firstChild.firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.firstChild.tagName === "IMG") this.addFavButtonOnImage(e.target.childNodes[1].firstChild);
+        if (e.target && e.target.className.includes(this.classes.message) && e.target.childNodes[1].firstChild && e.target.childNodes[1].firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.tagName === "IMG") this.addFavButtonOnImage(e.target.childNodes[1]);
+        if (e.target && e.target.className.includes(this.classes.message) && e.target.childNodes[1].firstChild && e.target.childNodes[1].firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.tagName === "A" && e.target.childNodes[1].firstChild.firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.firstChild.tagName === "IMG") this.addFavButtonOnImage(e.target.childNodes[1].firstChild);
         // On video preview
-        if (e.target && e.target.id.startsWith("chat-messages-") && e.target.childNodes[1].firstChild && e.target.childNodes[1].firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.firstChild.firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.firstChild.firstChild.firstChild.tagName === "VIDEO") this.addFavButtonOnVideo(e.target.childNodes[1].firstChild.firstChild.firstChild.firstChild.firstChild);
-        if (e.target && e.target.id.startsWith("chat-messages-") && e.target.childNodes[1].firstChild && e.target.childNodes[1].firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.tagName !== "A" && e.target.childNodes[1].firstChild.firstChild.childNodes[1] && e.target.childNodes[1].firstChild.firstChild.childNodes[1].tagName === "VIDEO") this.addFavButtonOnVideo(e.target.childNodes[1].firstChild.firstChild.childNodes[1]);
+        if (e.target && e.target.className.includes(this.classes.message) && e.target.childNodes[1].firstChild && e.target.childNodes[1].firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.firstChild.firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.firstChild.firstChild.firstChild.tagName === "VIDEO") this.addFavButtonOnVideo(e.target.childNodes[1].firstChild.firstChild.firstChild.firstChild.firstChild);
+        if (e.target && e.target.className.includes(this.classes.message) && e.target.childNodes[1].firstChild && e.target.childNodes[1].firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.firstChild && e.target.childNodes[1].firstChild.firstChild.tagName !== "A" && e.target.childNodes[1].firstChild.firstChild.childNodes[1] && e.target.childNodes[1].firstChild.firstChild.childNodes[1].tagName === "VIDEO") this.addFavButtonOnVideo(e.target.childNodes[1].firstChild.firstChild.childNodes[1]);
     }
     updateTabButtons(node) {
         // sectiondiv
         this.sectiondiv = node.firstChild.lastChild;
         // tab header
         const tabheader = document.createElement("div");
-        tabheader.className = "header-1TOWci da-header";
+        tabheader.className = this.classes.header;
         // tab contents
         const tabcontent4 = document.createElement("div"); tabcontent4.style = "position: absolute; left: 12px; top: 12px; width: 400px;";
-        const tabcontent3 = document.createElement("div"); tabcontent3.className = "content-3YMskv da-content"; tabcontent3.append(tabcontent4);
-        const tabcontent2 = document.createElement("div"); tabcontent2.className = "container-2jxBbw da-container thin-1ybCId scrollerBase-289Jih fade-2kXiP2"; tabcontent2.style = "overflow: hidden scroll; padding-right: 0px"; tabcontent2.append(tabcontent3);
-        const tabcontent1 = document.createElement("div"); tabcontent1.className = "content-ySCtCx da-content"; tabcontent1.append(tabcontent2);
+        const tabcontent3 = document.createElement("div"); tabcontent3.className = this.classes.parentContent; tabcontent3.append(tabcontent4);
+        const tabcontent2 = document.createElement("div"); tabcontent2.className = this.classes.itemContainer + ' ' + this.classes.thin + ' ' + this.classes.scrollerBase + ' ' + this.classes.fade; tabcontent2.style = "overflow: hidden scroll; padding-right: 0px"; tabcontent2.append(tabcontent3);
+        const tabcontent1 = document.createElement("div"); tabcontent1.className = this.classes.childContent; tabcontent1.append(tabcontent2);
         // imgtab
         this.imgtab = document.createElement("div");
         this.imgtab.id = "image-picker-tab-panel";
         this.imgtab.setAttribute("role", "tabpanel");
         this.imgtab.setAttribute("aria-labelledby", "image-picker-tab");
-        this.imgtab.className = "container-3ISnnM da-container";
+        this.imgtab.className = this.classes.tabContainer;
         this.imgtab.append(tabheader);
         this.imgtab.append(tabcontent1);
         this.sectiondiv.append(this.imgtab, this.sectiondiv.lastChild);
@@ -159,11 +186,11 @@ class FavoriteImageVideo {
             if (item.id.startsWith(type)) {
                 item.setAttribute("aria-selected", true);
                 item.firstChild.setAttribute("aria-current", "page");
-                item.firstChild.className = classes_selected;
+                item.firstChild.className = this.classes_selected;
             } else {
                 item.setAttribute("aria-selected", false);
                 item.firstChild.removeAttribute("aria-current");
-                item.firstChild.className = classes_notselected;
+                item.firstChild.className = this.classes_notselected;
             }
         }
         this.sectiondiv.lastChild.style = "display:none;";
@@ -172,8 +199,8 @@ class FavoriteImageVideo {
             this.sectiondiv.childNodes[2].style = "display:none;";
             this.sectiondiv.lastChild.style = "";
         } else {
-            if (type === "image")   this.sectiondiv.childNodes[2].style = "display:none;";
-            else                        this.sectiondiv.childNodes[1].style = "display:none;";
+            if (type === "image") this.sectiondiv.childNodes[2].style = "display:none;";
+            else this.sectiondiv.childNodes[1].style = "display:none;";
         }
     }
     switchToImageTab() {
@@ -229,13 +256,13 @@ class FavoriteImageVideo {
     createImageItem(url) {
         // image item
         let imgitem = document.createElement("div");
-        imgitem.className = "result-3w1ZcL";
+        imgitem.className = this.classes.result;
         imgitem.setAttribute("tabindex", -1);
         imgitem.setAttribute("role", "button");
         imgitem.style = "margin: 0 0.375em 0.75em 0.375em;";
         imgitem.onclick = () => {
             if (this.checkImageFavorited(url)) {
-                require('electron').clipboard.writeText(url);
+                this.clipboard.writeText(url);
                 BdApi.showToast("Copied to clipboard!", {timeout: 500});
                 this.sectiondiv.parentNode.parentNode.style.display = "none";
             }
@@ -243,10 +270,10 @@ class FavoriteImageVideo {
         // image
         let imgitemimg = document.createElement("img");
         imgitemimg.alt = "";
-        imgitemimg.className = "gif-1TcNIB";
+        imgitemimg.className = this.classes.gif;
         imgitemimg.setAttribute("src", url);
         // fav button
-        imgitem.innerHTML = favbtn_tab;
+        imgitem.innerHTML = this.favbtn_tab;
         imgitem.firstChild.onclick = () => {
             this.favoriteImage(imgitemimg);
             this.switchToImageTab();
@@ -258,13 +285,13 @@ class FavoriteImageVideo {
     createVideoItem({url, poster}) {
         // video item
         let videoitem = document.createElement("div");
-        videoitem.className = "result-3w1ZcL";
+        videoitem.className = this.classes.result;
         videoitem.setAttribute("tabindex", -1);
         videoitem.setAttribute("role", "button");
         videoitem.style = "margin: 0 0.375em 0.75em 0.375em;";
         videoitem.onclick = () => {
             if (this.checkVideoFavorited(poster)) {
-                require('electron').clipboard.writeText(url);
+                this.clipboard.writeText(url);
                 BdApi.showToast("Copied to clipboard!", {timeout: 500});
                 this.sectiondiv.parentNode.parentNode.style.display = "none";
             }
@@ -272,11 +299,11 @@ class FavoriteImageVideo {
         // video
         let videoitemvideo = document.createElement("img");
         videoitemvideo.alt = "";
-        videoitemvideo.className = "gif-1TcNIB";
+        videoitemvideo.className = this.classes.gif;
         videoitemvideo.setAttribute("src", poster);
         videoitemvideo.setAttribute("poster", url);
         // fav button
-        videoitem.innerHTML = favbtn_tab;
+        videoitem.innerHTML = this.favbtn_tab;
         videoitem.firstChild.onclick = () => {
             this.favoriteVideo(videoitemvideo, videoitemvideo.parentNode.parentNode, true);
             this.switchToVideoTab();
@@ -289,17 +316,17 @@ class FavoriteImageVideo {
         let url = node.firstChild.href;
         let tmp = document.createElement("div");
         tmp.id = "favbtn_image";
-        tmp.className = "size-3rN-gI";
+        tmp.className = this.classes.size;
         tmp.setAttribute("tabindex", -1);
         tmp.setAttribute("role", "button");
-        tmp.innerHTML = favsvg_notfilled;
+        tmp.innerHTML = this.favsvg_notfilled;
         node.append(tmp);
         node.lastChild.onclick = () => { this.favoriteImage(node.firstChild) };
         if (this.checkImageFavorited(url)) {
-            node.lastChild.innerHTML = favsvg_filled;
+            node.lastChild.innerHTML = this.favsvg_filled;
             node.lastChild.classList.add("favorited");
         } else {
-            node.lastChild.innerHTML = favsvg_notfilled;
+            node.lastChild.innerHTML = this.favsvg_notfilled;
             node.lastChild.classList.remove("favorited");
         }
     }
@@ -307,17 +334,17 @@ class FavoriteImageVideo {
         let parent = node.parentNode;
         let tmp = document.createElement("div");
         tmp.id = "favbtn_video";
-        tmp.className = "size-3rN-gI";
+        tmp.className = this.classes.size;
         tmp.setAttribute("tabindex", -1);
         tmp.setAttribute("role", "button");
-        tmp.innerHTML = favsvg_notfilled;
+        tmp.innerHTML = this.favsvg_notfilled;
         parent.append(tmp);
         parent.lastChild.onclick = () => { this.favoriteVideo(node, parent, false) };
         if (this.checkVideoFavorited(node.poster)) {
-            parent.lastChild.innerHTML = favsvg_filled;
+            parent.lastChild.innerHTML = this.favsvg_filled;
             parent.lastChild.classList.add("favorited");
         } else {
-            parent.lastChild.innerHTML = favsvg_notfilled;
+            parent.lastChild.innerHTML = this.favsvg_notfilled;
             parent.lastChild.classList.remove("favorited");
         }
     }
@@ -335,11 +362,11 @@ class FavoriteImageVideo {
         let urls = BdApi.loadData(this.getName(), "image");
         if (this.checkImageFavorited(url)) {
             urls = urls.filter(u => u !== url)
-            origin.parentNode.lastChild.innerHTML = favsvg_notfilled;
+            origin.parentNode.lastChild.innerHTML = this.favsvg_notfilled;
             origin.parentNode.lastChild.classList.remove("favorited");
         } else {
             urls.push(url);
-            origin.parentNode.lastChild.innerHTML = favsvg_filled;
+            origin.parentNode.lastChild.innerHTML = this.favsvg_filled;
             origin.parentNode.lastChild.classList.add("favorited");
         }
         BdApi.saveData(this.getName(), "image", urls.filter(u => u !== null || u !== undefined));
@@ -354,13 +381,13 @@ class FavoriteImageVideo {
         let urls = BdApi.loadData(this.getName(), "video");
         if (this.checkVideoFavorited(poster)) {
             urls = urls.filter(o => o && o.poster !== poster)
-            parent.lastChild.innerHTML = favsvg_notfilled;
+            parent.lastChild.innerHTML = this.favsvg_notfilled;
             parent.lastChild.classList.remove("favorited");
         } else {
             urls.push({url:url, poster: poster});
-            parent.lastChild.innerHTML = favsvg_filled;
+            parent.lastChild.innerHTML = this.favsvg_filled;
             parent.lastChild.classList.add("favorited");
         }
         BdApi.saveData(this.getName(), "video", urls.filter(u => u !== null || u !== undefined));
-    }
+    }    
 }
