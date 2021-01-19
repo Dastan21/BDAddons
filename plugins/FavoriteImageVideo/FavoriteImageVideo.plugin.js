@@ -10,7 +10,7 @@ class FavoriteImageVideo {
         info: {
             name: "FavoriteImageVideo",
             author: "Dastan21",
-            version: "1.1.0",
+            version: "1.1.1",
             description: "Adds two buttons, on the GIF/Emojis tab, to bookmark images and videos."
         }
     };
@@ -59,8 +59,12 @@ class FavoriteImageVideo {
 
     start() {
         this.clipboard = require('electron').clipboard;
-        BdApi.saveData(this.getName(), "image", BdApi.loadData(this.getName(), "image").filter(i => i !== null || i != undefined));
-        BdApi.saveData(this.getName(), "video", BdApi.loadData(this.getName(), "video").filter(i => i !== null || i != undefined));
+        const images = BdApi.loadData(this.getName(), "image");
+        if (images) BdApi.saveData(this.getName(), "image", images.filter(i => i !== null || i != undefined));
+        else BdApi.saveData(this.getName(), "image", []);
+        const videos = BdApi.loadData(this.getName(), "video");
+        if (videos) BdApi.saveData(this.getName(), "video", videos.filter(i => i !== null || i != undefined));
+        else BdApi.saveData(this.getName(), "videos", []);
         BdApi.injectCSS('FavoriteImageVideo', `
             .${this.classes.message.split(' ')[0]} div a:hover + #favbtn_image, .${this.classes.message.split(' ')[0]} div #favbtn_image:hover {
                 opacity: 1;
