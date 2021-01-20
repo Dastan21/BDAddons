@@ -10,7 +10,7 @@ class FavoriteImageVideo {
         info: {
             name: "FavoriteImageVideo",
             author: "Dastan21",
-            version: "1.1.1",
+            version: "1.1.2",
             description: "Adds two buttons, on the GIF/Emojis tab, to bookmark images and videos."
         }
     };
@@ -284,7 +284,7 @@ class FavoriteImageVideo {
             if (this.checkImageFavorited(url)) {
                 this.clipboard.writeText(url);
                 BdApi.showToast("Copied to clipboard!", {timeout: 500});
-                this.sectiondiv.parentNode.parentNode.style.display = "none";
+                // this.sectiondiv.parentNode.parentNode.style.display = "none";
             }
         };
         // image
@@ -299,7 +299,7 @@ class FavoriteImageVideo {
             this.switchToImageTab();
         };
         imgitem.prepend(imgitemimg);
-        
+
         return imgitem;
     }
     createVideoItem({url, poster}) {
@@ -313,7 +313,7 @@ class FavoriteImageVideo {
             if (this.checkVideoFavorited(poster)) {
                 this.clipboard.writeText(url);
                 BdApi.showToast("Copied to clipboard!", {timeout: 500});
-                this.sectiondiv.parentNode.parentNode.style.display = "none";
+                // this.sectiondiv.parentNode.parentNode.style.display = "none";
             }
         };
         // video
@@ -329,7 +329,7 @@ class FavoriteImageVideo {
             this.switchToVideoTab();
         };
         videoitem.append(videoitemvideo);
-        
+
         return videoitem;
     }
     createEmptyItem(type) {
@@ -340,12 +340,12 @@ class FavoriteImageVideo {
     }
     checkForImagesVideos(node) {
         for (let media of node.childNodes) {
-            if (media && media.parentNode && media.parentNode.lastChild && media.parentNode.lastChild.id !== "favbtn_image") {
+            if (media && media.parentNode && media.parentNode.lastChild && media.parentNode.lastChild.id !== "favbtn_image" && media.tagName !== "IFRAME") {
                 if (media.firstChild && media.firstChild.tagName === "IMG") this.addFavButtonOnImage(media);
                 if (media.firstChild.firstChild && media.firstChild.tagName === "A" && media.firstChild.firstChild && media.firstChild.firstChild.tagName === "IMG") this.addFavButtonOnImage(media.firstChild);
             }
-            if (media.firstChild && media.firstChild.firstChild && media.firstChild.firstChild.firstChild && media.firstChild.firstChild.firstChild.firstChild && media.firstChild.firstChild.firstChild.firstChild.tagName === "VIDEO") this.addFavButtonOnVideo(media.firstChild.firstChild.firstChild.firstChild); 
-            if (media.firstChild && media.firstChild.tagName !== "A" && media.firstChild.childNodes[1] && media.firstChild.childNodes[1].tagName === "VIDEO") this.addFavButtonOnVideo(media.firstChild.childNodes[1]); 
+            if (media.firstChild && media.firstChild.firstChild && media.firstChild.firstChild.firstChild && media.firstChild.firstChild.firstChild.firstChild && media.firstChild.firstChild.firstChild.firstChild.tagName === "VIDEO") this.addFavButtonOnVideo(media.firstChild.firstChild.firstChild.firstChild);
+            if (media.firstChild && media.firstChild.tagName !== "A" && media.firstChild.childNodes[1] && media.firstChild.childNodes[1].tagName === "VIDEO") this.addFavButtonOnVideo(media.firstChild.childNodes[1]);
         }
     }
     addFavButtonOnImage(node) {
@@ -375,15 +375,15 @@ class FavoriteImageVideo {
         tmp.setAttribute("tabindex", -1);
         tmp.setAttribute("role", "button");
         tmp.innerHTML = this.favsvg_notfilled;
-        parent.append(tmp);
-        parent.lastChild.onclick = () => { this.favoriteVideo(node, parent, false) };
+        tmp.onclick = () => { this.favoriteVideo(node, parent, false) };
         if (this.checkVideoFavorited(node.poster)) {
-            parent.lastChild.innerHTML = this.favsvg_filled;
-            parent.lastChild.classList.add("favorited");
+            tmp.innerHTML = this.favsvg_filled;
+            tmp.classList.add("favorited");
         } else {
-            parent.lastChild.innerHTML = this.favsvg_notfilled;
-            parent.lastChild.classList.remove("favorited");
+            tmp.innerHTML = this.favsvg_notfilled;
+            tmp.classList.remove("favorited");
         }
+        parent.append(tmp);
     }
     checkImageFavorited(url) {
         return BdApi.loadData(this.getName(), "image").includes(url);
@@ -409,7 +409,7 @@ class FavoriteImageVideo {
         BdApi.saveData(this.getName(), "image", urls.filter(u => u !== null || u !== undefined));
     }
     favoriteVideo(origin, parent, isFromTab) {
-        let url = origin.src;
+        let url = origin.src.replace("media.discordapp.net", "cdn.discordapp.com");
         let poster = origin.getAttribute("poster");
         if (isFromTab) {
             url = origin.getAttribute("poster");
@@ -421,10 +421,10 @@ class FavoriteImageVideo {
             parent.lastChild.innerHTML = this.favsvg_notfilled;
             parent.lastChild.classList.remove("favorited");
         } else {
-            urls.push({url:url, poster: poster});
+            urls.push({ url: url, poster: poster });
             parent.lastChild.innerHTML = this.favsvg_filled;
             parent.lastChild.classList.add("favorited");
         }
         BdApi.saveData(this.getName(), "video", urls.filter(u => u !== null || u !== undefined));
-    }    
+    }
 }
