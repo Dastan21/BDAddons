@@ -1,3 +1,3 @@
 # FavoriteImageVideo
 
-![example](https://media.giphy.com/media/gdK1rjYkDRY7ZLx5ph/giphy.gif)
+![example](https://media.giphy.com/media/WSwhJfg6e9PNbLMCA0/giphy.gif)
