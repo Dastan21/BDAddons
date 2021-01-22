@@ -10,8 +10,8 @@ class FavoriteImageVideo {
         info: {
             name: "FavoriteImageVideo",
             author: "Dastan21",
-            version: "1.2.0",
-            description: "Adds two buttons, on the GIF/Emojis tab, to bookmark images and videos."
+            version: "1.2.1",
+            description: "Adds Image/Video tabs, on the GIF/Emojis panel, to post favorited images and videos."
         }
     };
     enableButtons = true;
@@ -23,6 +23,7 @@ class FavoriteImageVideo {
     vidtab = null;
     vidlist = null;
     vidbtn = null;
+    tabselected = null;
     classes = {
         size: BdApi.findModuleByProps("size", "gifFavoriteButton", "selected").size,
         iconGif: BdApi.findModuleByProps("size", "gifFavoriteButton", "selected").icon,
@@ -102,7 +103,9 @@ class FavoriteImageVideo {
     }
 
     start() {
-        this.enableButtons = BdApi.loadData(this.getName(), "enableButtons");
+        let enableButtons = BdApi.loadData(this.getName(), "enableButtons");
+        if (enableButtons !== true || enableButtons !== false) { enableButtons = true; BdApi.saveData(this.getName(), "enableButtons", enableButtons); }
+        this.enableButtons = enableButtons;
         const images = BdApi.loadData(this.getName(), "image");
         if (images) BdApi.saveData(this.getName(), "image", images.filter(i => i !== null || i != undefined));
         else BdApi.saveData(this.getName(), "image", []);
@@ -203,7 +206,6 @@ class FavoriteImageVideo {
     updateTabButtons(node) {
         // sectiondiv
         this.sectiondiv = node.firstChild.lastChild;
-        this.sectiondiv.style.display = "none";
         // tab header
         const tabheader = document.createElement("div");
         tabheader.className = this.classes.header;
@@ -228,6 +230,7 @@ class FavoriteImageVideo {
         this.sectiondiv.append(this.vidtab, this.sectiondiv.lastChild);
         // navlist
         this.navlist = this.sectiondiv.firstChild.firstChild;
+        this.navlist.parentNode.style.display = "none";
         // image button
         const imgbtn = this.navlist.lastChild.cloneNode(true);
         imgbtn.firstChild.firstChild.innerHTML = "Image";
@@ -271,7 +274,7 @@ class FavoriteImageVideo {
             if (type === "image") this.sectiondiv.childNodes[2].style = "display:none";
             else this.sectiondiv.childNodes[1].style = "display:none";
         }
-        setTimeout(() => this.sectiondiv.style = "", 0);
+        setTimeout(() => this.navlist.parentNode.style.display = "", 0);
     }
     switchToImageTab() {
         this.imgtab.style = "";
@@ -476,20 +479,11 @@ class FavoriteImageVideo {
         BdApi.saveData(this.getName(), "video", urls.filter(u => u !== null || u !== undefined));
     }
     addButtonsOnChat() {
-        const btns = document.querySelector("."+this.classes.buttons.replace(' ', '.')); if (!btns) return;
-        if (!btns.querySelector(".video-button")) {
-            this.vidbtn = ZLibrary.DOMTools.parseHTML(this.chatvidbtn);
-            this.vidbtn.onclick = () => {
-                BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_GIF_PICKER");
-                setTimeout(() => {
-                    this.switchToVideoTab();
-                    this.updateSelected("video");
-                }, 0);
-            };
-            if (btns.lastChild.firstChild.className.includes("emoji")) btns.append(this.vidbtn);
-            else btns.insertBefore(this.vidbtn, btns.lastChild);
-        }
-        if (!btns.querySelector(".image-button")) {
+        const btnswrapper = document.querySelector("." + this.classes.buttons.replace(' ', '.')); if (!btnswrapper || (btnswrapper && !btnswrapper.firstChild)) return;
+        const btns = ZLibrary.DOMTools.queryAll("." + this.classes.buttonContainer, btnswrapper);
+        if (btns && btns[0]) btns[0].classList.add("gif-button");
+        if (btns && btns[1]) btns[1].classList.add("emoji-button");
+        if (!btnswrapper.querySelector(".image-button")) {
             this.imgbtn = ZLibrary.DOMTools.parseHTML(this.chatimgbtn);
             this.imgbtn.onclick = () => {
                 BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_GIF_PICKER");
@@ -498,8 +492,20 @@ class FavoriteImageVideo {
                     this.updateSelected("image");
                 }, 0);
             };
-            if (btns.lastChild.firstChild.className.includes("emoji")) btns.append(this.imgbtn);
-            else btns.insertBefore(this.imgbtn, btns.lastChild);
+            if (btns[btns.length-1] && btns[btns.length-1].classList.contains("emoji-button")) btnswrapper.append(this.imgbtn);
+            else btnswrapper.insertBefore(this.imgbtn, btnswrapper.lastChild);
+        }
+        if (!btnswrapper.querySelector(".video-button")) {
+            this.vidbtn = ZLibrary.DOMTools.parseHTML(this.chatvidbtn);
+            this.vidbtn.onclick = () => {
+                BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_GIF_PICKER");
+                setTimeout(() => {
+                    this.switchToVideoTab();
+                    this.updateSelected("video");
+                }, 0);
+            };
+            if (btns[btns.length-1] && btns[btns.length-1].classList.contains("emoji-button")) btnswrapper.append(this.vidbtn);
+            else btnswrapper.insertBefore(this.vidbtn, btnswrapper.lastChild);
         }
     }
     removeChatButtons() {
