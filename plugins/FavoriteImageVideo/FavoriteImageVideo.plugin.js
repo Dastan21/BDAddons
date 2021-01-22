@@ -10,7 +10,7 @@ class FavoriteImageVideo {
         info: {
             name: "FavoriteImageVideo",
             author: "Dastan21",
-            version: "1.2.1",
+            version: "1.2.2",
             description: "Adds Image/Video tabs, on the GIF/Emojis panel, to post favorited images and videos."
         }
     };
@@ -58,7 +58,8 @@ class FavoriteImageVideo {
         slateTextArea: BdApi.findModuleByProps("slateContainer", "slateTextArea", "placeholder").slateTextArea,
         positionContainer: BdApi.findModuleByProps("positionContainer", "positionContainerEditingMessage", "drawerSizingWrapper").positionContainer,
         emojiButtonNormal: BdApi.findModuleByProps("emojiButton", "emojiButtonHovered", "emojiButtonNormal").emojiButtonNormal,
-        emojiButtonHovered: BdApi.findModuleByProps("emojiButton", "emojiButtonHovered", "emojiButtonNormal").emojiButtonHovered
+        emojiButtonHovered: BdApi.findModuleByProps("emojiButton", "emojiButtonHovered", "emojiButtonNormal").emojiButtonHovered,
+        messageContainer: BdApi.findModuleByProps("container", "gifFavoriteButton", "embedWrapper").container
     };
     favsvg_filled = `<svg class="${this.classes.size}" aria-hidden="false" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12.5,17.6l3.6,2.2a1,1,0,0,0,1.5-1.1l-1-4.1a1,1,0,0,1,.3-1l3.2-2.8A1,1,0,0,0,19.5,9l-4.2-.4a.87.87,0,0,1-.8-.6L12.9,4.1a1.05,1.05,0,0,0-1.9,0l-1.6,4a1,1,0,0,1-.8.6L4.4,9a1.06,1.06,0,0,0-.6,1.8L7,13.6a.91.91,0,0,1,.3,1l-1,4.1a1,1,0,0,0,1.5,1.1l3.6-2.2A1.08,1.08,0,0,1,12.5,17.6Z"/></svg>`;
     favsvg_notfilled = `<svg class="${this.classes.iconGif}" aria-hidden="false" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M19.6,9l-4.2-0.4c-0.4,0-0.7-0.3-0.8-0.6l-1.6-3.9c-0.3-0.8-1.5-0.8-1.8,0L9.4,8.1C9.3,8.4,9,8.6,8.6,8.7L4.4,9 c-0.9,0.1-1.2,1.2-0.6,1.8L7,13.6c0.3,0.2,0.4,0.6,0.3,1l-1,4.1c-0.2,0.9,0.7,1.5,1.5,1.1l3.6-2.2c0.3-0.2,0.7-0.2,1,0l3.6,2.2 c0.8,0.5,1.7-0.2,1.5-1.1l-1-4.1c-0.1-0.4,0-0.7,0.3-1l3.2-2.8C20.9,10.2,20.5,9.1,19.6,9z M12,15.4l-3.8,2.3l1-4.3l-3.3-2.9 l4.4-0.4l1.7-4l1.7,4l4.4,0.4l-3.3,2.9l1,4.3L12,15.4z"/></svg>`;
@@ -115,7 +116,7 @@ class FavoriteImageVideo {
         Object.defineProperties(this.press, { keyCode: { value: 13 }, which: { value: 13 } });
         if (this.enableButtons) this.addButtonsOnChat();
         BdApi.injectCSS('FavoriteImageVideo', `
-            .${this.classes.message.split(' ')[0]} div a:hover + #favbtn_image, .${this.classes.message.split(' ')[0]} div #favbtn_image:hover {
+            .${this.classes.message.split(' ')[0]} div a:hover ~ #favbtn_image, .${this.classes.message.split(' ')[0]} div #favbtn_image:hover {
                 opacity: 1;
                 -webkit-transform: none;
                 transform: none;
@@ -201,7 +202,7 @@ class FavoriteImageVideo {
         // On GIF/Emoji tab open/close
         if (e.addedNodes[0] && e.addedNodes[0].tagName === "SECTION" && e.previousSibling) this.updateTabButtons(e.addedNodes[0]);
         // On media hover
-        if (e.target && typeof (e.target.className) === "string" && e.target.className.includes(this.classes.message) && e.target.childNodes[1] && e.target.childNodes[e.target.childElementCount-2].childElementCount) this.checkForImagesVideos(e.target.childNodes[1]);
+        if (e.target && typeof (e.target.className) === "string" && e.target.className.includes(this.classes.message) && e.target.querySelector("." + this.classes.messageContainer.split(' ')[0]) && e.target.childNodes[e.target.childElementCount - 2].childElementCount) this.checkForImagesVideos(e.target.querySelector("." + this.classes.messageContainer.split(' ')[0]));
     }
     updateTabButtons(node) {
         // sectiondiv
@@ -393,7 +394,7 @@ class FavoriteImageVideo {
     }
     checkForImagesVideos(node) {
         for (let media of node.childNodes) {
-            if (media && media.parentNode && media.parentNode.lastChild && media.parentNode.lastChild.id !== "favbtn_image" && media.tagName !== "IFRAME") {
+            if (media && media.parentNode && media.parentNode.lastChild && media.parentNode.lastChild.id !== "favbtn_image" && media.tagName !== "IFRAME" && media.firstChild && !media.firstChild.title) {
                 if (media.firstChild && media.firstChild.tagName === "IMG") this.addFavButtonOnImage(media);
                 if (media.firstChild && media.firstChild.firstChild && media.firstChild.tagName === "A" && media.firstChild.firstChild && media.firstChild.firstChild.tagName === "IMG") this.addFavButtonOnImage(media.firstChild);
             }
@@ -453,7 +454,7 @@ class FavoriteImageVideo {
             origin.parentNode.lastChild.innerHTML = this.favsvg_notfilled;
             origin.parentNode.lastChild.classList.remove("favorited");
         } else {
-            urls.push(url);
+            urls.unshift(url);
             origin.parentNode.lastChild.innerHTML = this.favsvg_filled;
             origin.parentNode.lastChild.classList.add("favorited");
         }
@@ -472,7 +473,7 @@ class FavoriteImageVideo {
             parent.lastChild.innerHTML = this.favsvg_notfilled;
             parent.lastChild.classList.remove("favorited");
         } else {
-            urls.push({url:url, poster: poster});
+            urls.unshift({url:url, poster: poster});
             parent.lastChild.innerHTML = this.favsvg_filled;
             parent.lastChild.classList.add("favorited");
         }
