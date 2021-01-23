@@ -10,7 +10,7 @@ class FavoriteImageVideo {
         info: {
             name: "FavoriteImageVideo",
             author: "Dastan21",
-            version: "1.2.2",
+            version: "1.2.3",
             description: "Adds Image/Video tabs, on the GIF/Emojis panel, to post favorited images and videos."
         }
     };
@@ -105,14 +105,13 @@ class FavoriteImageVideo {
 
     start() {
         let enableButtons = BdApi.loadData(this.getName(), "enableButtons");
-        if (enableButtons !== true || enableButtons !== false) { enableButtons = true; BdApi.saveData(this.getName(), "enableButtons", enableButtons); }
-        this.enableButtons = enableButtons;
+        if (enableButtons !== true || enableButtons !== false) { enableButtons = true; BdApi.saveData(this.getName(), "enableButtons", enableButtons); } this.enableButtons = enableButtons;
         const images = BdApi.loadData(this.getName(), "image");
         if (images) BdApi.saveData(this.getName(), "image", images.filter(i => i !== null || i != undefined));
         else BdApi.saveData(this.getName(), "image", []);
         const videos = BdApi.loadData(this.getName(), "video");
         if (videos) BdApi.saveData(this.getName(), "video", videos.filter(i => i !== null || i != undefined));
-        else BdApi.saveData(this.getName(), "videos", []);
+        else BdApi.saveData(this.getName(), "video", []);
         Object.defineProperties(this.press, { keyCode: { value: 13 }, which: { value: 13 } });
         if (this.enableButtons) this.addButtonsOnChat();
         BdApi.injectCSS('FavoriteImageVideo', `
@@ -207,6 +206,7 @@ class FavoriteImageVideo {
     updateTabButtons(node) {
         // sectiondiv
         this.sectiondiv = node.firstChild.lastChild;
+        this.sectiondiv.parentNode.parentNode.style.opacity = 0;
         // tab header
         const tabheader = document.createElement("div");
         tabheader.className = this.classes.header;
@@ -231,7 +231,6 @@ class FavoriteImageVideo {
         this.sectiondiv.append(this.vidtab, this.sectiondiv.lastChild);
         // navlist
         this.navlist = this.sectiondiv.firstChild.firstChild;
-        this.navlist.parentNode.style.display = "none";
         // image button
         const imgbtn = this.navlist.lastChild.cloneNode(true);
         imgbtn.firstChild.firstChild.innerHTML = "Image";
@@ -275,7 +274,7 @@ class FavoriteImageVideo {
             if (type === "image") this.sectiondiv.childNodes[2].style = "display:none";
             else this.sectiondiv.childNodes[1].style = "display:none";
         }
-        setTimeout(() => this.navlist.parentNode.style.display = "", 0);
+        setTimeout(() => this.sectiondiv.parentNode.parentNode.style.opacity = 1, 100);
     }
     switchToImageTab() {
         this.imgtab.style = "";
@@ -481,12 +480,13 @@ class FavoriteImageVideo {
     }
     addButtonsOnChat() {
         const btnswrapper = document.querySelector("." + this.classes.buttons.replace(' ', '.')); if (!btnswrapper || (btnswrapper && !btnswrapper.firstChild)) return;
-        const btns = ZLibrary.DOMTools.queryAll("." + this.classes.buttonContainer, btnswrapper);
-        if (btns && btns[0]) btns[0].classList.add("gif-button");
-        if (btns && btns[1]) btns[1].classList.add("emoji-button");
+        const btns = ZLibrary.DOMTools.queryAll("." + this.classes.buttonContainer, btnswrapper); if (!btns) return;
+        if (btns[0]) btns[0].classList.add("gif-button");
+        if (btns[1] && btns[1].firstChild && btns[1].firstChild.className.includes("emoji")) btns[1].classList.add("emoji-button");
+        else { btns[0].classList.add("emoji-button"); btns[0].classList.remove("gif-button"); }
         if (!btnswrapper.querySelector(".image-button")) {
             this.imgbtn = ZLibrary.DOMTools.parseHTML(this.chatimgbtn);
-            this.imgbtn.onclick = () => {
+            this.imgbtn.firstChild.onclick = () => {
                 BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_GIF_PICKER");
                 setTimeout(() => {
                     this.switchToImageTab();
@@ -498,7 +498,7 @@ class FavoriteImageVideo {
         }
         if (!btnswrapper.querySelector(".video-button")) {
             this.vidbtn = ZLibrary.DOMTools.parseHTML(this.chatvidbtn);
-            this.vidbtn.onclick = () => {
+            this.vidbtn.firstChild.onclick = () => {
                 BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_GIF_PICKER");
                 setTimeout(() => {
                     this.switchToVideoTab();
