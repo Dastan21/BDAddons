@@ -480,10 +480,10 @@ class FavoriteImageVideo {
     }
     addButtonsOnChat() {
         const btnswrapper = document.querySelector("." + this.classes.buttons.replace(' ', '.')); if (!btnswrapper || (btnswrapper && !btnswrapper.firstChild)) return;
-        const btns = ZLibrary.DOMTools.queryAll("." + this.classes.buttonContainer, btnswrapper); if (!btns) return;
+        const btns = ZLibrary.DOMTools.queryAll("." + this.classes.buttonContainer.replace(' ', '.'), btnswrapper); if (!btns) return;
         if (btns[0]) btns[0].classList.add("gif-button");
         if (btns[1] && btns[1].firstChild && btns[1].firstChild.className.includes("emoji")) btns[1].classList.add("emoji-button");
-        else { btns[0].classList.add("emoji-button"); btns[0].classList.remove("gif-button"); }
+        else if (btns[0]) { btns[0].classList.add("emoji-button"); btns[0].classList.remove("gif-button"); }
         if (!btnswrapper.querySelector(".image-button")) {
             this.imgbtn = ZLibrary.DOMTools.parseHTML(this.chatimgbtn);
             this.imgbtn.firstChild.onclick = () => {
