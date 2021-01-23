@@ -10,7 +10,7 @@ class FavoriteImageVideo {
         info: {
             name: "FavoriteImageVideo",
             author: "Dastan21",
-            version: "1.2.3",
+            version: "1.2.4",
             description: "Adds Image/Video tabs, on the GIF/Emojis panel, to post favorited images and videos."
         }
     };
