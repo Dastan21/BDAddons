@@ -198,7 +198,7 @@ class FavoriteImageVideo {
         // Chat right buttons
         if (this.enableButtons && e.addedNodes[0] && e.addedNodes[0].tagName === "SECTION") this.addButtonsOnChat();
         // On GIF/Emoji tab open/close
-        if (e.addedNodes[0] && e.addedNodes[0].tagName === "SECTION" && e.previousSibling && e.previousSibling.tagName === "DIV") this.updateTabButtons(e.addedNodes[0]);
+        if (e.addedNodes[0] && e.addedNodes[0].tagName === "SECTION") this.updateTabButtons(e.addedNodes[0]);
         // On media hover
         if (e.target && typeof (e.target.className) === "string" && e.target.className.includes(this.classes.message) && e.target.querySelector("." + this.classes.messageContainer.split(' ')[0]) && e.target.childNodes[e.target.childElementCount - 2].childElementCount) this.checkForImagesVideos(e.target.querySelector("." + this.classes.messageContainer.split(' ')[0]));
     }
