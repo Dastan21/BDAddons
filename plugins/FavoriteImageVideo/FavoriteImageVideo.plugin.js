@@ -10,7 +10,7 @@ class FavoriteImageVideo {
         info: {
             name: "FavoriteImageVideo",
             author: "Dastan21",
-            version: "1.2.7",
+            version: "1.2.8",
             description: "Adds Image/Video tabs, on the GIF/Emojis panel, to post favorited images and videos."
         }
     };
@@ -198,7 +198,7 @@ class FavoriteImageVideo {
         // Chat right buttons
         if (this.enableButtons && e.addedNodes[0] && e.addedNodes[0].tagName === "SECTION") this.addButtonsOnChat();
         // On GIF/Emoji tab open/close
-        if (e.addedNodes[0] && e.addedNodes[0].tagName === "SECTION" && e.addedNodes[0].childElementCount === 1) this.updateTabButtons(e.addedNodes[0]);
+        if (e.target && e.target.tagName === "SECTION" && e.target.classList.contains(this.classes.positionContainer)) this.updateTabButtons(e.target);
         // On media hover
         if (e.target && typeof (e.target.className) === "string" && e.target.className.includes(this.classes.message) && e.target.querySelector("." + this.classes.messageContainer.split(' ')[0]) && e.target.childNodes[e.target.childElementCount - 2].childElementCount) this.checkForImagesVideos(e.target.querySelector("." + this.classes.messageContainer.split(' ')[0]));
     }
@@ -351,10 +351,10 @@ class FavoriteImageVideo {
             this.switchToImageTab();
         };
         imgitem.prepend(imgitemimg);
-        
+
         return imgitem;
     }
-    createVideoItem({url, poster}) {
+    createVideoItem({ url, poster }) {
         // video item
         let videoitem = document.createElement("div");
         videoitem.className = this.classes.result;
@@ -375,7 +375,7 @@ class FavoriteImageVideo {
             this.switchToVideoTab();
         };
         videoitem.append(videoitemvideo);
-        
+
         return videoitem;
     }
     createEmptyItem(type) {
@@ -396,8 +396,8 @@ class FavoriteImageVideo {
                 if (media.firstChild && media.firstChild.tagName === "IMG") this.addFavButtonOnImage(media);
                 if (media.firstChild && media.firstChild.firstChild && media.firstChild.tagName === "A" && media.firstChild.firstChild && media.firstChild.firstChild.tagName === "IMG") this.addFavButtonOnImage(media.firstChild);
             }
-            if (media.firstChild && media.firstChild.firstChild && media.firstChild.firstChild.firstChild && media.firstChild.firstChild.firstChild.firstChild && media.firstChild.firstChild.firstChild.firstChild.tagName === "VIDEO") this.addFavButtonOnVideo(media.firstChild.firstChild.firstChild.firstChild); 
-            if (media.firstChild && media.firstChild.tagName !== "A" && media.firstChild.childNodes[1] && media.firstChild.childNodes[1].tagName === "VIDEO") this.addFavButtonOnVideo(media.firstChild.childNodes[1]); 
+            if (media.firstChild && media.firstChild.firstChild && media.firstChild.firstChild.firstChild && media.firstChild.firstChild.firstChild.firstChild && media.firstChild.firstChild.firstChild.firstChild.tagName === "VIDEO") this.addFavButtonOnVideo(media.firstChild.firstChild.firstChild.firstChild);
+            if (media.firstChild && media.firstChild.tagName !== "A" && media.firstChild.childNodes[1] && media.firstChild.childNodes[1].tagName === "VIDEO") this.addFavButtonOnVideo(media.firstChild.childNodes[1]);
         }
     }
     addFavButtonOnImage(node) {
@@ -471,7 +471,7 @@ class FavoriteImageVideo {
             parent.lastChild.innerHTML = this.favsvg_notfilled;
             parent.lastChild.classList.remove("favorited");
         } else {
-            urls.unshift({url:url, poster: poster});
+            urls.unshift({ url: url, poster: poster });
             parent.lastChild.innerHTML = this.favsvg_filled;
             parent.lastChild.classList.add("favorited");
         }
@@ -492,7 +492,7 @@ class FavoriteImageVideo {
                     this.updateSelected("image");
                 }, 0);
             };
-            if (btns[btns.length-1] && btns[btns.length-1].classList.contains("emoji-button")) btnswrapper.append(this.imgbtn);
+            if (btns[btns.length - 1] && btns[btns.length - 1].classList.contains("emoji-button")) btnswrapper.append(this.imgbtn);
             else btnswrapper.insertBefore(this.imgbtn, btnswrapper.lastChild);
         }
         if (!btnswrapper.querySelector(".video-button")) {
@@ -504,12 +504,42 @@ class FavoriteImageVideo {
                     this.updateSelected("video");
                 }, 0);
             };
-            if (btns[btns.length-1] && btns[btns.length-1].classList.contains("emoji-button")) btnswrapper.append(this.vidbtn);
+            if (btns[btns.length - 1] && btns[btns.length - 1].classList.contains("emoji-button")) btnswrapper.append(this.vidbtn);
             else btnswrapper.insertBefore(this.vidbtn, btnswrapper.lastChild);
         }
     }
     removeChatButtons() {
         if (this.imgbtn) { this.imgbtn.remove(); this.imgbtn = null; }
         if (this.vidbtn) { this.vidbtn.remove(); this.imgbtn = null; }
+    }
+}
+
+
+
+function findClassModule(className = "") {
+    let all = BdApi.findAllModules(m => m), foundKeys, foundModule, matchKey;
+
+    for (const module of all) {
+        if ((typeof (module) != "object") || (module === null)) continue;
+        const keys = Object.keys(module);
+
+        const has = keys.some(e => {
+            if (typeof (module[e]) !== "string") return false;
+
+            const matches = module[e].toLowerCase().indexOf(className.toLowerCase()) > -1;
+            if (!matches) return false;
+
+            matchKey = e;
+            return true;
+        });
+        if (!has) continue;
+        foundKeys = keys.slice(0, 3);
+        foundModule = module;
+        break;
+    }
+    return {
+        module: foundModule,
+        suggestedSelector: foundKeys,
+        foundClassName: { [matchKey]: foundModule[matchKey] }
     }
 }
