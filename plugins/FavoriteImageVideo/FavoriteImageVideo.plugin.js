@@ -10,7 +10,7 @@ class FavoriteImageVideo {
         info: {
             name: "FavoriteImageVideo",
             author: "Dastan21",
-            version: "1.2.8",
+            version: "1.2.9",
             description: "Adds Image/Video tabs, on the GIF/Emojis panel, to post favorited images and videos."
         }
     };
@@ -29,8 +29,8 @@ class FavoriteImageVideo {
         gifFavoriteButton: BdApi.findModuleByProps("size", "gifFavoriteButton", "selected").gifFavoriteButton,
         selected: BdApi.findModuleByProps("size", "gifFavoriteButton", "selected").selected,
         favButton: BdApi.findModuleByProps("desiredItemWidth", "results", "result").favButton,
-        navButton: BdApi.findModuleByProps("positionContainer", "positionContainerEditingMessage", "drawerSizingWrapper").navButton,
-        navButtonActive: BdApi.findModuleByProps("positionContainer", "positionContainerEditingMessage", "drawerSizingWrapper").navButtonActive,
+        navButton: BdApi.findModuleByProps("positionLayer", "positionContainer", "positionContainerOnlyEmoji").navButton,
+        navButtonActive: BdApi.findModuleByProps("positionLayer", "positionContainer", "positionContainerOnlyEmoji").navButtonActive,
         button: BdApi.findModuleByProps("button", "lookFilled", "colorBrand").button,
         lookBlank: BdApi.findModuleByProps("button", "lookFilled", "colorBrand").lookBlank,
         colorBrand: BdApi.findModuleByProps("button", "lookFilled", "colorBrand").colorBrand,
@@ -55,10 +55,12 @@ class FavoriteImageVideo {
         button2: BdApi.findModuleByProps("textAreaHeight", "channelTextArea", "highlighted").button,
         buttonWrapper: BdApi.findModuleByProps("hoverScale", "buttonWrapper", "button").buttonWrapper,
         slateTextArea: BdApi.findModuleByProps("slateContainer", "slateTextArea", "placeholder").slateTextArea,
-        positionContainer: BdApi.findModuleByProps("positionContainer", "positionContainerEditingMessage", "drawerSizingWrapper").positionContainer,
         emojiButtonNormal: BdApi.findModuleByProps("emojiButton", "emojiButtonHovered", "emojiButtonNormal").emojiButtonNormal,
         emojiButtonHovered: BdApi.findModuleByProps("emojiButton", "emojiButtonHovered", "emojiButtonNormal").emojiButtonHovered,
-        messageContainer: BdApi.findModuleByProps("container", "gifFavoriteButton", "embedWrapper").container
+        messageContainer: BdApi.findModuleByProps("container", "gifFavoriteButton", "embedWrapper").container,
+        chatContentDM: BdApi.findModuleByProps("chat", "threadSidebar", "uploadArea").chatContent,
+        chatContentGuild: BdApi.findModuleByProps("chat", "threadSidebar", "uploadArea").chat,
+        positionContainer: BdApi.findModuleByProps("positionLayer", "positionContainer", "positionContainerOnlyEmoji").positionContainer
     };
     favsvg_filled = `<svg class="${this.classes.size}" aria-hidden="false" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12.5,17.6l3.6,2.2a1,1,0,0,0,1.5-1.1l-1-4.1a1,1,0,0,1,.3-1l3.2-2.8A1,1,0,0,0,19.5,9l-4.2-.4a.87.87,0,0,1-.8-.6L12.9,4.1a1.05,1.05,0,0,0-1.9,0l-1.6,4a1,1,0,0,1-.8.6L4.4,9a1.06,1.06,0,0,0-.6,1.8L7,13.6a.91.91,0,0,1,.3,1l-1,4.1a1,1,0,0,0,1.5,1.1l3.6-2.2A1.08,1.08,0,0,1,12.5,17.6Z"/></svg>`;
     favsvg_notfilled = `<svg class="${this.classes.iconGif}" aria-hidden="false" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M19.6,9l-4.2-0.4c-0.4,0-0.7-0.3-0.8-0.6l-1.6-3.9c-0.3-0.8-1.5-0.8-1.8,0L9.4,8.1C9.3,8.4,9,8.6,8.6,8.7L4.4,9 c-0.9,0.1-1.2,1.2-0.6,1.8L7,13.6c0.3,0.2,0.4,0.6,0.3,1l-1,4.1c-0.2,0.9,0.7,1.5,1.5,1.1l3.6-2.2c0.3-0.2,0.7-0.2,1,0l3.6,2.2 c0.8,0.5,1.7-0.2,1.5-1.1l-1-4.1c-0.1-0.4,0-0.7,0.3-1l3.2-2.8C20.9,10.2,20.5,9.1,19.6,9z M12,15.4l-3.8,2.3l1-4.3l-3.3-2.9 l4.4-0.4l1.7-4l1.7,4l4.4,0.4l-3.3,2.9l1,4.3L12,15.4z"/></svg>`;
@@ -196,9 +198,9 @@ class FavoriteImageVideo {
     }
     observer(e) {
         // Chat right buttons
-        if (this.enableButtons && e.addedNodes[0] && e.addedNodes[0].tagName === "SECTION") this.addButtonsOnChat();
+        if (this.enableButtons && e.addedNodes[0] && e.target && (e.target.className === this.classes.chatContentDM || e.target.className === this.classes.chatContentGuild)) this.addButtonsOnChat();
         // On GIF/Emoji tab open/close
-        if (e.target && e.target.tagName === "SECTION" && e.target.classList.contains(this.classes.positionContainer)) this.updateTabButtons(e.target);
+        if (e.addedNodes[0] && e.target && e.target.className === this.classes.positionContainer) this.updateTabButtons(e.target);
         // On media hover
         if (e.target && typeof (e.target.className) === "string" && e.target.className.includes(this.classes.message) && e.target.querySelector("." + this.classes.messageContainer.split(' ')[0]) && e.target.childNodes[e.target.childElementCount - 2].childElementCount) this.checkForImagesVideos(e.target.querySelector("." + this.classes.messageContainer.split(' ')[0]));
     }
@@ -511,35 +513,5 @@ class FavoriteImageVideo {
     removeChatButtons() {
         if (this.imgbtn) { this.imgbtn.remove(); this.imgbtn = null; }
         if (this.vidbtn) { this.vidbtn.remove(); this.imgbtn = null; }
-    }
-}
-
-
-
-function findClassModule(className = "") {
-    let all = BdApi.findAllModules(m => m), foundKeys, foundModule, matchKey;
-
-    for (const module of all) {
-        if ((typeof (module) != "object") || (module === null)) continue;
-        const keys = Object.keys(module);
-
-        const has = keys.some(e => {
-            if (typeof (module[e]) !== "string") return false;
-
-            const matches = module[e].toLowerCase().indexOf(className.toLowerCase()) > -1;
-            if (!matches) return false;
-
-            matchKey = e;
-            return true;
-        });
-        if (!has) continue;
-        foundKeys = keys.slice(0, 3);
-        foundModule = module;
-        break;
-    }
-    return {
-        module: foundModule,
-        suggestedSelector: foundKeys,
-        foundClassName: { [matchKey]: foundModule[matchKey] }
     }
 }
