@@ -10,7 +10,7 @@ class FavoriteImageVideo {
         info: {
             name: "FavoriteImageVideo",
             author: "Dastan21",
-            version: "1.2.9",
+            version: "1.2.10",
             description: "Adds Image/Video tabs, on the GIF/Emojis panel, to post favorited images and videos."
         }
     };
@@ -350,7 +350,10 @@ class FavoriteImageVideo {
         imgitem.innerHTML = this.favbtn_tab;
         imgitem.firstChild.onclick = () => {
             this.favoriteImage(imgitemimg);
-            this.switchToImageTab();
+            setTimeout(() => {
+                this.updateSelected("image");
+                this.switchToImageTab();
+            }, 1);
         };
         imgitem.prepend(imgitemimg);
 
@@ -374,7 +377,10 @@ class FavoriteImageVideo {
         videoitem.innerHTML = this.favbtn_tab;
         videoitem.firstChild.onclick = () => {
             this.favoriteVideo(videoitemvideo, videoitemvideo.parentNode.parentNode, true);
-            this.switchToVideoTab();
+            setTimeout(() => {
+                this.updateSelected("video");
+                this.switchToVideoTab();
+            }, 1);
         };
         videoitem.append(videoitemvideo);
 
