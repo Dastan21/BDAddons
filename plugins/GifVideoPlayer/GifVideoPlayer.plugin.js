@@ -1,7 +1,7 @@
 /**
  * @name GifVideoPlayer
  * @authorId 310450863845933057
- * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteImageVideo
+ * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/GifVideoPlayer
  */
 
 
