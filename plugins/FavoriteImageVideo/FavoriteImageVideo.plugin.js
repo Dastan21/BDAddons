@@ -10,11 +10,12 @@ class FavoriteImageVideo {
 		info: {
 			name: "FavoriteImageVideo",
 			author: "Dastan21",
-			version: "1.2.11",
+			version: "1.2.12",
 			description: "Adds Image/Video tabs, on the GIF/Emojis panel, to post favorited images and videos."
 		}
 	};
 	enableButtons = true;
+	lasttoggled = "";
 	sectiondiv = null;
 	navlist = null;
 	imgtab = null;
@@ -251,9 +252,9 @@ class FavoriteImageVideo {
 		// update menu selected
 		for (let item of this.navlist.childNodes) item.firstChild.onclick = () => this.updateSelected(item.id.split('-')[0]);
 		this.updateSelected(this.sectiondiv.parentNode.lastChild.lastChild.id.split('-')[0]);
-		// add onclick on chat buttons
-		this.sectiondiv.parentNode.parentNode.parentNode.firstChild.firstChild.lastChild.childNodes[1].onclick = () => this.updateSelected("gif");
-		this.sectiondiv.parentNode.parentNode.parentNode.firstChild.firstChild.lastChild.childNodes[2].onclick = () => this.updateSelected("emoji");
+		// add onclick on tab buttons
+		this.sectiondiv.querySelector("#gif-picker-tab").onclick = () => this.lasttoggled = "gif";
+		this.sectiondiv.querySelector("#emoji-picker-tab").onclick = () => this.lasttoggled = "emoji";
 	}
 	updateSelected(type) {
 		if (!type || !this.navlist) return;
@@ -417,8 +418,11 @@ class FavoriteImageVideo {
 	}
 	sendImageVideo(url) {
 		BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("INSERT_TEXT", { content: url });
-		BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_GIF_PICKER");
-		const textarea = document.querySelector("." + this.classes.slateTextArea.replace(' ', '.'));
+		this.lasttoggled === "emoji" ?
+			BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_EMOJI_POPOUT")
+			:
+			BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_GIF_PICKER");
+		const textarea = document.querySelector("." + this.classes.slateTextArea.split(' ')[0]);
 		if (textarea) setTimeout(() => textarea.firstChild.dispatchEvent(this.press), 0);
 	}
 	checkForImagesVideos(node) {
@@ -509,8 +513,8 @@ class FavoriteImageVideo {
 		BdApi.saveData(this.getName(), "video", urls.filter(u => u !== null || u !== undefined));
 	}
 	addButtonsOnChat() {
-		const btnswrapper = document.querySelector("." + this.classes.buttons.replace(' ', '.')); if (!btnswrapper || (btnswrapper && !btnswrapper.firstChild)) return;
-		const btns = ZLibrary.DOMTools.queryAll("." + this.classes.buttonContainer.replace(' ', '.'), btnswrapper); if (!btns) return;
+		const btnswrapper = document.querySelector("." + this.classes.buttons.split(' ')[0]); if (!btnswrapper || (btnswrapper && !btnswrapper.firstChild)) return;
+		const btns = ZLibrary.DOMTools.queryAll("." + this.classes.buttonContainer.split(' ')[0], btnswrapper); if (!btns) return;
 		if (btns[0]) btns[0].classList.add("gif-button");
 		if (btns[1] && btns[1].firstChild && btns[1].firstChild.className.includes("emoji")) btns[1].classList.add("emoji-button");
 		else if (btns[0]) { btns[0].classList.add("emoji-button"); btns[0].classList.remove("gif-button"); }
@@ -538,10 +542,10 @@ class FavoriteImageVideo {
 			if (btns[btns.length - 1] && btns[btns.length - 1].classList.contains("emoji-button")) btnswrapper.append(this.vidbtn);
 			else btnswrapper.insertBefore(this.vidbtn, btnswrapper.lastChild);
 		}
-		const emoji_btn = btnswrapper.querySelector(".emoji-button");
-		if (emoji_btn) emoji_btn.onclick = () => { this.updateSelected("emoji"); }
 		const gif_btn = btnswrapper.querySelector(".gif-button");
-		if (gif_btn) gif_btn.onclick = () => { this.updateSelected("gif"); }
+		if (gif_btn) gif_btn.onclick = () => { this.updateSelected("gif"); this.lasttoggled = "gif"; }
+		const emoji_btn = btnswrapper.querySelector(".emoji-button");
+		if (emoji_btn) emoji_btn.onclick = () => { this.updateSelected("emoji"); this.lasttoggled = "emoji"; }
 	}
 	removeChatButtons() {
 		if (this.imgbtn) { this.imgbtn.remove(); this.imgbtn = null; }
