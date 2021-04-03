@@ -4,13 +4,16 @@
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteImageVideo
  */
 
+const { DiscordAPI, DOMTools, PluginUpdater } = ZLibrary;
 
 class FavoriteImageVideo {
+
+
 	config = {
 		info: {
 			name: "FavoriteImageVideo",
 			author: "Dastan21",
-			version: "1.2.12",
+			version: "1.3.0",
 			description: "Adds Image/Video tabs, on the GIF/Emojis panel, to post favorited images and videos."
 		}
 	};
@@ -117,6 +120,7 @@ class FavoriteImageVideo {
 		else BdApi.saveData(this.getName(), "video", []);
 		Object.defineProperties(this.press, { keyCode: { value: 13 }, which: { value: 13 } });
 		if (this.enableButtons) this.addButtonsOnChat();
+		// Observer
 		BdApi.injectCSS('FavoriteImageVideo', `
             .${this.classes.message.split(' ')[0]} div a:hover ~ #favbtn_image, .${this.classes.message.split(' ')[0]} div #favbtn_image:hover {
                 opacity: 1;
@@ -179,7 +183,7 @@ class FavoriteImageVideo {
 	}
 	load() {
 		if (window.ZLibrary) {
-			ZLibrary.PluginUpdater.checkForUpdate(
+			PluginUpdater.checkForUpdate(
 				this.getName(),
 				this.getVersion(),
 				"https://raw.githubusercontent.com/Dastan21/BDAddons/main/plugins/FavoriteImageVideo/FavoriteImageVideo.plugin.js"
@@ -390,17 +394,20 @@ class FavoriteImageVideo {
 		videoitem.setAttribute("tabindex", -1);
 		videoitem.setAttribute("role", "button");
 		videoitem.style = "margin: 0 0.375em 0.75em 0.375em;";
-		videoitem.onclick = () => { if (this.checkVideoFavorited(poster)) this.sendImageVideo(url); };
+		videoitem.onclick = () => { if (this.checkVideoFavorited(url)) this.sendImageVideo(url); };
 		// video
-		let videoitemvideo = document.createElement("img");
+		let videoitemvideo = document.createElement("video");
 		videoitemvideo.alt = "";
 		videoitemvideo.className = this.classes.gif;
-		videoitemvideo.setAttribute("src", poster);
-		videoitemvideo.setAttribute("poster", url);
+		videoitemvideo.setAttribute("src", url);
+		videoitemvideo.setAttribute("poster", poster);
+		videoitemvideo.setAttribute("loop", true);
+		videoitemvideo.onmouseover = () => videoitemvideo.play().catch(() => { });
+		videoitemvideo.onmouseout = () => videoitemvideo.pause();
 		// fav button
 		videoitem.innerHTML = this.favbtn_tab;
 		videoitem.firstChild.onclick = () => {
-			this.favoriteVideo(videoitemvideo, videoitemvideo.parentNode.parentNode, true);
+			this.favoriteVideo(videoitemvideo, true);
 			setTimeout(() => {
 				this.updateSelected("video");
 				this.switchToVideoTab();
@@ -417,13 +424,11 @@ class FavoriteImageVideo {
 		return emptyitem;
 	}
 	sendImageVideo(url) {
-		BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("INSERT_TEXT", { content: url });
 		this.lasttoggled === "emoji" ?
 			BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_EMOJI_POPOUT")
 			:
 			BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_GIF_PICKER");
-		const textarea = document.querySelector("." + this.classes.slateTextArea.split(' ')[0]);
-		if (textarea) setTimeout(() => textarea.firstChild.dispatchEvent(this.press), 0);
+		DiscordAPI.currentChannel.sendMessage(url);
 	}
 	checkForImagesVideos(node) {
 		for (let media of node.childNodes) {
@@ -460,8 +465,8 @@ class FavoriteImageVideo {
 		tmp.setAttribute("tabindex", -1);
 		tmp.setAttribute("role", "button");
 		tmp.innerHTML = this.favsvg_notfilled;
-		tmp.onclick = () => { this.favoriteVideo(node, node.parentNode, false) };
-		if (this.checkVideoFavorited(node.poster)) {
+		tmp.onclick = () => { this.favoriteVideo(node, false) };
+		if (this.checkVideoFavorited(node.src)) {
 			tmp.innerHTML = this.favsvg_filled;
 			tmp.classList.add("favorited");
 		} else {
@@ -473,9 +478,9 @@ class FavoriteImageVideo {
 	checkImageFavorited(url) {
 		return BdApi.loadData(this.getName(), "image").includes(url);
 	}
-	checkVideoFavorited(poster) {
+	checkVideoFavorited(url) {
 		for (let obj of BdApi.loadData(this.getName(), "video")) {
-			if (obj && obj.poster === poster) return true;
+			if (obj && obj.url.split("attachments")[1] === url.split("attachments")[1]) return true;
 		}
 		return false;
 	}
@@ -493,33 +498,34 @@ class FavoriteImageVideo {
 		}
 		BdApi.saveData(this.getName(), "image", urls.filter(u => u !== null || u !== undefined));
 	}
-	favoriteVideo(origin, parent, isFromTab) {
-		let url = origin.src.replace("media.discordapp.net", "cdn.discordapp.com");
+	favoriteVideo(origin, isFromTab) {
+		let url = origin.src;
 		let poster = origin.getAttribute("poster");
+		let favel = origin.parentNode.lastChild;
 		if (isFromTab) {
-			url = origin.getAttribute("poster");
-			poster = origin.src;
+			url = origin.src;
+			poster = poster;
 		}
 		let urls = BdApi.loadData(this.getName(), "video");
-		if (this.checkVideoFavorited(poster)) {
-			urls = urls.filter(o => o && o.poster !== poster)
-			parent.lastChild.innerHTML = this.favsvg_notfilled;
-			parent.lastChild.classList.remove("favorited");
+		if (this.checkVideoFavorited(url)) {
+			urls = urls.filter(o => o && o.url !== url)
+			favel.innerHTML = this.favsvg_notfilled;
+			favel.classList.remove("favorited");
 		} else {
 			urls.unshift({ url: url, poster: poster });
-			parent.lastChild.innerHTML = this.favsvg_filled;
-			parent.lastChild.classList.add("favorited");
+			favel.innerHTML = this.favsvg_filled;
+			favel.classList.add("favorited");
 		}
 		BdApi.saveData(this.getName(), "video", urls.filter(u => u !== null || u !== undefined));
 	}
 	addButtonsOnChat() {
 		const btnswrapper = document.querySelector("." + this.classes.buttons.split(' ')[0]); if (!btnswrapper || (btnswrapper && !btnswrapper.firstChild)) return;
-		const btns = ZLibrary.DOMTools.queryAll("." + this.classes.buttonContainer.split(' ')[0], btnswrapper); if (!btns) return;
+		const btns = DOMTools.queryAll("." + this.classes.buttonContainer.split(' ')[0], btnswrapper); if (!btns) return;
 		if (btns[0]) btns[0].classList.add("gif-button");
 		if (btns[1] && btns[1].firstChild && btns[1].firstChild.className.includes("emoji")) btns[1].classList.add("emoji-button");
 		else if (btns[0]) { btns[0].classList.add("emoji-button"); btns[0].classList.remove("gif-button"); }
 		if (!btnswrapper.querySelector(".image-button")) {
-			this.imgbtn = ZLibrary.DOMTools.parseHTML(this.chatimgbtn);
+			this.imgbtn = DOMTools.parseHTML(this.chatimgbtn);
 			this.imgbtn.firstChild.onclick = () => {
 				BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_GIF_PICKER");
 				setTimeout(() => {
@@ -531,7 +537,7 @@ class FavoriteImageVideo {
 			else btnswrapper.insertBefore(this.imgbtn, btnswrapper.lastChild);
 		}
 		if (!btnswrapper.querySelector(".video-button")) {
-			this.vidbtn = ZLibrary.DOMTools.parseHTML(this.chatvidbtn);
+			this.vidbtn = DOMTools.parseHTML(this.chatvidbtn);
 			this.vidbtn.firstChild.onclick = () => {
 				BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_GIF_PICKER");
 				setTimeout(() => {
