@@ -13,11 +13,14 @@ class FavoriteImageVideo {
 		info: {
 			name: "FavoriteImageVideo",
 			author: "Dastan21",
-			version: "1.3.0",
+			version: "1.3.1",
 			description: "Adds Image/Video tabs, on the GIF/Emojis panel, to post favorited images and videos."
 		}
 	};
+
 	enableButtons = true;
+	enableVideoAutoplayOnHover = false;
+
 	lasttoggled = "";
 	sectiondiv = null;
 	navlist = null;
@@ -85,33 +88,58 @@ class FavoriteImageVideo {
 		const wrapper = document.createElement("div");
 		wrapper.id = "favoriteImageVideoSettings";
 
-		const button = document.createElement("div");
-		button.classList.add("bd-switch", ...(this.enableButtons ? ["bd-switch-checked"] : []));
+		// Enable buttons
+		const button1 = document.createElement("div");
+		button1.classList.add("bd-switch", ...(this.enableButtons ? ["bd-switch-checked"] : []));
 
-		const input = document.createElement("input");
-		input.type = "checkbox";
-		input.className = "bd-checkbox";
-		button.appendChild(input);
-		input.onclick = () => {
+		const input1 = document.createElement("input");
+		input1.type = "checkbox";
+		input1.className = "bd-checkbox";
+		button1.appendChild(input1);
+		input1.onclick = () => {
 			this.enableButtons = !this.enableButtons;
 			BdApi.saveData(this.getName(), "enableButtons", this.enableButtons);
-			button.classList.remove(...(this.enableButtons ? [] : ["bd-switch-checked"]));
-			button.classList.add(...(this.enableButtons ? ["bd-switch-checked"] : []));
+			button1.classList.remove(...(this.enableButtons ? [] : ["bd-switch-checked"]));
+			button1.classList.add(...(this.enableButtons ? ["bd-switch-checked"] : []));
 			if (this.enableButtons) this.addButtonsOnChat();
 			else this.removeChatButtons();
 		};
 
-		const description = document.createElement("div");
-		description.innerText = "Toggle Image/Video buttons next to GIF/Emoji ones";
+		const description1 = document.createElement("div");
+		description1.innerText = "Toggle Image/Video buttons next to GIF/Emoji ones";
+		description1.style.margin = "1em auto";
+		description1.appendChild(button1);
+		wrapper.appendChild(description1);
 
-		description.appendChild(button);
-		wrapper.appendChild(description);
+
+		// Enable video autoplay on hover
+		const button2 = document.createElement("div");
+		button2.classList.add("bd-switch", ...(this.enableVideoAutoplayOnHover ? ["bd-switch-checked"] : []));
+
+		const input2 = document.createElement("input");
+		input2.type = "checkbox";
+		input2.className = "bd-checkbox";
+		button2.appendChild(input2);
+		input2.onclick = () => {
+			this.enableVideoAutoplayOnHover = !this.enableVideoAutoplayOnHover;
+			BdApi.saveData(this.getName(), "enableVideoAutoplayOnHover", this.enableVideoAutoplayOnHover);
+			button2.classList.remove(...(this.enableVideoAutoplayOnHover ? [] : ["bd-switch-checked"]));
+			button2.classList.add(...(this.enableVideoAutoplayOnHover ? ["bd-switch-checked"] : []));
+		};
+
+		const description2 = document.createElement("div");
+		description2.innerText = "Toggle autoplay videos on hover in the videos tab";
+		description2.style.margin = "1em auto";
+		description2.appendChild(button2);
+		wrapper.appendChild(description2);
 		return wrapper;
 	}
 
 	start() {
 		let enableButtons = BdApi.loadData(this.getName(), "enableButtons");
 		if (enableButtons !== true || enableButtons !== false) { enableButtons = true; BdApi.saveData(this.getName(), "enableButtons", enableButtons); } this.enableButtons = enableButtons;
+		let enableVideoAutoplayOnHover = BdApi.loadData(this.getName(), "enableButtons");
+		if (enableVideoAutoplayOnHover !== true || enableVideoAutoplayOnHover !== false) { enableVideoAutoplayOnHover = true; BdApi.saveData(this.getName(), "enableVideoAutoplayOnHover", enableVideoAutoplayOnHover); } this.enableVideoAutoplayOnHover = enableVideoAutoplayOnHover;
 		const images = BdApi.loadData(this.getName(), "image");
 		if (images) BdApi.saveData(this.getName(), "image", images.filter(i => i !== null || i != undefined));
 		else BdApi.saveData(this.getName(), "image", []);
@@ -402,8 +430,10 @@ class FavoriteImageVideo {
 		videoitemvideo.setAttribute("src", url);
 		videoitemvideo.setAttribute("poster", poster);
 		videoitemvideo.setAttribute("loop", true);
-		videoitemvideo.onmouseover = () => videoitemvideo.play().catch(() => { });
-		videoitemvideo.onmouseout = () => videoitemvideo.pause();
+		if (this.enableVideoAutoplayOnHover) {
+			videoitemvideo.onmouseover = () => videoitemvideo.play().catch(() => { });
+			videoitemvideo.onmouseout = () => videoitemvideo.pause();
+		}
 		// fav button
 		videoitem.innerHTML = this.favbtn_tab;
 		videoitem.firstChild.onclick = () => {
