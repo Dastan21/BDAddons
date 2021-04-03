@@ -10,7 +10,7 @@ class GifVideoPlayer {
         info: {
             name: "GifVideoPlayer",
             author: "Dastan21",
-            version: "1.0.0",
+            version: "1.1.0",
             description: "Changes the video player to be like gif (autoplay + loop)"
         }
     };
@@ -26,22 +26,16 @@ class GifVideoPlayer {
     observer(e) {
         let videos = document.querySelectorAll('video:not(.gifvideoplayer)');
         videos.forEach(video => {
+			video.nextElementSibling.style.display = "none";
             video.classList.add("gifvideoplayer");
-            let parent = video.parentNode;
-            try {
-                parent.querySelector(".da-metadata").style.display = "none";
-            } catch (error) {}
-            try {
-                parent.querySelector(".da-playCenter").style.display = "none";
-            } catch (error) {}
-            video.addEventListener("mouseover", event => {
-                video.autoplay = true;
-                video.loop = true;
-            });
-            video.addEventListener("mouseout", event => {
-                video.autoplay = false;
+            video.parentNode.onmouseover = () => {
+				video.loop = true;
+                video.play();
+            };
+			video.parentNode.onmouseout = () => {
                 video.loop = false;
-            });
+				video.pause();
+            };
         });
     }
 }
