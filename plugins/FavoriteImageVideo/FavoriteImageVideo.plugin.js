@@ -8,12 +8,11 @@ const { DiscordAPI, DOMTools, PluginUpdater } = ZLibrary;
 
 class FavoriteImageVideo {
 
-
 	config = {
 		info: {
 			name: "FavoriteImageVideo",
 			author: "Dastan21",
-			version: "1.3.2",
+			version: "1.3.3",
 			description: "Adds Image/Video tabs, on the GIF/Emojis panel, to post favorited images and videos."
 		}
 	};
@@ -529,7 +528,7 @@ class FavoriteImageVideo {
 		BdApi.saveData(this.getName(), "image", urls.filter(u => u !== null || u !== undefined));
 	}
 	favoriteVideo(origin, isFromTab) {
-		let url = origin.src;
+		let url = origin.src.replace("media.discordapp.net", "cdn.discordapp.com");
 		let poster = origin.getAttribute("poster");
 		let favel = origin.parentNode.lastChild;
 		if (isFromTab) {
