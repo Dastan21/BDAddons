@@ -12,7 +12,7 @@ class FavoriteImageVideo {
 		info: {
 			name: "FavoriteImageVideo",
 			author: "Dastan21",
-			version: "1.3.3",
+			version: "1.3.4",
 			description: "Adds Image/Video tabs, on the GIF/Emojis panel, to post favorited images and videos."
 		}
 	};
@@ -453,11 +453,13 @@ class FavoriteImageVideo {
 		return emptyitem;
 	}
 	sendImageVideo(url) {
+		BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("INSERT_TEXT", { content: url });
 		this.lasttoggled === "emoji" ?
 			BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_EMOJI_POPOUT")
 			:
 			BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_GIF_PICKER");
-		DiscordAPI.currentChannel.sendMessage(url);
+		const textarea = document.querySelector("." + this.classes.slateTextArea.split(' ')[0]);
+		if (textarea) setTimeout(() => textarea.firstChild.dispatchEvent(this.press), 0);
 	}
 	checkForImagesVideos(node) {
 		for (let media of node.childNodes) {
