@@ -1,19 +1,19 @@
 /**
- * @name FavoriteImageVideo
+ * @name FavoriteMedia
  * @authorId 310450863845933057
- * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteImageVideo
+ * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
 const { DiscordAPI, DOMTools, PluginUpdater } = ZLibrary;
 
-class FavoriteImageVideo {
+class FavoriteMedia {
 
 	config = {
 		info: {
-			name: "FavoriteImageVideo",
+			name: "FavoriteMedia",
 			author: "Dastan21",
-			version: "1.3.4",
-			description: "Adds Image/Video tabs, on the GIF/Emojis panel, to post favorited images and videos."
+			version: "1.4.0",
+			description: "Adds media tabs, on the GIF/Emojis panel, to post favorited medias such as images, videos and audios."
 		}
 	};
 
@@ -29,6 +29,9 @@ class FavoriteImageVideo {
 	vidtab = null;
 	vidlist = null;
 	vidbtn = null;
+	audtab = null;
+	audlist = null;
+	audbtn = null;
 	classes = {
 		size: BdApi.findModuleByProps("size", "gifFavoriteButton", "selected").size,
 		iconGif: BdApi.findModuleByProps("size", "gifFavoriteButton", "selected").icon,
@@ -61,13 +64,12 @@ class FavoriteImageVideo {
 		button2: BdApi.findModuleByProps("textAreaHeight", "channelTextArea", "highlighted").button,
 		buttonWrapper: BdApi.findModuleByProps("hoverScale", "buttonWrapper", "button").buttonWrapper,
 		slateTextArea: BdApi.findModuleByProps("slateContainer", "slateTextArea", "placeholder").slateTextArea,
-		emojiButtonNormal: BdApi.findModuleByProps("emojiButton", "emojiButtonHovered", "emojiButtonNormal").emojiButtonNormal,
-		emojiButtonHovered: BdApi.findModuleByProps("emojiButton", "emojiButtonHovered", "emojiButtonNormal").emojiButtonHovered,
 		messageContainer: BdApi.findModuleByProps("container", "gifFavoriteButton", "embedWrapper").container,
 		chatContentDM: BdApi.findModuleByProps("chat", "threadSidebar", "uploadArea").chatContent,
 		chatContentGuild: BdApi.findModuleByProps("chat", "threadSidebar", "uploadArea").chat,
 		positionContainer: BdApi.findModuleByProps("positionLayer", "positionContainer", "positionContainerOnlyEmoji").positionContainer,
 		btnActive: BdApi.findModuleByProps("hoverScale", "active", "button").active,
+		wrapperAudio: BdApi.findModuleByProps("wrapper", "wrapperAudio", "wrapperControlsHidden").wrapperAudio
 	};
 	favsvg_filled = `<svg class="${this.classes.size}" aria-hidden="false" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12.5,17.6l3.6,2.2a1,1,0,0,0,1.5-1.1l-1-4.1a1,1,0,0,1,.3-1l3.2-2.8A1,1,0,0,0,19.5,9l-4.2-.4a.87.87,0,0,1-.8-.6L12.9,4.1a1.05,1.05,0,0,0-1.9,0l-1.6,4a1,1,0,0,1-.8.6L4.4,9a1.06,1.06,0,0,0-.6,1.8L7,13.6a.91.91,0,0,1,.3,1l-1,4.1a1,1,0,0,0,1.5,1.1l3.6-2.2A1.08,1.08,0,0,1,12.5,17.6Z"/></svg>`;
 	favsvg_notfilled = `<svg class="${this.classes.iconGif}" aria-hidden="false" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M19.6,9l-4.2-0.4c-0.4,0-0.7-0.3-0.8-0.6l-1.6-3.9c-0.3-0.8-1.5-0.8-1.8,0L9.4,8.1C9.3,8.4,9,8.6,8.6,8.7L4.4,9 c-0.9,0.1-1.2,1.2-0.6,1.8L7,13.6c0.3,0.2,0.4,0.6,0.3,1l-1,4.1c-0.2,0.9,0.7,1.5,1.5,1.1l3.6-2.2c0.3-0.2,0.7-0.2,1,0l3.6,2.2 c0.8,0.5,1.7-0.2,1.5-1.1l-1-4.1c-0.1-0.4,0-0.7,0.3-1l3.2-2.8C20.9,10.2,20.5,9.1,19.6,9z M12,15.4l-3.8,2.3l1-4.3l-3.3-2.9 l4.4-0.4l1.7-4l1.7,4l4.4,0.4l-3.3,2.9l1,4.3L12,15.4z"/></svg>`;
@@ -76,6 +78,7 @@ class FavoriteImageVideo {
 	classes_selected = `${this.classes_notselected} ${this.classes.navButtonActive}`;
 	chatimgbtn = `<div class="${this.classes.buttonContainer} image-button"><button aria-label="Open images tab" tabindex="0" type="button" class="${this.classes.button} ${this.classes.lookBlank} ${this.classes.colorBrand} ${this.classes.grow}"><div class="${this.classes.contents} ${this.classes.button1} ${this.classes.button2}"><div class="${this.classes.buttonWrapper}"><svg width="24" height="24" class="${this.classes.iconBtn}" aria-hidden="false" viewBox="0 0 384 384"><path fill="currentColor" d="M341.333,0H42.667C19.093,0,0,19.093,0,42.667v298.667C0,364.907,19.093,384,42.667,384h298.667 C364.907,384,384,364.907,384,341.333V42.667C384,19.093,364.907,0,341.333,0z M42.667,320l74.667-96l53.333,64.107L245.333,192l96,128H42.667z"/></svg></div></div></button></div>`;
 	chatvidbtn = `<div class="${this.classes.buttonContainer} video-button"><button aria-label="Open videos tab" tabindex="0" type="button" class="${this.classes.button} ${this.classes.lookBlank} ${this.classes.colorBrand} ${this.classes.grow}"><div class="${this.classes.contents} ${this.classes.button1} ${this.classes.button2}"><div class="${this.classes.buttonWrapper}"><svg width="24" height="24" class="${this.classes.iconBtn}" aria-hidden="false" viewBox="0 0 298 298"><path fill="currentColor" d="M298,33c0-13.255-10.745-24-24-24H24C10.745,9,0,19.745,0,33v232c0,13.255,10.745,24,24,24h250c13.255,0,24-10.745,24-24V33zM91,39h43v34H91V39z M61,259H30v-34h31V259z M61,73H30V39h31V73z M134,259H91v-34h43V259z M123,176.708v-55.417c0-8.25,5.868-11.302,12.77-6.783l40.237,26.272c6.902,4.519,6.958,11.914,0.056,16.434l-40.321,26.277C128.84,188.011,123,184.958,123,176.708z M207,259h-43v-34h43V259z M207,73h-43V39h43V73z M268,259h-31v-34h31V259z M268,73h-31V39h31V73z"/></svg></div></div></button></div>`;
+	chataudbtn = `<div class="${this.classes.buttonContainer} audio-button"><button aria-label="Open audios tab" tabindex="0" type="button" class="${this.classes.button} ${this.classes.lookBlank} ${this.classes.colorBrand} ${this.classes.grow}"><div class="${this.classes.contents} ${this.classes.button1} ${this.classes.button2}"><div class="${this.classes.buttonWrapper}"><svg width="24" height="24" class="${this.classes.iconBtn}" aria-hidden="false" viewBox="0 0 115.3 115.3"><path fill="currentColor" d="M47.9,14.306L26,30.706H6c-3.3,0-6,2.7-6,6v41.8c0,3.301,2.7,6,6,6h20l21.9,16.4c4,3,9.6,0.2,9.6-4.8v-77C57.5,14.106,51.8,11.306,47.9,14.306z"/><path fill="currentColor" d="M77.3,24.106c-2.7-2.7-7.2-2.7-9.899,0c-2.7,2.7-2.7,7.2,0,9.9c13,13,13,34.101,0,47.101c-2.7,2.7-2.7,7.2,0,9.899c1.399,1.4,3.199,2,4.899,2s3.601-0.699,4.9-2.1C95.8,72.606,95.8,42.606,77.3,24.106z"/><path fill="currentColor" d="M85.1,8.406c-2.699,2.7-2.699,7.2,0,9.9c10.5,10.5,16.301,24.4,16.301,39.3s-5.801,28.8-16.301,39.3c-2.699,2.7-2.699,7.2,0,9.9c1.4,1.399,3.2,2.1,4.9,2.1c1.8,0,3.6-0.7,4.9-2c13.1-13.1,20.399-30.6,20.399-49.2c0-18.6-7.2-36-20.399-49.2C92.3,5.706,87.9,5.706,85.1,8.406z"/></svg></div></div></button></div>`;
 	press = new KeyboardEvent("keydown", { key: "Enter", code: "Enter", which: 13, keyCode: 13, bubbles: true });
 
 	getName() { return this.config.info.name; }
@@ -85,7 +88,7 @@ class FavoriteImageVideo {
 
 	getSettingsPanel() {
 		const wrapper = document.createElement("div");
-		wrapper.id = "favoriteImageVideoSettings";
+		wrapper.id = "FavoriteMediaSettings";
 
 		// Enable buttons
 		const button1 = document.createElement("div");
@@ -105,7 +108,7 @@ class FavoriteImageVideo {
 		};
 
 		const description1 = document.createElement("div");
-		description1.innerText = "Toggle Image/Video buttons next to GIF/Emoji ones";
+		description1.innerText = "Toggle medias buttons next to GIF/Emoji ones";
 		description1.style.margin = "1em auto";
 		description1.appendChild(button1);
 		wrapper.appendChild(description1);
@@ -145,22 +148,19 @@ class FavoriteImageVideo {
 		const videos = BdApi.loadData(this.getName(), "video");
 		if (videos) BdApi.saveData(this.getName(), "video", videos.filter(i => i !== null || i != undefined));
 		else BdApi.saveData(this.getName(), "video", []);
+		const audios = BdApi.loadData(this.getName(), "audio");
+		if (audios) BdApi.saveData(this.getName(), "audio", audios.filter(i => i !== null || i != undefined));
+		else BdApi.saveData(this.getName(), "audio", []);
 		Object.defineProperties(this.press, { keyCode: { value: 13 }, which: { value: 13 } });
 		if (this.enableButtons) this.addButtonsOnChat();
-		// Observer
-		BdApi.injectCSS('FavoriteImageVideo', `
-            .${this.classes.message.split(' ')[0]} div a:hover ~ #favbtn_image, .${this.classes.message.split(' ')[0]} div #favbtn_image:hover {
+		BdApi.injectCSS('FavoriteMedia', `
+            .${this.classes.message.split(' ')[0]} div a:hover ~ .favbtn_image, .${this.classes.message.split(' ')[0]} div .favbtn_image:hover, .${this.classes.wrapper.split(' ')[0]}:hover .favbtn_video, .${this.classes.wrapperAudio.split(' ')[0]}:hover .favbtn_audio {
                 opacity: 1;
                 -webkit-transform: none;
                 transform: none;
             }
-            .${this.classes.wrapper.split(' ')[0]}:hover #favbtn_video {
-                opacity: 1;
-                -webkit-transform: none;
-                transform: none;
-            }
-            #favbtn_image, #favbtn_video {
-                position: absolute;
+            .favbtn_image, .favbtn_video, .favbtn_audio {
+				position: absolute;
                 color: #fff;
                 opacity: 0;
                 cursor: pointer;
@@ -169,18 +169,23 @@ class FavoriteImageVideo {
                 transition: transform .2s ease,opacity .1s ease;
                 transition: transform .2s ease,opacity .1s ease,-webkit-transform .2s ease;
             }
-            #favbtn_image {
+            .favbtn_image {
                 top: 8px;
                 -webkit-transform: translateY(-10px);
                 transform: translateY(-10px);
             }
-            #favbtn_video {
+            .favbtn_video {
                 right: 8px;
                 bottom: calc(50% - 1em);
                 -webkit-transform: translateX(10px);
                 transform: translateX(10px);
             }
-            #favbtn_image:hover, #favbtn_image.favorited, #favbtn_video:hover, #favbtn_video.favorited {
+			.favbtn_audio {
+				right: 30%;
+				-webkit-transform: translateY(-10px);
+                transform: translateY(-10px);
+			}
+            .favbtn_image:hover, .favbtn_image.favorited, .favbtn_video:hover, .favbtn_video.favorited, .favbtn_audio:hover, .favbtn_audio.favorited {
                 color: #faa61a;
             }
             #imglist, #videolist {
@@ -196,16 +201,24 @@ class FavoriteImageVideo {
             .${this.classes.parentContent.split(' ')[0]} .emptyItem p {
                 margin: 0 auto;
             }
-            #favoriteImageVideoSettings {
+            #FavoriteMediaSettings {
                 color: var(--text-normal);
             }
-            #favoriteImageVideoSettings .bd-switch {
+            #FavoriteMediaSettings .bd-switch {
                 float: right;
             }
+			.favaudio_item {
+				color: var(--text-normal);
+				margin: 8px;
+				font-size: 18px;
+			}
+			.favaudio_item_audio:focus {
+				outline: none;
+			}
         `);
 	}
 	stop() {
-		BdApi.clearCSS('FavoriteImageVideo');
+		BdApi.clearCSS('FavoriteMedia');
 		this.removeChatButtons();
 	}
 	load() {
@@ -213,7 +226,7 @@ class FavoriteImageVideo {
 			PluginUpdater.checkForUpdate(
 				this.getName(),
 				this.getVersion(),
-				"https://raw.githubusercontent.com/Dastan21/BDAddons/main/plugins/FavoriteImageVideo/FavoriteImageVideo.plugin.js"
+				"https://raw.githubusercontent.com/Dastan21/BDAddons/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 			);
 		} else {
 			BdApi.showConfirmationModal("Library plugin is needed",
@@ -230,13 +243,13 @@ class FavoriteImageVideo {
 		}
 	}
 	observer(e) {
-		// Chat right buttons
+		// // Chat right buttons
 		if (this.enableButtons && e.addedNodes[0] && e.target && (e.target.className === this.classes.chatContentDM || e.target.className === this.classes.chatContentGuild)) this.addButtonsOnChat();
 		// On GIF/Emoji tab open/close
-		if (e.addedNodes[0] && e.addedNodes[0].childNodes[0] && e.addedNodes[0].childNodes[0].className === this.classes.positionContainer) this.updateTabButtons(e.addedNodes[0].childNodes[0]);
+		if (e.target && e.target.className === this.classes.positionContainer) this.updateTabButtons(e.target);
 		if (e.removedNodes[0] && e.removedNodes[0].childNodes[0] && e.removedNodes[0].childNodes[0].className === this.classes.positionContainer) this.updateBtnActive();
 		// On media hover
-		if (e.target && typeof (e.target.className) === "string" && e.target.className.includes(this.classes.message) && e.target.querySelector("." + this.classes.messageContainer.split(' ')[0]) && e.target.childNodes[e.target.childElementCount - 2].childElementCount) this.checkForImagesVideos(e.target.querySelector("." + this.classes.messageContainer.split(' ')[0]));
+		if (e.target && e.target.id && e.target.id.startsWith("chat-messages-")) this.checkForMedias(e.target.querySelector("." + this.classes.messageContainer.replace(' ', '.')));
 	}
 	updateTabButtons(node) {
 		// sectiondiv
@@ -264,6 +277,11 @@ class FavoriteImageVideo {
 		this.vidtab.id = "video-picker-tab-panel";
 		this.vidtab.setAttribute("aria-labelledby", "video-picker-tab");
 		this.sectiondiv.append(this.vidtab, this.sectiondiv.lastChild);
+		// audiotab
+		this.audtab = this.imgtab.cloneNode(true);
+		this.audtab.id = "audio-picker-tab-panel";
+		this.audtab.setAttribute("aria-labelledby", "audio-picker-tab");
+		this.sectiondiv.append(this.audtab, this.sectiondiv.lastChild);
 		// navlist
 		this.navlist = this.sectiondiv.firstChild.firstChild;
 		// image button
@@ -280,6 +298,13 @@ class FavoriteImageVideo {
 		videobtn.setAttribute("aria-controls", "video-picker-tab-panel");
 		videobtn.onclick = () => { this.updateSelected("video"); this.switchToVideoTab(); };
 		this.navlist.append(videobtn);
+		// video button
+		const audiobtn = this.navlist.lastChild.cloneNode(true);
+		audiobtn.firstChild.firstChild.innerHTML = "Audio";
+		audiobtn.id = "audio-picker-tab";
+		audiobtn.setAttribute("aria-controls", "audio-picker-tab-panel");
+		audiobtn.onclick = () => { this.updateSelected("audio"); this.switchToAudioTab(); };
+		this.navlist.append(audiobtn);
 		// update menu selected
 		for (let item of this.navlist.childNodes) item.firstChild.onclick = () => this.updateSelected(item.id.split('-')[0]);
 		this.updateSelected(this.sectiondiv.parentNode.lastChild.lastChild.id.split('-')[0]);
@@ -301,19 +326,23 @@ class FavoriteImageVideo {
 			}
 		}
 		this.sectiondiv.lastChild.style = "display:none";
-		if (!["image", "video"].includes(type)) {
+		if (!["image", "video", "audio"].includes(type)) {
 			if (this.vidtab) this.vidtab.style = "display:none";
 			if (this.imgtab) this.imgtab.style = "display:none";
+			if (this.audtab) this.audtab.style = "display:none";
 			this.sectiondiv.lastChild.style = "";
 		} else {
-			if (type === "image") this.vidtab.style = "display:none";
-			else this.imgtab.style = "display:none";
+			switch (type) {
+				case "image": this.vidtab.style = "display:none"; this.audtab.style = "display:none"; break;
+				case "video": this.imgtab.style = "display:none"; this.audtab.style = "display:none"; break;
+				case "audio": this.imgtab.style = "display:none"; this.vidtab.style = "display:none"; break;
+			}
 		}
 		setTimeout(() => this.sectiondiv.parentNode.parentNode.style.opacity = 1, 100);
 		this.updateBtnActive(type);
 	}
 	updateBtnActive(type = "") {
-		for (const t of ['gif', 'image', 'video']) {
+		for (const t of ['gif', 'image', 'video', 'audio']) {
 			if (t !== type && t !== "emoji") {
 				const tbtn = document.querySelector(`.${t}-button > button`);
 				if (tbtn) tbtn.classList.remove(this.classes.btnActive);
@@ -388,6 +417,26 @@ class FavoriteImageVideo {
 			this.vidlist.append(vidcolright);
 		}
 	}
+	switchToAudioTab() {
+		this.audtab.style = "";
+		this.audtab.lastChild.firstChild.firstChild.style.height = null;
+		this.audtab.lastChild.firstChild.firstChild.firstChild.style.height = null;
+		this.audlist = this.audtab.lastChild.firstChild.firstChild.firstChild;
+		const tmp = this.audlist.cloneNode(false);
+		this.audlist.remove();
+		this.audlist = tmp;
+		this.audlist.id = "audiolist";
+		this.audtab.lastChild.firstChild.firstChild.append(this.audlist);
+		const audobjs = BdApi.loadData(this.getName(), "audio");
+		if (!audobjs.length) this.audlist.append(this.createEmptyItem("audio"));
+		else {
+			for (let aud of audobjs) {
+				this.audlist.append(this.createAudioItem(aud));
+				this.audlist.append(document.createElement("hr"));
+			}
+			this.audlist.lastChild.remove();
+		}
+	}
 	createImageItem(url) {
 		// image item
 		let imgitem = document.createElement("div");
@@ -395,7 +444,7 @@ class FavoriteImageVideo {
 		imgitem.setAttribute("tabindex", -1);
 		imgitem.setAttribute("role", "button");
 		imgitem.style = "margin: 0 0.375em 0.75em 0.375em;";
-		imgitem.onclick = () => { if (this.checkImageFavorited(url)) this.sendImageVideo(url) };
+		imgitem.onclick = () => { if (this.checkImageFavorited(url)) this.sendMedia({ url: url }, "image"); };
 		// image
 		let imgitemimg = document.createElement("img");
 		imgitemimg.alt = "";
@@ -421,7 +470,7 @@ class FavoriteImageVideo {
 		videoitem.setAttribute("tabindex", -1);
 		videoitem.setAttribute("role", "button");
 		videoitem.style = "margin: 0 0.375em 0.75em 0.375em;";
-		videoitem.onclick = () => { if (this.checkVideoFavorited(url)) this.sendImageVideo(url); };
+		videoitem.onclick = () => { if (this.checkVideoFavorited(url)) this.sendMedia({ url: url }, "video"); };
 		// video
 		let videoitemvideo = document.createElement("video");
 		videoitemvideo.alt = "";
@@ -429,6 +478,7 @@ class FavoriteImageVideo {
 		videoitemvideo.setAttribute("src", url);
 		videoitemvideo.setAttribute("poster", poster);
 		videoitemvideo.setAttribute("loop", true);
+		videoitemvideo.volume = 0.1;
 		if (this.enableVideoAutoplayOnRightClick) {
 			videoitemvideo.oncontextmenu = () => videoitemvideo.play().catch(() => { });
 			videoitemvideo.onmouseout = () => videoitemvideo.pause();
@@ -446,22 +496,68 @@ class FavoriteImageVideo {
 
 		return videoitem;
 	}
+	createAudioItem(url) {
+		if (!url) return;
+		const name = url.split("/").pop();
+		// audio item
+		let audioitem = document.createElement("div");
+		audioitem.style.padding = "8px";
+		audioitem.className = this.classes.result;
+		audioitem.onclick = () => { this.sendMedia({ url: url, name: name }, "audio") };
+		// audio
+		const audioitemname = document.createElement("div");
+		audioitemname.innerHTML = name;
+		audioitemname.className = "favaudio_item";
+		const audioitemaudio = document.createElement("audio");
+		audioitemaudio.setAttribute("src", url);
+		audioitemaudio.setAttribute("controls", true);
+		audioitemaudio.style.width = "100%";
+		audioitemaudio.className = "favaudio_item_audio";
+		audioitemaudio.volume = 0.1;
+		// fav button
+		audioitem.innerHTML = this.favbtn_tab;
+		audioitem.firstChild.onclick = () => {
+			this.favoriteAudio(audioitemaudio);
+			setTimeout(() => {
+				this.updateSelected("audio");
+				this.switchToAudioTab();
+			}, 0);
+		};
+		audioitem.prepend(audioitemaudio);
+		audioitem.prepend(audioitemname);
+
+		return audioitem;
+	}
 	createEmptyItem(type) {
 		let emptyitem = document.createElement("div");
 		emptyitem.className = "emptyItem";
 		emptyitem.innerHTML = `<p>It's quite empty here...</p><br><p>Add ${type}s to your favorites by clicking on ⭐ of any ${type}!</p>`;
 		return emptyitem;
 	}
-	sendImageVideo(url) {
-		BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("INSERT_TEXT", { content: url });
-		this.lasttoggled === "emoji" ?
-			BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_EMOJI_POPOUT")
-			:
-			BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_GIF_PICKER");
-		const textarea = document.querySelector("." + this.classes.slateTextArea.split(' ')[0]);
-		if (textarea) setTimeout(() => textarea.firstChild.dispatchEvent(this.press), 0);
+	sendMedia({ url, name }, type) {
+		if (this.lasttoggled === "emoji") BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_EMOJI_POPOUT")
+		else BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_GIF_PICKER");
+		if (type === "audio") {
+			if (this.checkAudioFavorited(url)) {
+				const channel_id = DiscordAPI.currentChannel.id;
+				require("https").get(url, res => {
+					const bufs = [];
+					res.on('data', chunk => bufs.push(chunk));
+					res.on('end', () => {
+						try {
+							BdApi.findModuleByProps('instantBatchUpload').upload(channel_id, new File([Buffer.concat(bufs)], name), 0, "", false, name);
+						} catch (e) { console.error(e.message) }
+					});
+					res.on('error', err => console.error(err));
+				});
+			}
+		} else {
+			BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("INSERT_TEXT", { content: url });
+			const textarea = document.querySelector("." + this.classes.slateTextArea.split(' ')[0]);
+			if (textarea) setTimeout(() => textarea.firstChild.dispatchEvent(this.press), 0);
+		}
 	}
-	checkForImagesVideos(node) {
+	checkForMedias(node) {
 		for (let media of node.childNodes) {
 			if (media && media.parentNode && media.parentNode.lastChild && media.parentNode.lastChild.id !== "favbtn_image" && media.tagName !== "IFRAME" && media.firstChild && !media.firstChild.title) {
 				if (media.firstChild && media.firstChild.tagName === "IMG") this.addFavButtonOnImage(media);
@@ -470,11 +566,15 @@ class FavoriteImageVideo {
 			if (media.firstChild && media.firstChild.firstChild && media.firstChild.firstChild.firstChild && media.firstChild.firstChild.firstChild.firstChild && media.firstChild.firstChild.firstChild.firstChild.tagName === "VIDEO") this.addFavButtonOnVideo(media.firstChild.firstChild.firstChild.firstChild);
 			if (media.firstChild && media.firstChild.tagName !== "A" && media.firstChild.childNodes[1] && media.firstChild.childNodes[1].tagName === "VIDEO") this.addFavButtonOnVideo(media.firstChild.childNodes[1]);
 		}
+		if (node.firstChild && node.firstChild.childNodes[1] && node.firstChild.childNodes[1].tagName === "AUDIO") this.addFavButtonOnAudio(node.firstChild.firstChild);
+		// TODO: after done 'EmbedAudioLink'
+		// if(!node.childNodes.length && node.parentNode.querySelector("a")) {
+		// 	console.log(node.parentNode);
+		// }
 	}
 	addFavButtonOnImage(node) {
 		let tmp = document.createElement("div");
-		tmp.id = "favbtn_image";
-		tmp.className = this.classes.size;
+		tmp.className = this.classes.size + " favbtn_image";
 		tmp.setAttribute("tabindex", -1);
 		tmp.setAttribute("role", "button");
 		tmp.style.left = "calc(" + node.style.width + " - 2.3em)";
@@ -491,8 +591,7 @@ class FavoriteImageVideo {
 	}
 	addFavButtonOnVideo(node) {
 		let tmp = document.createElement("div");
-		tmp.id = "favbtn_video";
-		tmp.className = this.classes.size;
+		tmp.className = this.classes.size + " favbtn_video";
 		tmp.setAttribute("tabindex", -1);
 		tmp.setAttribute("role", "button");
 		tmp.innerHTML = this.favsvg_notfilled;
@@ -506,14 +605,31 @@ class FavoriteImageVideo {
 		}
 		node.parentNode.append(tmp);
 	}
+	addFavButtonOnAudio(node) {
+		let tmp = document.createElement("div");
+		tmp.className = this.classes.size + " favbtn_audio";
+		tmp.setAttribute("tabindex", -1);
+		tmp.setAttribute("role", "button");
+		tmp.innerHTML = this.favsvg_notfilled;
+		tmp.onclick = () => { this.favoriteAudio(node.lastChild) };
+		if (this.checkAudioFavorited(node.lastChild.href)) {
+			tmp.innerHTML = this.favsvg_filled;
+			tmp.classList.add("favorited");
+		} else {
+			tmp.innerHTML = this.favsvg_notfilled;
+			tmp.classList.remove("favorited");
+		}
+		node.insertBefore(tmp, node.childNodes[node.childNodes.length - 1]);
+	}
 	checkImageFavorited(url) {
 		return BdApi.loadData(this.getName(), "image").includes(url);
 	}
 	checkVideoFavorited(url) {
-		for (let obj of BdApi.loadData(this.getName(), "video")) {
-			if (obj && obj.url.split("attachments")[1] === url.split("attachments")[1]) return true;
-		}
+		for (let obj of BdApi.loadData(this.getName(), "video")) if (obj && obj.url.split("attachments")[1] === url.split("attachments")[1]) return true;
 		return false;
+	}
+	checkAudioFavorited(url) {
+		return BdApi.loadData(this.getName(), "audio").filter(u => u.endsWith(url.split('/').pop())).length;
 	}
 	favoriteImage(origin) {
 		let url = origin.href || origin.src;
@@ -549,6 +665,22 @@ class FavoriteImageVideo {
 		}
 		BdApi.saveData(this.getName(), "video", urls.filter(u => u !== null || u !== undefined));
 	}
+	favoriteAudio(origin) {
+		let url = origin.href || origin.src;
+		if (!url) return;
+		let name = url.split('/').pop();
+		let urls = BdApi.loadData(this.getName(), "audio");
+		if (this.checkAudioFavorited(url)) {
+			urls = urls.filter(u => u.split('/').pop() !== name)
+			origin.parentNode.lastChild.previousSibling.innerHTML = this.favsvg_notfilled;
+			origin.parentNode.lastChild.previousSibling.classList.remove("favorited");
+		} else {
+			urls.unshift(url);
+			origin.parentNode.lastChild.previousSibling.innerHTML = this.favsvg_filled;
+			origin.parentNode.lastChild.previousSibling.classList.add("favorited");
+		}
+		BdApi.saveData(this.getName(), "audio", urls.filter(u => u !== null || u !== undefined));
+	}
 	addButtonsOnChat() {
 		const btnswrapper = document.querySelector("." + this.classes.buttons.split(' ')[0]); if (!btnswrapper || (btnswrapper && !btnswrapper.firstChild)) return;
 		const btns = DOMTools.queryAll("." + this.classes.buttonContainer.split(' ')[0], btnswrapper); if (!btns) return;
@@ -579,6 +711,18 @@ class FavoriteImageVideo {
 			if (btns[btns.length - 1] && btns[btns.length - 1].classList.contains("emoji-button")) btnswrapper.append(this.vidbtn);
 			else btnswrapper.insertBefore(this.vidbtn, btnswrapper.lastChild);
 		}
+		if (!btnswrapper.querySelector(".audio-button")) {
+			this.audbtn = DOMTools.parseHTML(this.chataudbtn);
+			this.audbtn.firstChild.onclick = () => {
+				BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_GIF_PICKER");
+				setTimeout(() => {
+					this.switchToAudioTab();
+					this.updateSelected("audio");
+				}, 0);
+			};
+			if (btns[btns.length - 1] && btns[btns.length - 1].classList.contains("emoji-button")) btnswrapper.append(this.audbtn);
+			else btnswrapper.insertBefore(this.audbtn, btnswrapper.lastChild);
+		}
 		const gif_btn = btnswrapper.querySelector(".gif-button");
 		if (gif_btn) gif_btn.onclick = () => { this.updateSelected("gif"); this.lasttoggled = "gif"; }
 		const emoji_btn = btnswrapper.querySelector(".emoji-button");
@@ -586,6 +730,7 @@ class FavoriteImageVideo {
 	}
 	removeChatButtons() {
 		if (this.imgbtn) { this.imgbtn.remove(); this.imgbtn = null; }
-		if (this.vidbtn) { this.vidbtn.remove(); this.imgbtn = null; }
+		if (this.vidbtn) { this.vidbtn.remove(); this.vidbtn = null; }
+		if (this.audbtn) { this.audbtn.remove(); this.audbtn = null; }
 	}
 }

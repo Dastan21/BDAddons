@@ -1,7 +1,7 @@
 # BDAddons
 
 ## Plugins
- - [FavoriteImageVideo](https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteImageVideo) - Adds two buttons, on the GIF/Emojis tab, to bookmark images and videos.
+ - [FavoriteMedia](https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia) - Adds media tabs, on the GIF/Emojis panel, to post favorited medias such as images, videos and audios.
  - [GifVideoPlayer](https://github.com/Dastan21/BDAddons/blob/main/plugins/GifVideoPlayer) - Changes the video player to be like gif (autoplay + loop) on hover.
 
 ## Themes
