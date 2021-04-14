@@ -12,7 +12,7 @@ class FavoriteMedia {
 		info: {
 			name: "FavoriteMedia",
 			author: "Dastan21",
-			version: "1.4.1",
+			version: "1.4.2",
 			description: "Adds media tabs, on the GIF/Emojis panel, to post favorited medias such as images, videos and audios."
 		}
 	};
@@ -32,44 +32,56 @@ class FavoriteMedia {
 	audtab = null;
 	audlist = null;
 	audbtn = null;
+	modules = {
+		btn: BdApi.findModuleByProps("size", "gifFavoriteButton", "selected"),
+		res: BdApi.findModuleByProps("desiredItemWidth", "results", "result"),
+		pos: BdApi.findModuleByProps("positionLayer", "positionContainer", "positionContainerOnlyEmoji"),
+		col: BdApi.findModuleByProps("button", "lookFilled", "colorBrand"),
+		con: BdApi.findModuleByProps("gutterSize", "container", "content"),
+		thi: BdApi.findModuleByProps("scrollerBase", "thin", "fade"),
+		wra: BdApi.findModuleByProps("wrapper", "wrapperAudio", "wrapperControlsHidden"),
+		tex: BdApi.findModuleByProps("textAreaHeight", "channelTextArea", "highlighted"),
+		hov: BdApi.findModuleByProps("hoverScale", "buttonWrapper", "button"),
+		cha: BdApi.findModuleByProps("chat", "threadSidebar", "uploadArea"),
+	}
 	classes = {
-		size: BdApi.findModuleByProps("size", "gifFavoriteButton", "selected").size,
-		iconGif: BdApi.findModuleByProps("size", "gifFavoriteButton", "selected").icon,
-		gifFavoriteButton: BdApi.findModuleByProps("size", "gifFavoriteButton", "selected").gifFavoriteButton,
-		selected: BdApi.findModuleByProps("size", "gifFavoriteButton", "selected").selected,
-		favButton: BdApi.findModuleByProps("desiredItemWidth", "results", "result").favButton,
-		navButton: BdApi.findModuleByProps("positionLayer", "positionContainer", "positionContainerOnlyEmoji").navButton,
-		navButtonActive: BdApi.findModuleByProps("positionLayer", "positionContainer", "positionContainerOnlyEmoji").navButtonActive,
-		button: BdApi.findModuleByProps("button", "lookFilled", "colorBrand").button,
-		lookBlank: BdApi.findModuleByProps("button", "lookFilled", "colorBrand").lookBlank,
-		colorBrand: BdApi.findModuleByProps("button", "lookFilled", "colorBrand").colorBrand,
-		grow: BdApi.findModuleByProps("button", "lookFilled", "colorBrand").grow,
-		tabContainer: BdApi.findModuleByProps("gutterSize", "container", "content").container,
-		parentContent: BdApi.findModuleByProps("scrollerBase", "thin", "fade").content,
+		size: this.modules.btn.size,
+		iconGif: this.modules.btn.icon,
+		gifFavoriteButton: this.modules.btn.gifFavoriteButton,
+		selected: this.modules.btn.selected,
+		favButton: this.modules.res.favButton,
+		navButton: this.modules.pos.navButton,
+		navButtonActive: this.modules.pos.navButtonActive,
+		button: this.modules.col.button,
+		lookBlank: this.modules.col.lookBlank,
+		colorBrand: this.modules.col.colorBrand,
+		grow: this.modules.col.grow,
+		tabContainer: this.modules.con.container,
+		parentContent: this.modules.thi.content,
 		itemContainer: BdApi.findModuleByProps("container", "categoryFade", "categoryFadeBlurple").container,
-		thin: BdApi.findModuleByProps("scrollerBase", "thin", "fade").thin,
-		scrollerBase: BdApi.findModuleByProps("scrollerBase", "thin", "fade").scrollerBase,
-		fade: BdApi.findModuleByProps("scrollerBase", "thin", "fade").fade,
-		childContent: BdApi.findModuleByProps("gutterSize", "container", "content").content,
-		header: BdApi.findModuleByProps("gutterSize", "container", "content").header,
-		result: BdApi.findModuleByProps("desiredItemWidth", "results", "result").result,
-		gif: BdApi.findModuleByProps("desiredItemWidth", "results", "result").gif,
+		thin: this.modules.thi.thin,
+		scrollerBase: this.modules.thi.scrollerBase,
+		fade: this.modules.thi.fade,
+		childContent: this.modules.con.content,
+		header: this.modules.con.header,
+		result: this.modules.res.result,
+		gif: this.modules.res.gif,
 		message: BdApi.findModuleByProps("ephemeral", "mentioned", "replying").message,
-		wrapper: BdApi.findModuleByProps("wrapper", "wrapperAudio", "wrapperControlsHidden").wrapper,
-		buttons: BdApi.findModuleByProps("textAreaHeight", "channelTextArea", "highlighted").buttons,
-		iconBtn: BdApi.findModuleByProps("hoverScale", "buttonWrapper", "button").icon,
-		buttonContainer: BdApi.findModuleByProps("textAreaHeight", "channelTextArea", "highlighted").buttonContainer,
-		contents: BdApi.findModuleByProps("button", "lookFilled", "colorBrand").contents,
-		button1: BdApi.findModuleByProps("hoverScale", "buttonWrapper", "button").button,
-		button2: BdApi.findModuleByProps("textAreaHeight", "channelTextArea", "highlighted").button,
-		buttonWrapper: BdApi.findModuleByProps("hoverScale", "buttonWrapper", "button").buttonWrapper,
+		wrapper: this.modules.wra.wrapper,
+		wrapperAudio: this.modules.wra.wrapperAudio,
+		buttons: this.modules.tex.buttons,
+		iconBtn: this.modules.hov.icon,
+		buttonContainer: this.modules.tex.buttonContainer,
+		contents: this.modules.col.contents,
+		button1: this.modules.hov.button,
+		button2: this.modules.tex.button,
+		buttonWrapper: this.modules.hov.buttonWrapper,
 		slateTextArea: BdApi.findModuleByProps("slateContainer", "slateTextArea", "placeholder").slateTextArea,
 		messageContainer: BdApi.findModuleByProps("container", "gifFavoriteButton", "embedWrapper").container,
-		chatContentDM: BdApi.findModuleByProps("chat", "threadSidebar", "uploadArea").chatContent,
-		chatContentGuild: BdApi.findModuleByProps("chat", "threadSidebar", "uploadArea").chat,
-		positionContainer: BdApi.findModuleByProps("positionLayer", "positionContainer", "positionContainerOnlyEmoji").positionContainer,
+		chatContentDM: this.modules.cha.chatContent,
+		chatContentGuild: this.modules.cha.chat,
+		positionContainer: this.modules.pos.positionContainer,
 		btnActive: BdApi.findModuleByProps("hoverScale", "active", "button").active,
-		wrapperAudio: BdApi.findModuleByProps("wrapper", "wrapperAudio", "wrapperControlsHidden").wrapperAudio
 	};
 	favsvg_filled = `<svg class="${this.classes.size}" aria-hidden="false" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12.5,17.6l3.6,2.2a1,1,0,0,0,1.5-1.1l-1-4.1a1,1,0,0,1,.3-1l3.2-2.8A1,1,0,0,0,19.5,9l-4.2-.4a.87.87,0,0,1-.8-.6L12.9,4.1a1.05,1.05,0,0,0-1.9,0l-1.6,4a1,1,0,0,1-.8.6L4.4,9a1.06,1.06,0,0,0-.6,1.8L7,13.6a.91.91,0,0,1,.3,1l-1,4.1a1,1,0,0,0,1.5,1.1l3.6-2.2A1.08,1.08,0,0,1,12.5,17.6Z"/></svg>`;
 	favsvg_notfilled = `<svg class="${this.classes.iconGif}" aria-hidden="false" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M19.6,9l-4.2-0.4c-0.4,0-0.7-0.3-0.8-0.6l-1.6-3.9c-0.3-0.8-1.5-0.8-1.8,0L9.4,8.1C9.3,8.4,9,8.6,8.6,8.7L4.4,9 c-0.9,0.1-1.2,1.2-0.6,1.8L7,13.6c0.3,0.2,0.4,0.6,0.3,1l-1,4.1c-0.2,0.9,0.7,1.5,1.5,1.1l3.6-2.2c0.3-0.2,0.7-0.2,1,0l3.6,2.2 c0.8,0.5,1.7-0.2,1.5-1.1l-1-4.1c-0.1-0.4,0-0.7,0.3-1l3.2-2.8C20.9,10.2,20.5,9.1,19.6,9z M12,15.4l-3.8,2.3l1-4.3l-3.3-2.9 l4.4-0.4l1.7-4l1.7,4l4.4,0.4l-3.3,2.9l1,4.3L12,15.4z"/></svg>`;
@@ -153,7 +165,7 @@ class FavoriteMedia {
 		else BdApi.saveData(this.getName(), "audio", []);
 		Object.defineProperties(this.press, { keyCode: { value: 13 }, which: { value: 13 } });
 		if (this.enableButtons) this.addButtonsOnChat();
-		BdApi.injectCSS('FavoriteMedia', `
+		BdApi.injectCSS(this.getName(), `
             .${this.classes.message.split(' ')[0]} div a:hover ~ .favbtn_image, .${this.classes.message.split(' ')[0]} div .favbtn_image:hover, .${this.classes.wrapper.split(' ')[0]}:hover .favbtn_video, .${this.classes.wrapperAudio.split(' ')[0]}:hover .favbtn_audio {
                 opacity: 1;
                 -webkit-transform: none;
@@ -194,7 +206,7 @@ class FavoriteMedia {
                 justify-content: space-between;
             }
             .${this.classes.parentContent.split(' ')[0]} .emptyItem {
-                margin: 5px auto;
+                margin: 12px auto;
                 color: var(--text-normal);
                 text-align: center;
             }
@@ -218,7 +230,7 @@ class FavoriteMedia {
         `);
 	}
 	stop() {
-		BdApi.clearCSS('FavoriteMedia');
+		BdApi.clearCSS(this.getName());
 		this.removeChatButtons();
 	}
 	load() {
@@ -259,7 +271,7 @@ class FavoriteMedia {
 		const tabheader = document.createElement("div");
 		tabheader.className = this.classes.header;
 		// tab contents
-		const tabcontent4 = document.createElement("div"); tabcontent4.style = "position: absolute; left: 12px; top: 12px; width: 400px;";
+		const tabcontent4 = document.createElement("div"); tabcontent4.style = "position: absolute; left: 12px; top: 12px; width: calc(100% - 12px);";
 		const tabcontent3 = document.createElement("div"); tabcontent3.className = this.classes.parentContent; tabcontent3.append(tabcontent4);
 		const tabcontent2 = document.createElement("div"); tabcontent2.className = this.classes.itemContainer + ' ' + this.classes.thin + ' ' + this.classes.scrollerBase + ' ' + this.classes.fade; tabcontent2.style = "overflow: hidden scroll; padding-right: 0px"; tabcontent2.append(tabcontent3);
 		const tabcontent1 = document.createElement("div"); tabcontent1.className = this.classes.childContent; tabcontent1.append(tabcontent2);
@@ -338,7 +350,7 @@ class FavoriteMedia {
 				case "audio": this.imgtab.style = "display:none"; this.vidtab.style = "display:none"; break;
 			}
 		}
-		setTimeout(() => this.sectiondiv.parentNode.parentNode.style.opacity = 1, 100);
+		setTimeout(() => this.sectiondiv.parentNode.parentNode.style.opacity = 1, 0);
 		this.updateBtnActive(type);
 	}
 	updateBtnActive(type = "") {
@@ -363,59 +375,99 @@ class FavoriteMedia {
 	}
 	switchToImageTab() {
 		this.imgtab.style = "";
-		this.imgtab.lastChild.firstChild.firstChild.style.height = null;
-		this.imgtab.lastChild.firstChild.firstChild.firstChild.style.height = null;
-		this.imglist = this.imgtab.lastChild.firstChild.firstChild.firstChild;
+		this.imglist = this.imgtab.lastChild.firstChild && this.imgtab.lastChild.firstChild.firstChild && this.imgtab.lastChild.firstChild.firstChild.firstChild;
+		if (!this.imglist) return;
+		this.imglist.parentNode.style.height = null;
+		this.imglist.style.height = null;
 		const tmp = this.imglist.cloneNode(false);
 		this.imglist.remove();
 		this.imglist = tmp;
 		this.imglist.id = "imglist";
-		this.imgtab.lastChild.firstChild.firstChild.append(this.imglist);
-		const imgurls = BdApi.loadData(this.getName(), "image");
-		const imgcolleft = document.createElement("div");
-		imgcolleft.style.width = "50%";
-		const imgcolright = imgcolleft.cloneNode();
-		let u = 0;
-		for (let url of imgurls) {
-			if (url) {
-				if (u % 2 === 0) imgcolleft.append(this.createImageItem(url));
-				else imgcolright.append(this.createImageItem(url));
-				u++;
+		const width_item = 202;
+		const imgcols = [];
+		const showImages = (switchTo = false) => {
+			const width = this.imgtab.clientWidth;
+			if (width % width_item === 0 || switchTo) {
+				this.imglist.innerHTML = "";
+				imgcols.splice(0, imgcols.length);
+				const n = Math.floor(width / width_item);
+				const ratio = 100 / n;
+				const imgurls = BdApi.loadData(this.getName(), "image").filter(u => u !== null || u !== undefined);
+				if (!imgurls.length) this.imglist.append(this.createEmptyItem("image"));
+				else {
+					for (let i = 0; i < n; i++) {
+						imgcols[i] = document.createElement("div");
+						imgcols[i].style.width = `${ratio}%`;
+						this.imglist.append(imgcols[i]);
+					}
+					for (let url of imgurls) {
+						let j = 0;
+						let min = 99999999999;
+						for (let i = 0; i < n; i++) {
+							if (!imgcols[i].firstChild) { j = i; break };
+							let c = 0;
+							for (const item of imgcols[i].childNodes) c += item.clientHeight;
+							if (c < min) {
+								j = i;
+								min = c;
+							}
+						}
+						imgcols[j].append(this.createImageItem(url));
+					}
+				}
 			}
-		}
-		if (!imgurls.length) this.imglist.append(this.createEmptyItem("image"));
-		else {
-			this.imglist.append(imgcolleft);
-			this.imglist.append(imgcolright);
-		}
+		};
+		this.imgtab.childNodes[1].firstChild.firstChild.append(this.imglist);
+		addResizeListener(this.imgtab, showImages);
+		showImages(true);
 	}
 	switchToVideoTab() {
 		this.vidtab.style = "";
-		this.vidtab.lastChild.firstChild.firstChild.style.height = null;
-		this.vidtab.lastChild.firstChild.firstChild.firstChild.style.height = null;
-		this.vidlist = this.vidtab.lastChild.firstChild.firstChild.firstChild;
+		this.vidlist = this.vidtab.lastChild.firstChild && this.vidtab.lastChild.firstChild.firstChild && this.vidtab.lastChild.firstChild.firstChild.firstChild;
+		if (!this.vidlist) return;
+		this.vidlist.parentNode.style.height = null;
+		this.vidlist.style.height = null;
 		const tmp = this.vidlist.cloneNode(false);
 		this.vidlist.remove();
 		this.vidlist = tmp;
 		this.vidlist.id = "videolist";
-		this.vidtab.lastChild.firstChild.firstChild.append(this.vidlist);
-		const vidobjs = BdApi.loadData(this.getName(), "video");
-		const vidcolleft = document.createElement("div");
-		vidcolleft.style.width = "50%";
-		const vidcolright = vidcolleft.cloneNode();
-		let o = 0;
-		for (let vid of vidobjs) {
-			if (vid) {
-				if (o % 2 === 0) vidcolleft.append(this.createVideoItem(vid));
-				else vidcolright.append(this.createVideoItem(vid));
-				o++;
+		const width_item = 202;
+		const vidcols = [];
+		const showVideos = (switchTo = false) => {
+			const width = this.vidtab.clientWidth;
+			if (width % width_item === 0 || switchTo) {
+				this.vidlist.innerHTML = "";
+				vidcols.splice(0, vidcols.length);
+				const n = Math.floor(width / width_item);
+				const ratio = 100 / n;
+				const vidobjs = BdApi.loadData(this.getName(), "video").filter(u => u !== null || u !== undefined);
+				if (!vidobjs.length) this.vidlist.append(this.createEmptyItem("video"));
+				else {
+					for (let i = 0; i < n; i++) {
+						vidcols[i] = document.createElement("div");
+						vidcols[i].style.width = `${ratio}%`;
+						this.vidlist.append(vidcols[i]);
+					}
+					for (let obj of vidobjs) {
+						let j = 0;
+						let min = 99999999999;
+						for (let i = 0; i < n; i++) {
+							if (!vidcols[i].firstChild) { j = i; break };
+							let c = 0;
+							for (const item of vidcols[i].childNodes) c += item.clientHeight;
+							if (c < min) {
+								j = i;
+								min = c;
+							}
+						}
+						vidcols[j].append(this.createVideoItem(obj));
+					}
+				}
 			}
-		}
-		if (!vidobjs.length) this.vidlist.append(this.createEmptyItem("video"));
-		else {
-			this.vidlist.append(vidcolleft);
-			this.vidlist.append(vidcolright);
-		}
+		};
+		this.vidtab.childNodes[1].firstChild.firstChild.append(this.vidlist);
+		addResizeListener(this.vidtab, showVideos);
+		showVideos(true);
 	}
 	switchToAudioTab() {
 		this.audtab.style = "";
@@ -530,7 +582,6 @@ class FavoriteMedia {
 		return emptyitem;
 	}
 	sendMedia({ url, name }, type) {
-		console.log(this.lasttoggled);
 		if (this.lasttoggled === "emoji") BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_EMOJI_POPOUT")
 		else BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_GIF_PICKER");
 		if (type === "audio") {
@@ -733,3 +784,68 @@ class FavoriteMedia {
 		if (this.audbtn) { this.audbtn.remove(); this.audbtn = null; }
 	}
 }
+
+(function () {
+	var attachEvent = document.attachEvent;
+	var isIE = navigator.userAgent.match(/Trident/);
+	var requestFrame = (function () {
+		var raf = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame ||
+			function (fn) { return window.setTimeout(fn, 20); };
+		return function (fn) { return raf(fn); };
+	})();
+
+	var cancelFrame = (function () {
+		var cancel = window.cancelAnimationFrame || window.mozCancelAnimationFrame || window.webkitCancelAnimationFrame ||
+			window.clearTimeout;
+		return function (id) { return cancel(id); };
+	})();
+
+	function resizeListener(e) {
+		var win = e.target || e.srcElement;
+		if (win.__resizeRAF__) cancelFrame(win.__resizeRAF__);
+		win.__resizeRAF__ = requestFrame(function () {
+			var trigger = win.__resizeTrigger__;
+			trigger.__resizeListeners__.forEach(function (fn) {
+				fn.call(trigger, e);
+			});
+		});
+	}
+
+	function objectLoad(e) {
+		this.contentDocument.defaultView.__resizeTrigger__ = this.__resizeElement__;
+		this.contentDocument.defaultView.addEventListener('resize', resizeListener);
+	}
+
+	window.addResizeListener = function (element, fn) {
+		if (!element.__resizeListeners__) {
+			element.__resizeListeners__ = [];
+			if (attachEvent) {
+				element.__resizeTrigger__ = element;
+				element.attachEvent('onresize', resizeListener);
+			}
+			else {
+				if (getComputedStyle(element).position == 'static') element.style.position = 'relative';
+				var obj = element.__resizeTrigger__ = document.createElement('object');
+				obj.setAttribute('style', 'display: block; position: absolute; top: 0; left: 0; height: 100%; width: 100%; overflow: hidden; pointer-events: none; z-index: -1;');
+				obj.__resizeElement__ = element;
+				obj.onload = objectLoad;
+				obj.type = 'text/html';
+				if (isIE) element.appendChild(obj);
+				obj.data = 'about:blank';
+				if (!isIE) element.appendChild(obj);
+			}
+		}
+		element.__resizeListeners__.push(fn);
+	};
+
+	window.removeResizeListener = function (element, fn) {
+		element.__resizeListeners__.splice(element.__resizeListeners__.indexOf(fn), 1);
+		if (!element.__resizeListeners__.length) {
+			if (attachEvent) element.detachEvent('onresize', resizeListener);
+			else {
+				element.__resizeTrigger__.contentDocument.defaultView.removeEventListener('resize', resizeListener);
+				element.__resizeTrigger__ = !element.removeChild(element.__resizeTrigger__);
+			}
+		}
+	}
+})();
