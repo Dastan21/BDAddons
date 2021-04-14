@@ -12,7 +12,7 @@ class FavoriteMedia {
 		info: {
 			name: "FavoriteMedia",
 			author: "Dastan21",
-			version: "1.4.0",
+			version: "1.4.1",
 			description: "Adds media tabs, on the GIF/Emojis panel, to post favorited medias such as images, videos and audios."
 		}
 	};
@@ -426,16 +426,11 @@ class FavoriteMedia {
 		this.audlist.remove();
 		this.audlist = tmp;
 		this.audlist.id = "audiolist";
+		this.audlist.style = "width: calc(100% - 16px); margin: 8px;";
 		this.audtab.lastChild.firstChild.firstChild.append(this.audlist);
 		const audobjs = BdApi.loadData(this.getName(), "audio");
 		if (!audobjs.length) this.audlist.append(this.createEmptyItem("audio"));
-		else {
-			for (let aud of audobjs) {
-				this.audlist.append(this.createAudioItem(aud));
-				this.audlist.append(document.createElement("hr"));
-			}
-			this.audlist.lastChild.remove();
-		}
+		else for (let aud of audobjs) this.audlist.append(this.createAudioItem(aud));
 	}
 	createImageItem(url) {
 		// image item
@@ -535,6 +530,7 @@ class FavoriteMedia {
 		return emptyitem;
 	}
 	sendMedia({ url, name }, type) {
+		console.log(this.lasttoggled);
 		if (this.lasttoggled === "emoji") BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_EMOJI_POPOUT")
 		else BdApi.findModuleByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("TOGGLE_GIF_PICKER");
 		if (type === "audio") {
@@ -694,6 +690,7 @@ class FavoriteMedia {
 				setTimeout(() => {
 					this.switchToImageTab();
 					this.updateSelected("image");
+					this.lasttoggled = "gif";
 				}, 0);
 			};
 			if (btns[btns.length - 1] && btns[btns.length - 1].classList.contains("emoji-button")) btnswrapper.append(this.imgbtn);
@@ -706,6 +703,7 @@ class FavoriteMedia {
 				setTimeout(() => {
 					this.switchToVideoTab();
 					this.updateSelected("video");
+					this.lasttoggled = "gif";
 				}, 0);
 			};
 			if (btns[btns.length - 1] && btns[btns.length - 1].classList.contains("emoji-button")) btnswrapper.append(this.vidbtn);
@@ -718,6 +716,7 @@ class FavoriteMedia {
 				setTimeout(() => {
 					this.switchToAudioTab();
 					this.updateSelected("audio");
+					this.lasttoggled = "gif";
 				}, 0);
 			};
 			if (btns[btns.length - 1] && btns[btns.length - 1].classList.contains("emoji-button")) btnswrapper.append(this.audbtn);
