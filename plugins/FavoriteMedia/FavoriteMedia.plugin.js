@@ -12,7 +12,7 @@ class FavoriteMedia {
 		info: {
 			name: "FavoriteMedia",
 			author: "Dastan21",
-			version: "1.4.2",
+			version: "1.4.3",
 			description: "Adds media tabs, on the GIF/Emojis panel, to post favorited medias such as images, videos and audios."
 		}
 	};
@@ -374,9 +374,9 @@ class FavoriteMedia {
 		}
 	}
 	switchToImageTab() {
+		console.log("switching images");
 		this.imgtab.style = "";
-		this.imglist = this.imgtab.lastChild.firstChild && this.imgtab.lastChild.firstChild.firstChild && this.imgtab.lastChild.firstChild.firstChild.firstChild;
-		if (!this.imglist) return;
+		if (!this.imglist) this.imglist = this.imgtab.lastChild.firstChild.firstChild.firstChild;
 		this.imglist.parentNode.style.height = null;
 		this.imglist.style.height = null;
 		const tmp = this.imglist.cloneNode(false);
@@ -386,6 +386,7 @@ class FavoriteMedia {
 		const width_item = 202;
 		const imgcols = [];
 		const showImages = (switchTo = false) => {
+			console.log("refreshing images");
 			const width = this.imgtab.clientWidth;
 			if (width % width_item === 0 || switchTo) {
 				this.imglist.innerHTML = "";
@@ -402,7 +403,7 @@ class FavoriteMedia {
 					}
 					for (let url of imgurls) {
 						let j = 0;
-						let min = 99999999999;
+						let min = 999999999;
 						for (let i = 0; i < n; i++) {
 							if (!imgcols[i].firstChild) { j = i; break };
 							let c = 0;
@@ -423,8 +424,7 @@ class FavoriteMedia {
 	}
 	switchToVideoTab() {
 		this.vidtab.style = "";
-		this.vidlist = this.vidtab.lastChild.firstChild && this.vidtab.lastChild.firstChild.firstChild && this.vidtab.lastChild.firstChild.firstChild.firstChild;
-		if (!this.vidlist) return;
+		if (!this.vidlist) this.vidlist = this.vidtab.lastChild.firstChild.firstChild.firstChild;
 		this.vidlist.parentNode.style.height = null;
 		this.vidlist.style.height = null;
 		const tmp = this.vidlist.cloneNode(false);
@@ -450,7 +450,7 @@ class FavoriteMedia {
 					}
 					for (let obj of vidobjs) {
 						let j = 0;
-						let min = 99999999999;
+						let min = 999999999;
 						for (let i = 0; i < n; i++) {
 							if (!vidcols[i].firstChild) { j = i; break };
 							let c = 0;
@@ -503,7 +503,7 @@ class FavoriteMedia {
 			this.favoriteImage(imgitemimg);
 			setTimeout(() => {
 				this.updateSelected("image");
-				this.switchToImageTab();
+				this.switchToImageTab(true);
 			}, 0);
 		};
 		imgitem.prepend(imgitemimg);
@@ -550,7 +550,7 @@ class FavoriteMedia {
 		let audioitem = document.createElement("div");
 		audioitem.style.padding = "8px";
 		audioitem.className = this.classes.result;
-		audioitem.onclick = () => { this.sendMedia({ url: url, name: name }, "audio") };
+		audioitem.onclick = () => { if (this.checkAudioFavorited(url)) this.sendMedia({ url: url, name: name }, "audio"); };
 		// audio
 		const audioitemname = document.createElement("div");
 		audioitemname.innerHTML = name;
