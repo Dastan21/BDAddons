@@ -14,7 +14,7 @@ module.exports = class HideEmbedLink {
 		this.unpatch = BdApi.monkeyPatch(BdApi.findModule(m => m.type.displayName === "MessageContent"), 'type', {
 			after: ({ methodArguments, returnValue }) => {
 				if (!methodArguments[0].message.embeds.length) return;
-				returnValue.props.children[0] = returnValue.props.children[0].filter(m => typeof m === "string");
+				returnValue.props.children[0] = returnValue.props.children[0].filter(m => !(m.props && m.props.href));
 			}
 		}
 		);
