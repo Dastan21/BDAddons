@@ -1,0 +1,3 @@
+# HideEmbedLink
+
+![example](preview.png)
