@@ -12,7 +12,7 @@ class FavoriteMedia {
 		info: {
 			name: "FavoriteMedia",
 			author: "Dastan21",
-			version: "1.4.4",
+			version: "1.4.5",
 			description: "Adds media tabs, on the GIF/Emojis panel, to post favorited medias such as images, videos and audios."
 		}
 	};
@@ -178,6 +178,7 @@ class FavoriteMedia {
             }
             .favbtn_image, .favbtn_video, .favbtn_audio {
 				position: absolute;
+				z-index: 2;
                 color: #fff;
                 opacity: 0;
                 cursor: pointer;
