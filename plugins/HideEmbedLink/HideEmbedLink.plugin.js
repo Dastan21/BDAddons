@@ -4,7 +4,7 @@
  * @author Dastan21
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.1.0
+ * @version 1.1.1
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink
  */
 
@@ -30,7 +30,7 @@ const Icon = (args) => {
 
 module.exports = class HideEmbedLink {
 	start() {
-		this.unpatch = BdApi.monkeyPatch(BdApi.findModule(m => m.type.displayName === "MessageContent"), 'type', {
+		this.unpatchMessageContent = BdApi.monkeyPatch(BdApi.findModule(m => m.type.displayName === "MessageContent"), 'type', {
 			after: ({ methodArguments, returnValue }) => {
 				if (!methodArguments[0].message.embeds.length) return;
 				if (methodArguments[0].message.showLinks) return;
@@ -43,7 +43,6 @@ module.exports = class HideEmbedLink {
 				this.unpatchContextMenuIcon = BdApi.monkeyPatch(returnValue.props.children.props.children[1], 'type', {
 					after: ({ methodArguments, returnValue }) => {
 						if (methodArguments[0].message.showLinks === undefined) return;
-						console.log(Icon(methodArguments));
 						returnValue.props.children.unshift(Icon(methodArguments));
 					}
 				});
@@ -51,7 +50,7 @@ module.exports = class HideEmbedLink {
 		});
 	}
 	stop() {
-		this.unpatch();
+		this.unpatchMessageContent();
 		this.unpatchContextMenu();
 		if (this.unpatchContextMenuIcon) this.unpatchContextMenuIcon();
 	}
