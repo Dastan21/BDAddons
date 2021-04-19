@@ -12,7 +12,7 @@ class FavoriteMedia {
 		info: {
 			name: "FavoriteMedia",
 			author: "Dastan21",
-			version: "1.4.5",
+			version: "1.4.6",
 			description: "Adds media tabs, on the GIF/Emojis panel, to post favorited medias such as images, videos and audios."
 		}
 	};
@@ -206,7 +206,7 @@ class FavoriteMedia {
             .favbtn_image:hover, .favbtn_image.favorited, .favbtn_video:hover, .favbtn_video.favorited, .favbtn_audio:hover, .favbtn_audio.favorited {
                 color: #faa61a;
             }
-            #imglist, #videolist {
+            #imglist, #videolist, #audiolist {
                 display: flex;
                 flex-wrap: wrap;
                 justify-content: space-between;
@@ -474,24 +474,39 @@ class FavoriteMedia {
 		showVideos(true);
 	}
 	switchToAudioTab() {
-		// search bar
+		this.audtab.style = "";
+		this.audtab.lastChild.firstChild.firstChild.style.height = null;
+		this.audtab.lastChild.firstChild.firstChild.firstChild.style.height = null;
+		this.audlist = this.audtab.lastChild.firstChild.firstChild.firstChild;
+		const tmp = this.audlist.cloneNode(false);
+		this.audlist.remove();
+		this.audlist = tmp;
+		this.audlist.id = "audiolist";
 		let filter = "";
-		const showAudios = () => {
-			this.audtab.style = "";
-			this.audtab.lastChild.firstChild.firstChild.style.height = null;
-			this.audtab.lastChild.firstChild.firstChild.firstChild.style.height = null;
-			this.audlist = this.audtab.lastChild.firstChild.firstChild.firstChild;
-			const tmp = this.audlist.cloneNode(false);
-			this.audlist.remove();
-			this.audlist = tmp;
-			this.audlist.id = "audiolist";
-			this.audlist.style = "width: calc(100% - 16px); margin: 8px;";
-			this.audtab.lastChild.firstChild.firstChild.append(this.audlist);
-			const audobjs = BdApi.loadData(this.getName(), "audio").filter(u => u !== null && u !== undefined && u.split("/").pop().toLowerCase().includes(filter));
-			if (!audobjs.length) {
-				if (filter === "") this.audlist.append(this.createEmptyItem("audio"));
-				else this.audlist.append(this.createNoItemFound());
-			} else for (let aud of audobjs) this.audlist.append(this.createAudioItem(aud));
+		const width_item = 404;
+		const audcols = [];
+		const showAudios = (switchTo = false) => {
+			const width = this.audtab.clientWidth;
+			if (width % width_item === 0 || switchTo) {
+				this.audlist.innerHTML = "";
+				audcols.splice(0, audcols.length);
+				const n = Math.floor(width / width_item);
+				const ratio = 100 / n;
+				const audobjs = BdApi.loadData(this.getName(), "audio").filter(u => u !== null && u !== undefined && u.split("/").pop().toLowerCase().includes(filter));
+				if (!audobjs.length) this.audlist.append(this.createEmptyItem("audio"));
+				else {
+					for (let i = 0; i < n; i++) {
+						audcols[i] = document.createElement("div");
+						audcols[i].style.width = `${ratio}%`;
+						this.audlist.append(audcols[i]);
+					}
+					let o = 0;
+					for (let obj of audobjs) {
+						audcols[o % n].append(this.createAudioItem(obj));
+						o++;
+					}
+				}
+			}
 		};
 		if (!this.audtab.querySelector("input")) {
 			const flex = document.createElement("div");
@@ -501,7 +516,7 @@ class FavoriteMedia {
 			const inner = document.createElement("div");
 			inner.className = this.classes.searchInner;
 			const input = document.createElement("input");
-			const searchAudio = function () { filter = input.value; showAudios(); }
+			const searchAudio = function () { filter = input.value; showAudios(true); }
 			input.className = this.classes.searchInput;
 			input.autofocus = true;
 			input.placeholder = "Search for audio";
@@ -511,7 +526,9 @@ class FavoriteMedia {
 			flex.append(container);
 			this.audtab.firstChild.append(flex);
 		}
-		showAudios();
+		this.audtab.lastChild.firstChild.firstChild.append(this.audlist);
+		addResizeListener(this.audtab, showAudios);
+		showAudios(true);
 	}
 	createImageItem(url) {
 		// image item
