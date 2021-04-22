@@ -12,7 +12,7 @@ class FavoriteMedia {
 		info: {
 			name: "FavoriteMedia",
 			author: "Dastan21",
-			version: "1.4.6",
+			version: "1.4.7",
 			description: "Adds media tabs, on the GIF/Emojis panel, to post favorited medias such as images, videos and audios."
 		}
 	};
@@ -475,9 +475,9 @@ class FavoriteMedia {
 	}
 	switchToAudioTab() {
 		this.audtab.style = "";
-		this.audtab.lastChild.firstChild.firstChild.style.height = null;
-		this.audtab.lastChild.firstChild.firstChild.firstChild.style.height = null;
-		this.audlist = this.audtab.lastChild.firstChild.firstChild.firstChild;
+		if (!this.audlist) this.audlist = this.audtab.lastChild.firstChild.firstChild.firstChild;
+		this.audlist.parentNode.style.height = null;
+		this.audlist.style.height = null;
 		const tmp = this.audlist.cloneNode(false);
 		this.audlist.remove();
 		this.audlist = tmp;
@@ -526,7 +526,7 @@ class FavoriteMedia {
 			flex.append(container);
 			this.audtab.firstChild.append(flex);
 		}
-		this.audtab.lastChild.firstChild.firstChild.append(this.audlist);
+		this.audtab.childNodes[1].firstChild.firstChild.append(this.audlist);
 		addResizeListener(this.audtab, showAudios);
 		showAudios(true);
 	}
@@ -549,7 +549,7 @@ class FavoriteMedia {
 			this.favoriteImage(imgitemimg);
 			setTimeout(() => {
 				this.updateSelected("image");
-				this.switchToImageTab(true);
+				this.switchToImageTab();
 			}, 0);
 		};
 		imgitem.prepend(imgitemimg);
@@ -657,18 +657,10 @@ class FavoriteMedia {
 	}
 	checkForMedias(node) {
 		for (let media of node.childNodes) {
-			if (media && media.parentNode && media.parentNode.lastChild && media.parentNode.lastChild.id !== "favbtn_image" && media.tagName !== "IFRAME" && media.firstChild && !media.firstChild.title) {
-				if (media.firstChild && media.firstChild.tagName === "IMG") this.addFavButtonOnImage(media);
-				if (media.firstChild && media.firstChild.firstChild && media.firstChild.tagName === "A" && media.firstChild.firstChild && media.firstChild.firstChild.tagName === "IMG") this.addFavButtonOnImage(media.firstChild);
-			}
-			if (media.firstChild && media.firstChild.firstChild && media.firstChild.firstChild.firstChild && media.firstChild.firstChild.firstChild.firstChild && media.firstChild.firstChild.firstChild.firstChild.tagName === "VIDEO") this.addFavButtonOnVideo(media.firstChild.firstChild.firstChild.firstChild);
-			if (media.firstChild && media.firstChild.tagName !== "A" && media.firstChild.childNodes[1] && media.firstChild.childNodes[1].tagName === "VIDEO") this.addFavButtonOnVideo(media.firstChild.childNodes[1]);
+			const img = media.querySelector("img"); if (img) this.addFavButtonOnImage(img.parentNode);
+			const vid = media.querySelector("video"); if (vid) this.addFavButtonOnVideo(vid);
+			const aud = media.querySelector("audio"); if (aud) this.addFavButtonOnAudio(aud.parentNode.firstChild);
 		}
-		if (node.firstChild && node.firstChild.childNodes[1] && node.firstChild.childNodes[1].tagName === "AUDIO") this.addFavButtonOnAudio(node.firstChild.firstChild);
-		// TODO: after done 'EmbedAudioLink'
-		// if(!node.childNodes.length && node.parentNode.querySelector("a")) {
-		// 	console.log(node.parentNode);
-		// }
 	}
 	addFavButtonOnImage(node) {
 		let tmp = document.createElement("div");
