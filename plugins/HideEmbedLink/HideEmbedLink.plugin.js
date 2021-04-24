@@ -1,6 +1,6 @@
 /**
  * @name HideEmbedLink
- * @description Removes links for embed messages
+ * @description Removes links for embed messages. Adds a button to force show links of a message.
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
