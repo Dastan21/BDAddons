@@ -1,7 +1,7 @@
 /**
  * @name HideEmbedLink
  * @description Removes links for embed messages
- * @author Dastan21
+ * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
  * @version 1.2.0
