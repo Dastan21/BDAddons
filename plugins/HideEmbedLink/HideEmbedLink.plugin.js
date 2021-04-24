@@ -4,7 +4,7 @@
  * @author Dastan21
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.1.1
+ * @version 1.2.0
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink
  */
 
@@ -29,13 +29,25 @@ const Icon = (args) => {
 }
 
 module.exports = class HideEmbedLink {
+
 	start() {
+		BdApi.injectCSS("HideEmbedLink", `
+		:not(.${BdApi.findModuleByProps("repliedTextContent").repliedTextContent.split(' ')[0]}) > .hideLink {
+			display: none;
+		}
+		`);
 		this.unpatchMessageContent = BdApi.monkeyPatch(BdApi.findModule(m => m.type.displayName === "MessageContent"), 'type', {
 			after: ({ methodArguments, returnValue }) => {
 				if (!methodArguments[0].message.embeds.length) return;
+				if (!methodArguments[0].content.length) return;
 				if (methodArguments[0].message.showLinks) return;
+				const embedURLs = methodArguments[0].message.embeds.map(e => e.url);
 				methodArguments[0].message.showLinks = false;
-				returnValue.props.children[0] = returnValue.props.children[0].filter(m => !(m.props && m.props.href));
+				returnValue.props.children[0].forEach(m => {
+					if (m.type && m.type.displayName === "MaskedLink" && m.props && embedURLs.includes(m.props.href))
+						m.props.className = "hideLink";
+				});
+
 			}
 		});
 		this.unpatchContextMenu = BdApi.monkeyPatch(BdApi.findModuleByProps("useConnectedUtilitiesProps").default, 'type', {
@@ -50,6 +62,7 @@ module.exports = class HideEmbedLink {
 		});
 	}
 	stop() {
+		BdApi.clearCSS("HideEmbedLink");
 		this.unpatchMessageContent();
 		this.unpatchContextMenu();
 		if (this.unpatchContextMenuIcon) this.unpatchContextMenuIcon();
