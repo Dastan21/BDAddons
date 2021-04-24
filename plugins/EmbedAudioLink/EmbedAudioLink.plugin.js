@@ -4,7 +4,7 @@
  * @author Dastan21
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.0.0
+ * @version 1.0.1
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/EmbedAudioLink
  */
 
@@ -102,7 +102,7 @@ module.exports = class EmbedAudioLink {
 		this.subscribeToChat();
 	}
 	stop() {
-		this.observer.disconnect();
+		if (this.observer) this.observer.disconnect();
 	}
 	onSwitch() {
 		this.embedLinks();
@@ -110,11 +110,14 @@ module.exports = class EmbedAudioLink {
 		this.subscribeToChat();
 	}
 	subscribeToChat() {
+		const chat = document.querySelector(selectors.scrollerInner);
+		if (!chat) return;
 		this.observer = new MutationObserver(e => { if (e[1] && e[1].addedNodes && e[1].addedNodes[0]) this.embedLinks(e[1].addedNodes[0]); });
-		this.observer.observe(document.querySelector(selectors.scrollerInner), { childList: true });
+		this.observer.observe(chat, { childList: true });
 	}
 	embedLinks(node) {
 		if (!node) node = document.querySelector(selectors.scrollerInner);
+		if (!node) return;
 		for (const type of AUDIO_TYPES) {
 			const alist = node.querySelectorAll(`${selectors.messageContent} a[href$=".${type}"]:not(.embededAudio)`);
 			for (const a of alist) {
