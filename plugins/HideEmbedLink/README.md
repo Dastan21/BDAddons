@@ -1,5 +1,5 @@
 # HideEmbedLink
 
-![example](https://i.imgur.com/lzUkqMj.png)
+## Preview
 
-![example](https://i.imgur.com/Q89umyO.png)
+![example](https://i.imgur.com/62nWHyT.gif)
