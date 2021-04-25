@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.2.0
+ * @version 1.3.0
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink
  */
 
@@ -19,6 +19,11 @@ const Icon = (args) => {
 		onClick: () => {
 			setShow(!show);
 			args[0].message.showLinks = !args[0].message.showLinks;
+			const links = document.querySelectorAll(`#chat-messages-${args[0].message.id} a.embedLink`);
+			for (const link of links) {
+				if (link.classList.contains("hideLink")) link.classList.remove("hideLink");
+				else link.classList.add("hideLink");
+			}
 		},
 	}, BdApi.React.createElement("svg", {
 		className: BdApi.findModuleByProps("container", "isHeader", "icon").icon,
@@ -40,14 +45,14 @@ module.exports = class HideEmbedLink {
 			after: ({ methodArguments, returnValue }) => {
 				if (!methodArguments[0].message.embeds.length) return;
 				if (!methodArguments[0].content.length) return;
+				returnValue.props.children[0].forEach(m => {
+					if (m.props) m.props.className = hasEmbed(methodArguments[0].message.embeds, m) ? "embedLink" : "";
+				});
 				if (methodArguments[0].message.showLinks) return;
-				const embedURLs = methodArguments[0].message.embeds.map(e => e.url);
 				methodArguments[0].message.showLinks = false;
 				returnValue.props.children[0].forEach(m => {
-					if (m.type && m.type.displayName === "MaskedLink" && m.props && embedURLs.includes(m.props.href))
-						m.props.className = "hideLink";
+					if (m.props && hasEmbed(methodArguments[0].message.embeds, m)) m.props.className += " hideLink";
 				});
-
 			}
 		});
 		this.unpatchContextMenu = BdApi.monkeyPatch(BdApi.findModuleByProps("useConnectedUtilitiesProps").default, 'type', {
@@ -67,4 +72,9 @@ module.exports = class HideEmbedLink {
 		this.unpatchContextMenu();
 		if (this.unpatchContextMenuIcon) this.unpatchContextMenuIcon();
 	}
+}
+
+function hasEmbed(embeds, m) {
+	const embedURLs = embeds.map(e => e.url);
+	return m.type && m.type.displayName === "MaskedLink" && m.props && embedURLs.includes(m.props.href);
 }
