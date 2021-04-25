@@ -2,4 +2,4 @@
 
 ## Preview
 
-![example](https://i.imgur.com/62nWHyT.gif)
+![example](https://i.imgur.com/y7nYC9q.gif)
