@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.3.0
+ * @version 1.3.1
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink
  */
 
@@ -43,6 +43,7 @@ module.exports = class HideEmbedLink {
 		`);
 		this.unpatchMessageContent = BdApi.monkeyPatch(BdApi.findModule(m => m.type.displayName === "MessageContent"), 'type', {
 			after: ({ methodArguments, returnValue }) => {
+				// console.log("patching");
 				if (!methodArguments[0].message.embeds.length) return;
 				if (!methodArguments[0].content.length) return;
 				returnValue.props.children[0].forEach(m => {
@@ -57,7 +58,9 @@ module.exports = class HideEmbedLink {
 		});
 		this.unpatchContextMenu = BdApi.monkeyPatch(BdApi.findModuleByProps("useConnectedUtilitiesProps").default, 'type', {
 			after: ({ returnValue }) => {
-				this.unpatchContextMenuIcon = BdApi.monkeyPatch(returnValue.props.children.props.children[1], 'type', {
+				const contextMenuIcon = returnValue && returnValue.props && returnValue.props.children && returnValue.props.children.props && returnValue.props.children.props.children[1];
+				if (!contextMenuIcon) return;
+				this.unpatchContextMenuIcon = BdApi.monkeyPatch(contextMenuIcon, 'type', {
 					after: ({ methodArguments, returnValue }) => {
 						if (methodArguments[0].message.showLinks === undefined) return;
 						returnValue.props.children.unshift(Icon(methodArguments));
