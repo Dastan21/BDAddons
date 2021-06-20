@@ -10,7 +10,7 @@ class FavoriteMediaV1 {
 
 	config = {
 		info: {
-			name: "FavoriteMedia",
+			name: "FavoriteMediaV1",
 			author: "Dastan21",
 			version: "1.5.0",
 			description: "Adds media tabs, on the GIF/Emojis panel, to post favorited medias such as images, videos and audios."
@@ -23,11 +23,11 @@ class FavoriteMediaV1 {
 	getVersion() { return this.config.info.version; }
 
 	start() {
-		if (BdApi.loadData(this.getName(), "image").medias === undefined) {
+		if (BdApi.loadData("FavoriteMedia", "image").medias === undefined) {
 			BdApi.showConfirmationModal("FavoriteMedia has been completely redone!",
 			[
 				"This version of the plugin is outdated and deprecated! Please use the new plugin FavoriteMedia (ask Dastan#8746).",
-				"But before updating, your medias lists have to be migrated, just click on 'Migrate' then you can replace the new plugin."
+				"But before updating, your medias lists have to be migrated, just click on 'Migrate' then you can replace the new plugin. This takes a few seconds..."
 			],
 			{
 				danger: false,
