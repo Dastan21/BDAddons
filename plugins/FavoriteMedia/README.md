@@ -1,3 +1,3 @@
 # FavoriteMedia
 
-![example](https://i.imgur.com/ekjljRt.gif)
+![example](https://media.giphy.com/media/Qfm3AvrTT8eSIKoIpp/giphy.gif)
