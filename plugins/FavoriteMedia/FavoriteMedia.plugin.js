@@ -221,6 +221,7 @@ const FavoriteMedia = (() => {
 					searchHeader: class_modules.gutter.searchHeader,
 					searchBar: class_modules.gutter.searchBar,
 					content: class_modules.gutter.content,
+					container: class_modules.gutter.container,
 				},
 				flex: {
 					flex: class_modules._flex.flex,
@@ -1209,7 +1210,10 @@ const FavoriteMedia = (() => {
 
 				render() {
 					return React.createElement("div", {
-						style: { height: "100%" }
+						id: `${this.props.type}-picker-tab-panel`,
+						role: "tabpanel",
+						"aria-labelledby": `${this.props.type}-picker-tab`,
+						className: classes.gutter.container
 					},
 						React.createElement("div", {
 							className: classes.gutter.header
