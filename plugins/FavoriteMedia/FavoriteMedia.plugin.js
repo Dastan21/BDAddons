@@ -124,7 +124,7 @@ const FavoriteMedia = (() => {
 					cancelText: "Cancel",
 					onConfirm: () => {
 						require("request").get("https://rauenzi.github.io/BDPluginLibrary/release/0PluginLibrary.plugin.js", async (error, _, body) => {
-							if (error) return require("electron").shell.openExternal("https://betterdiscord.net/ghdl?url=https://raw.githubusercontent.com/rauenzi/BDPluginLibrary/master/release/0PluginLibrary.plugin.js");
+							if (error) return require("electron").shell.openExternal("https://raw.githubusercontent.com/rauenzi/BDPluginLibrary/master/release/0PluginLibrary.plugin.js");
 							await new Promise(r => require("fs").writeFile(require("path").join(BdApi.Plugins.folder, "0PluginLibrary.plugin.js"), body, r));
 						});
 					}
@@ -135,7 +135,7 @@ const FavoriteMedia = (() => {
 		stop() { }
 	} : (([Plugin, Api]) => {
 		const plugin = (Plugin, Api) => {
-			const { WebpackModules, DiscordAPI, DiscordContextMenu, PluginUtilities, Utilities, ColorConverter, Toasts, Modals, Tooltip, DiscordModules: { React, ElectronModule, Strings, Dispatcher }, Patcher } = Api;
+			const { WebpackModules, DiscordContextMenu, PluginUtilities, Utilities, ColorConverter, Toasts, Modals, Tooltip, DiscordModules: { React, ElectronModule, Strings, Dispatcher, UserSettingsStore, SelectedChannelStore }, Patcher } = Api;
 
 			const class_modules = {
 				icon: WebpackModules.getByProps("hoverScale", "buttonWrapper", "button"),
@@ -766,7 +766,7 @@ const FavoriteMedia = (() => {
 							res.on('data', chunk => bufs.push(chunk));
 							res.on('end', () => {
 								try {
-									WebpackModules.getByProps("instantBatchUpload").upload(DiscordAPI.currentChannel.id, new File([Buffer.concat(bufs)], this.props.name + this.props.ext), 0, "", false, this.props.name + this.props.ext);
+									WebpackModules.getByProps("instantBatchUpload").upload(SelectedChannelStore.getChannelId(), new File([Buffer.concat(bufs)], this.props.name + this.props.ext), 0, "", false, this.props.name + this.props.ext);
 								} catch (e) { console.error(e.message) }
 							});
 							res.on('error', err => console.error(err));
@@ -1161,7 +1161,7 @@ const FavoriteMedia = (() => {
 						res.on('data', chunk => bufs.push(chunk));
 						res.on('end', () => {
 							try {
-								WebpackModules.getByProps("instantBatchUpload").upload(DiscordAPI.currentChannel.id, new File([Buffer.concat(bufs)], media.name || "unknown"), 0, "", false, (spoiler ? "SPOILER_" : "") + (media.name || "unknown") + "." + (media.url.split(".").pop().split("?").shift() || "png"));
+								WebpackModules.getByProps("instantBatchUpload").upload(SelectedChannelStore.getChannelId(), new File([Buffer.concat(bufs)], media.name || "unknown"), 0, "", false, (spoiler ? "SPOILER_" : "") + (media.name || "unknown") + "." + (media.url.split(".").pop().split("?").shift() || "png"));
 							} catch (e) { console.error(e.message) }
 						});
 						res.on('error', err => console.error(err));
@@ -1576,6 +1576,7 @@ const FavoriteMedia = (() => {
 					Patcher.after(EPS, "setExpressionPickerView", (_, [type], __) => {
 						this.activeMediaPicker = type;
 					});
+					// from https://github.com/rauenzi/BetterDiscordApp/blob/main/renderer/src/builtins/emotes/emotemenu.js
 					Patcher.after(ExpressionPicker, "type", (_, __, returnValue) => {
 						const originalChildren = Utilities.getNestedProp(returnValue, "props.children.props.children");
 						if (!originalChildren || originalChildren.__patched) return;
@@ -1652,7 +1653,7 @@ const FavoriteMedia = (() => {
 			};
 
 			function setLabelsByLanguage() {
-				switch (DiscordAPI.UserSettings.locale) {
+				switch (UserSettingsStore.locale) {
 					case "bg":		// Bulgarian
 						return {
 							"tab_name": {
@@ -3739,6 +3740,7 @@ const FavoriteMedia = (() => {
 	})(global.ZeresPluginLibrary.buildPlugin(config));
 })();
 
+// https://stackoverflow.com/a/5306832/13314290
 function array_move(arr, old_index, new_index) {
 	while (old_index < 0) old_index += arr.length;
 	while (new_index < 0) new_index += arr.length;
