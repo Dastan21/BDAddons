@@ -1579,7 +1579,7 @@ const FavoriteMedia = (() => {
 					// from https://github.com/rauenzi/BetterDiscordApp/blob/main/renderer/src/builtins/emotes/emotemenu.js
 					Patcher.after(ExpressionPicker, "type", (_, __, returnValue) => {
 						const originalChildren = Utilities.getNestedProp(returnValue, "props.children.props.children");
-						if (!originalChildren || originalChildren.__patched) return;
+						if (!originalChildren || originalChildren.__patchedmedia) return;
 						returnValue.props.children.props.children = (props) => {
 							const childrenReturn = Reflect.apply(originalChildren, null, [props]);
 							const head = Utilities.getNestedProp(childrenReturn, "props.children.props.children.1.props.children.0.props.children.props.children");
@@ -1592,7 +1592,7 @@ const FavoriteMedia = (() => {
 							if (["image", "video", "audio"].includes(this.activeMediaPicker)) body.push(React.createElement(MediaPicker, { type: this.activeMediaPicker }));
 							return childrenReturn;
 						};
-						returnValue.props.children.props.children.__patched = true;
+						returnValue.props.children.props.children.__patchedmedia = true;
 					});
 				}
 
