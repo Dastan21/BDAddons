@@ -1,7 +1,11 @@
 /**
  * @name FavoriteMedia
- * @source https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia
+ * @description Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.
+ * @author Dastan
  * @authorId 310450863845933057
+ * @authorLink https://github.com/Dastan21
+ * @version 0.1.0
+ * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
 const FavoriteMedia = (() => {
