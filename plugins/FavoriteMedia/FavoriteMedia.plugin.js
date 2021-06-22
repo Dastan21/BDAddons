@@ -112,30 +112,22 @@ const FavoriteMedia = (() => {
 		getDescription() { return config.info.description }
 		getVersion() { return config.info.version }
 		load() {
-			if (window.ZLibrary) {
-				PluginUpdater.checkForUpdate(
-					this.getName(),
-					this.getVersion(),
-					"https://raw.githubusercontent.com/Dastan21/BDAddons/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
-				);
-			} else {
-				BdApi.showConfirmationModal("Library Missing", `The library plugin needed for ${config.info.name} is missing. Please click Download Now to install it.`, {
-					confirmText: "Download Now",
-					cancelText: "Cancel",
-					onConfirm: () => {
-						require("request").get("https://rauenzi.github.io/BDPluginLibrary/release/0PluginLibrary.plugin.js", async (error, _, body) => {
-							if (error) return require("electron").shell.openExternal("https://raw.githubusercontent.com/rauenzi/BDPluginLibrary/master/release/0PluginLibrary.plugin.js");
-							await new Promise(r => require("fs").writeFile(require("path").join(BdApi.Plugins.folder, "0PluginLibrary.plugin.js"), body, r));
-						});
-					}
-				});
-			}
+			BdApi.showConfirmationModal("Library Missing", `The library plugin needed for ${config.info.name} is missing. Please click Download Now to install it.`, {
+				confirmText: "Download Now",
+				cancelText: "Cancel",
+				onConfirm: () => {
+					require("request").get("https://rauenzi.github.io/BDPluginLibrary/release/0PluginLibrary.plugin.js", async (error, _, body) => {
+						if (error) return require("electron").shell.openExternal("https://raw.githubusercontent.com/rauenzi/BDPluginLibrary/master/release/0PluginLibrary.plugin.js");
+						await new Promise(r => require("fs").writeFile(require("path").join(BdApi.Plugins.folder, "0PluginLibrary.plugin.js"), body, r));
+					});
+				}
+			});
 		}
 		start() { }
 		stop() { }
 	} : (([Plugin, Api]) => {
 		const plugin = (Plugin, Api) => {
-			const { WebpackModules, DiscordContextMenu, PluginUtilities, Utilities, ColorConverter, Toasts, Modals, Tooltip, DiscordModules: { React, ElectronModule, Strings, Dispatcher, UserSettingsStore, SelectedChannelStore }, Patcher } = Api;
+			const { WebpackModules, PluginUpdater, DiscordContextMenu, PluginUtilities, Utilities, ColorConverter, Toasts, Modals, Tooltip, DiscordModules: { React, ElectronModule, Strings, Dispatcher, UserSettingsStore, SelectedChannelStore }, Patcher } = Api;
 
 			const class_modules = {
 				icon: WebpackModules.getByProps("hoverScale", "buttonWrapper", "button"),
@@ -1495,6 +1487,11 @@ const FavoriteMedia = (() => {
 			return class FavoriteMedia extends Plugin {
 
 				onStart() {
+					PluginUpdater.checkForUpdate(
+						this.getName(),
+						this.getVersion(),
+						"https://raw.githubusercontent.com/Dastan21/BDAddons/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
+					);
 					this.patchExpressionPicker();
 					this.patchChannelTextArea();
 					this.patchMedias();
