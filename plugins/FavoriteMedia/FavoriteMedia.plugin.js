@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 0.1.0
+ * @version 0.1.1
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "0.1.0",
+			version: "0.1.1",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -100,6 +100,15 @@ const FavoriteMedia = (() => {
 						note: "Show audio button on textarea",
 						value: true
 					}
+				]
+			}
+		],
+		changelog: [
+			{
+				title: "Added",
+				type: "added",
+				items: [
+					"Added a drop shadow to the unfilled star, to make it easier to see on white backgrounds"
 				]
 			}
 		]
@@ -330,7 +339,7 @@ const FavoriteMedia = (() => {
 
 			const MediaFavButton = class extends React.Component {
 				constructor(props) {
-					super(props);				
+					super(props);
 
 					this.state = {
 						favorited: this.isFavorited,
@@ -448,7 +457,7 @@ const FavoriteMedia = (() => {
 						},
 							this.state.favorited ?
 								React.createElement("path", { fill: "currentColor", d: "M12.5,17.6l3.6,2.2a1,1,0,0,0,1.5-1.1l-1-4.1a1,1,0,0,1,.3-1l3.2-2.8A1,1,0,0,0,19.5,9l-4.2-.4a.87.87,0,0,1-.8-.6L12.9,4.1a1.05,1.05,0,0,0-1.9,0l-1.6,4a1,1,0,0,1-.8.6L4.4,9a1.06,1.06,0,0,0-.6,1.8L7,13.6a.91.91,0,0,1,.3,1l-1,4.1a1,1,0,0,0,1.5,1.1l3.6-2.2A1.08,1.08,0,0,1,12.5,17.6Z" })
-							:
+								:
 								React.createElement("path", { fill: "currentColor", d: "M19.6,9l-4.2-0.4c-0.4,0-0.7-0.3-0.8-0.6l-1.6-3.9c-0.3-0.8-1.5-0.8-1.8,0L9.4,8.1C9.3,8.4,9,8.6,8.6,8.7L4.4,9 c-0.9,0.1-1.2,1.2-0.6,1.8L7,13.6c0.3,0.2,0.4,0.6,0.3,1l-1,4.1c-0.2,0.9,0.7,1.5,1.5,1.1l3.6-2.2c0.3-0.2,0.7-0.2,1,0l3.6,2.2 c0.8,0.5,1.7-0.2,1.5-1.1l-1-4.1c-0.1-0.4,0-0.7,0.3-1l3.2-2.8C20.9,10.2,20.5,9.1,19.6,9z M12,15.4l-3.8,2.3l1-4.3l-3.3-2.9 l4.4-0.4l1.7-4l1.7,4l4.4,0.4l-3.3,2.9l1,4.3L12,15.4z" })
 						)
 					)
@@ -685,7 +694,7 @@ const FavoriteMedia = (() => {
 							style: { "background-color": `${this.showColor ? (this.props.color || DEFAULT_BACKGROUND_COLOR) : ""}` }
 						}),
 						React.createElement("div", { className: classes.category.categoryText },
-							React.createElement("span", { className: classes.category.categoryName, style: this.showColor ? { color: this.nameColor, "text-shadow": "none" } : {}}, this.props.name)
+							React.createElement("span", { className: classes.category.categoryName, style: this.showColor ? { color: this.nameColor, "text-shadow": "none" } : {} }, this.props.name)
 						),
 						this.props.thumbnail && !PluginUtilities.loadSettings(config.info.name).hideThumbnail ?
 							React.createElement("img", {
@@ -695,7 +704,7 @@ const FavoriteMedia = (() => {
 								height: "110px",
 								width: "100%"
 							})
-						: null
+							: null
 					)
 				}
 			}
@@ -1330,7 +1339,7 @@ const FavoriteMedia = (() => {
 									},
 										!this.state.category && (this.state.categories.length + this.state.medias.length === 0) ?
 											React.createElement(EmptyFavorites, { type: this.props.type })
-										: null,
+											: null,
 										this.state.categories.length > 0 && !this.state.category && this.state.contentWidth ?
 											React.createElement(RenderList, {
 												component: CategoryCard,
@@ -1342,7 +1351,7 @@ const FavoriteMedia = (() => {
 													length: this.state.categories.length
 												}
 											})
-										: null,
+											: null,
 										this.state.medias.length > 0 && this.state.contentWidth ?
 											React.createElement(RenderList, {
 												component: MediaCard,
@@ -1352,7 +1361,7 @@ const FavoriteMedia = (() => {
 													onMediaContextMenu: this.onMediaContextMenu
 												}
 											})
-										: null
+											: null
 									),
 									this.state.categories.length > 0 || this.state.medias.length > 0 ?
 										React.createElement("div", {
@@ -1417,7 +1426,7 @@ const FavoriteMedia = (() => {
 							type: "button",
 						},
 							React.createElement("div", {
-								className: `${classes.look.contents} ${classes.textarea.button} ${classes.icon.button}` // "button-3AYNKb button-318s1X",
+								className: `${classes.look.contents} ${classes.textarea.button} ${classes.icon.button}`
 							},
 								React.createElement("div", {
 									className: classes.icon.buttonWrapper,
@@ -1546,6 +1555,9 @@ const FavoriteMedia = (() => {
 						.${classes.result.result} > .${classes.result.gif}:focus {
 							outline: none;
 						}
+						.${classes.image.imageAccessory} > div:not(.${classes.gif.selected}) > svg {
+							filter: drop-shadow(2px 2px 2px rgb(0 0 0 / 0.3));
+						}
 					`);
 				}
 				onStop() {
@@ -1577,10 +1589,10 @@ const FavoriteMedia = (() => {
 					Patcher.after(EPS, "setExpressionPickerView", (_, [type], __) => {
 						this.activeMediaPicker = type;
 					});
-					// from https://github.com/rauenzi/BetterDiscordApp/blob/main/renderer/src/builtins/emotes/emotemenu.js
+					// https://github.com/rauenzi/BetterDiscordApp/blob/main/renderer/src/builtins/emotes/emotemenu.js
 					Patcher.after(ExpressionPicker, "type", (_, __, returnValue) => {
 						const originalChildren = Utilities.getNestedProp(returnValue, "props.children.props.children");
-						if (!originalChildren || originalChildren.__patchedmedia) return;
+						if (!originalChildren) return;
 						returnValue.props.children.props.children = (props) => {
 							const childrenReturn = Reflect.apply(originalChildren, null, [props]);
 							const head = Utilities.getNestedProp(childrenReturn, "props.children.props.children.1.props.children.0.props.children.props.children");
@@ -1593,7 +1605,6 @@ const FavoriteMedia = (() => {
 							if (["image", "video", "audio"].includes(this.activeMediaPicker)) body.push(React.createElement(MediaPicker, { type: this.activeMediaPicker }));
 							return childrenReturn;
 						};
-						returnValue.props.children.props.children.__patchedmedia = true;
 					});
 				}
 
