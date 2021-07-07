@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.3.1
+ * @version 1.3.2
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink
  */
 
@@ -43,7 +43,6 @@ module.exports = class HideEmbedLink {
 		`);
 		this.unpatchMessageContent = BdApi.monkeyPatch(BdApi.findModule(m => m.type.displayName === "MessageContent"), 'type', {
 			after: ({ methodArguments, returnValue }) => {
-				// console.log("patching");
 				if (!methodArguments[0].message.embeds.length) return;
 				if (!methodArguments[0].content.length) return;
 				returnValue.props.children[0].forEach(m => {
@@ -79,5 +78,8 @@ module.exports = class HideEmbedLink {
 
 function hasEmbed(embeds, m) {
 	const embedURLs = embeds.map(e => e.url);
-	return m.type && m.type.displayName === "MaskedLink" && m.props && embedURLs.includes(m.props.href);
+	if (!m.props) return false;
+	// youtube shortlink fix
+	const valid = m.props && m.props.href && m.props.href.startsWith("https://youtu.be/") && embedURLs.includes("https://www.youtube.com/watch?v=" + m.props.href.split('/').pop());
+	return m.type && m.type.displayName === "MaskedLink" && (embedURLs.includes(m.props.href) || valid);
 }
