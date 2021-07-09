@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 0.1.1
+ * @version 0.1.2
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -915,6 +915,7 @@ const FavoriteMedia = (() => {
 						this.setState({ category: null });
 						this.loadCategories();
 						this.loadMedias();
+						Dispatcher.dispatch({ type: "PICKER_BUTTON_ACTIVE", media_type: this.props.type });
 					}
 					if (this.state.contentWidth !== this.refs.content.clientWidth) this.setState({ contentWidth: this.refs.content.clientWidth });
 				}
@@ -1577,18 +1578,12 @@ const FavoriteMedia = (() => {
 					},
 						React.createElement(tabProps.children.type, {
 							viewType: type,
-							isActive: this.activeMediaPicker === type
+							isActive: type === WebpackModules.getByProps("useExpressionPickerStore").useExpressionPickerStore.getState().activeView
 						}, labels.tab_name[type])
 					);
 				}
 
 				patchExpressionPicker() {
-					Patcher.after(EPS, "toggleExpressionPicker", (_, [type], __) => {
-						this.activeMediaPicker = type;
-					});
-					Patcher.after(EPS, "setExpressionPickerView", (_, [type], __) => {
-						this.activeMediaPicker = type;
-					});
 					// https://github.com/rauenzi/BetterDiscordApp/blob/main/renderer/src/builtins/emotes/emotemenu.js
 					Patcher.after(ExpressionPicker, "type", (_, __, returnValue) => {
 						const originalChildren = Utilities.getNestedProp(returnValue, "props.children.props.children");
@@ -1602,7 +1597,8 @@ const FavoriteMedia = (() => {
 							if (this.settings.image.showImageTab) head.push(this.MediaTab("image", tabProps));
 							if (this.settings.video.showVideoTab) head.push(this.MediaTab("video", tabProps));
 							if (this.settings.audio.showAudioTab) head.push(this.MediaTab("audio", tabProps));
-							if (["image", "video", "audio"].includes(this.activeMediaPicker)) body.push(React.createElement(MediaPicker, { type: this.activeMediaPicker }));
+							const activeMediaPicker = WebpackModules.getByProps("useExpressionPickerStore").useExpressionPickerStore.getState().activeView;
+							if (["image", "video", "audio"].includes(activeMediaPicker)) body.push(React.createElement(MediaPicker, { type: activeMediaPicker }));
 							return childrenReturn;
 						};
 					});
