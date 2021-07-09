@@ -105,10 +105,10 @@ const FavoriteMedia = (() => {
 		],
 		changelog: [
 			{
-				title: "Added",
-				type: "added",
+				title: "Fixed",
+				type: "fixed",
 				items: [
-					"Added a drop shadow to the unfilled star, to make it easier to see on white backgrounds"
+					"Hidding buttons options in settings now works."
 				]
 			}
 		]
