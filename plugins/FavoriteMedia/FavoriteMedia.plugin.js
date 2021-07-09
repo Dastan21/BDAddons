@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 0.1.2
+ * @version 0.1.3
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "0.1.2",
+			version: "0.1.3",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -1608,11 +1608,9 @@ const FavoriteMedia = (() => {
 					Patcher.after(ChannelTextArea, "render", (_, __, returnValue) => {
 						const buttons = Utilities.findInReactTree(returnValue, e => e && e.className && e.className.startsWith("buttons"));
 						if (!buttons || !Array.isArray(buttons.children)) return;
-						buttons.children.push(
-							React.createElement(MediaButton, { type: "image" }),
-							React.createElement(MediaButton, { type: "video" }),
-							React.createElement(MediaButton, { type: "audio" })
-						);
+						if (this.settings.image.showImageBtn) buttons.children.push(React.createElement(MediaButton, { type: "image" }));
+						if (this.settings.video.showVideoBtn) buttons.children.push(React.createElement(MediaButton, { type: "video" }));
+						if (this.settings.audio.showAudioBtn) buttons.children.push(React.createElement(MediaButton, { type: "audio" }));
 					});
 				}
 
