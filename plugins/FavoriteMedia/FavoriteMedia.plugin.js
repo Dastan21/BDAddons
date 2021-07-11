@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 0.1.3
+ * @version 0.2.0
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "0.1.3",
+			version: "0.2.0",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -34,6 +34,23 @@ const FavoriteMedia = (() => {
 				value: false
 			},
 			{
+				type: "dropdown",
+				id: "btnsPosition",
+				name: "Buttons Position",
+				note: "Position of the buttons on the chat",
+				value: 'right',
+				options: [
+					{
+						label: 'Right',
+						value: 'right'
+					},
+					{
+						label: 'Left',
+						value: 'left'
+					}
+				]
+			},
+			{
 				type: "category",
 				id: "image",
 				name: "Image Settings",
@@ -42,16 +59,16 @@ const FavoriteMedia = (() => {
 				settings: [
 					{
 						type: "switch",
-						id: "showImageTab",
-						name: "Tab",
-						note: "Show image tab on picker tabs",
+						id: "enabled",
+						name: "General",
+						note: "Enable images",
 						value: true
 					},
 					{
 						type: "switch",
-						id: "showImageBtn",
+						id: "showBtn",
 						name: "Button",
-						note: "Show image button on textarea",
+						note: "Show image button on chat",
 						value: true
 					},
 				]
@@ -65,16 +82,16 @@ const FavoriteMedia = (() => {
 				settings: [
 					{
 						type: "switch",
-						id: "showVideoTab",
-						name: "Tab",
-						note: "Show video tab on picker tabs",
+						id: "enabled",
+						name: "General",
+						note: "Enable videos",
 						value: true
 					},
 					{
 						type: "switch",
-						id: "showVideoBtn",
+						id: "showBtn",
 						name: "Button",
-						note: "Show video button on textarea",
+						note: "Show video button on chat",
 						value: true
 					}
 				]
@@ -88,16 +105,16 @@ const FavoriteMedia = (() => {
 				settings: [
 					{
 						type: "switch",
-						id: "showAudioTab",
-						name: "Tab",
-						note: "Show audio tab on picker tabs",
+						id: "enabled",
+						name: "General",
+						note: "Enable audios",
 						value: true
 					},
 					{
 						type: "switch",
-						id: "showAudioBtn",
+						id: "showBtn",
 						name: "Button",
-						note: "Show audio button on textarea",
+						note: "Show audio button on chat",
 						value: true
 					}
 				]
@@ -105,10 +122,26 @@ const FavoriteMedia = (() => {
 		],
 		changelog: [
 			{
+				title: "Added",
+				type: "added",
+				items: [
+					"Added classNames for many elements",
+					"Added a dropdown option in the settings to select the position of the buttons on the chat",
+					"Added options in the settings to enable or not each media"
+				]
+			},
+			{
+				title: "Improved",
+				type: "improved",
+				items: [
+					"Hold shift while sending media will keep the picker open"
+				]
+			},
+			{
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Hidding buttons options in settings now works."
+					"Clicking on a button again now closes the expression picker"
 				]
 			}
 		]
@@ -762,11 +795,13 @@ const FavoriteMedia = (() => {
 
 				sendMedia(e) {
 					if (["path", "svg"].includes(e.target.tagName)) return;
+					const shiftPressed = e.shiftKey
 					if (this.props.type === "audio") {
 						require("https").get(this.props.url, res => {
 							const bufs = [];
 							res.on('data', chunk => bufs.push(chunk));
 							res.on('end', () => {
+								if (!shiftPressed) WebpackModules.getByProps("closeExpressionPicker").closeExpressionPicker();
 								try {
 									WebpackModules.getByProps("instantBatchUpload").upload(SelectedChannelStore.getChannelId(), new File([Buffer.concat(bufs)], this.props.name + this.props.ext), 0, "", false, this.props.name + this.props.ext);
 								} catch (e) { console.error(e.message) }
@@ -774,9 +809,13 @@ const FavoriteMedia = (() => {
 							res.on('error', err => console.error(err));
 						});
 					} else {
-						WebpackModules.getByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("INSERT_TEXT", { content: this.props.url });
-						const textarea = document.querySelector(`.${classes.textarea.textAreaSlate}`);
-						if (textarea) setTimeout(() => textarea.firstChild.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", code: "Enter", which: 13, keyCode: 13, bubbles: true })), 0);
+						if (!shiftPressed) {
+							WebpackModules.getByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("INSERT_TEXT", { content: this.props.url });
+							const textarea = document.querySelector(`.${classes.textarea.textAreaSlate}`);
+							if (textarea) setTimeout(() => textarea.firstChild.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", code: "Enter", which: 13, keyCode: 13, bubbles: true })), 0);
+						} else {
+							WebpackModules.getByProps("sendMessage").sendMessage(SelectedChannelStore.getChannelId(), { content: this.props.url, validNonShortcutEmojis: [] });
+						}
 					}
 				}
 
@@ -1165,6 +1204,7 @@ const FavoriteMedia = (() => {
 						res.on('end', () => {
 							try {
 								WebpackModules.getByProps("instantBatchUpload").upload(SelectedChannelStore.getChannelId(), new File([Buffer.concat(bufs)], media.name || "unknown"), 0, "", false, (spoiler ? "SPOILER_" : "") + (media.name || "unknown") + "." + (media.url.split(".").pop().split("?").shift() || "png"));
+								WebpackModules.getByProps("closeExpressionPicker").closeExpressionPicker();
 							} catch (e) { console.error(e.message) }
 						});
 						res.on('error', err => console.error(err));
@@ -1215,10 +1255,10 @@ const FavoriteMedia = (() => {
 						id: `${this.props.type}-picker-tab-panel`,
 						role: "tabpanel",
 						"aria-labelledby": `${this.props.type}-picker-tab`,
-						className: classes.gutter.container
+						className: `${classes.gutter.container} fm-pickerContainer`
 					},
 						React.createElement("div", {
-							className: classes.gutter.header
+							className: `${classes.gutter.header} fm-header`
 						},
 							React.createElement("div", {
 								className: `${classes.flex.flex} ${classes.flex.horizontal} ${classes.flex.justifyStart} ${classes.flex.alignCenter} ${classes.flex.noWrap}`,
@@ -1322,17 +1362,17 @@ const FavoriteMedia = (() => {
 							)
 						),
 						React.createElement("div", {
-							className: classes.gutter.content,
+							className: `${classes.gutter.content} fm-pickerContent`,
 							style: { height: "100%" }
 						},
 							React.createElement("div", {
-								className: `${classes.category.container} ${classes.scroller.thin} ${classes.scroller.scrollerBase} ${classes.scroller.fade}`,
+								className: `${classes.category.container} ${classes.scroller.thin} ${classes.scroller.scrollerBase} ${classes.scroller.fade} fm-pickerContentContainer`,
 								style: { overflow: "hidden scroll", "padding-right": "0" },
 								onContextMenu: this.onContextMenu,
 								onScroll: this.onScroll
 							},
 								React.createElement("div", {
-									className: classes.scroller.content
+									className: `${classes.scroller.content} fm-pickerContentContainerContent`
 								},
 									React.createElement("div", {
 										style: { position: "absolute", left: "12px", top: "12px", width: "calc(100% - 16px)" },
@@ -1402,10 +1442,15 @@ const FavoriteMedia = (() => {
 					}
 
 					this.changeActive = this.changeActive.bind(this);
+					this.checkPicker = this.checkPicker.bind(this);
 				}
 
 				changeActive({ media_type }) {
 					this.setState({ active: media_type === this.props.type });
+				}
+
+				checkPicker() {
+					canClosePicker = this.props.type !== WebpackModules.getByProps("useExpressionPickerStore").useExpressionPickerStore.getState().activeView;
 				}
 
 				componentDidMount() {
@@ -1418,19 +1463,20 @@ const FavoriteMedia = (() => {
 
 				render() {
 					return React.createElement("div", {
+						onMouseDown: this.checkPicker,
 						onClick: () => EPS.toggleExpressionPicker(this.props.type, "normal"),
-						className: classes.textarea.buttonContainer
+						className: `${classes.textarea.buttonContainer} fm-buttonContainer`
 					},
 						React.createElement("button", {
-							className: `${classes.look.button} ${classes.look.lookBlank} ${classes.look.colorBrand} ${classes.look.grow}${this.state.active ? ` ${classes.icon.active}` : ""}`,
+							className: `${classes.look.button} ${classes.look.lookBlank} ${classes.look.colorBrand} ${classes.look.grow}${this.state.active ? ` ${classes.icon.active}` : ""} fm-button`,
 							tabindex: "0",
 							type: "button",
 						},
 							React.createElement("div", {
-								className: `${classes.look.contents} ${classes.textarea.button} ${classes.icon.button}`
+								className: `${classes.look.contents} ${classes.textarea.button} ${classes.icon.button} fm-buttonContent`
 							},
 								React.createElement("div", {
-									className: classes.icon.buttonWrapper,
+									className: `${classes.icon.buttonWrapper} fm-buttonWrapper`,
 									style: { opacity: "1", transform: "none" }
 								},
 									this.props.type === "image" ? ImageSVG() : null,
@@ -1572,7 +1618,7 @@ const FavoriteMedia = (() => {
 
 				MediaTab(type, tabProps) {
 					return React.createElement("div", {
-						className: tabProps.className,
+						className: `${tabProps.className} fm-pickerTab`,
 						id: `${type}-picker-tab`,
 						role: "tab"
 					},
@@ -1594,9 +1640,9 @@ const FavoriteMedia = (() => {
 							const body = Utilities.getNestedProp(childrenReturn, "props.children.props.children.1.props.children");
 							if (!head || !body) return childrenReturn;
 							const tabProps = head[0].props;
-							if (this.settings.image.showImageTab) head.push(this.MediaTab("image", tabProps));
-							if (this.settings.video.showVideoTab) head.push(this.MediaTab("video", tabProps));
-							if (this.settings.audio.showAudioTab) head.push(this.MediaTab("audio", tabProps));
+							if (this.settings.image.enabled) head.push(this.MediaTab("image", tabProps));
+							if (this.settings.video.enabled) head.push(this.MediaTab("video", tabProps));
+							if (this.settings.audio.enabled) head.push(this.MediaTab("audio", tabProps));
 							const activeMediaPicker = WebpackModules.getByProps("useExpressionPickerStore").useExpressionPickerStore.getState().activeView;
 							if (["image", "video", "audio"].includes(activeMediaPicker)) body.push(React.createElement(MediaPicker, { type: activeMediaPicker }));
 							return childrenReturn;
@@ -1608,20 +1654,28 @@ const FavoriteMedia = (() => {
 					Patcher.after(ChannelTextArea, "render", (_, __, returnValue) => {
 						const buttons = Utilities.findInReactTree(returnValue, e => e && e.className && e.className.startsWith("buttons"));
 						if (!buttons || !Array.isArray(buttons.children)) return;
-						if (this.settings.image.showImageBtn) buttons.children.push(React.createElement(MediaButton, { type: "image" }));
-						if (this.settings.video.showVideoBtn) buttons.children.push(React.createElement(MediaButton, { type: "video" }));
-						if (this.settings.audio.showAudioBtn) buttons.children.push(React.createElement(MediaButton, { type: "audio" }));
+						if (this.settings.btnsPosition === "left") {
+							if (this.settings.audio.showBtn && this.settings.image.enabled) buttons.children.unshift(React.createElement(MediaButton, { type: "audio" }));
+							if (this.settings.video.showBtn && this.settings.video.enabled) buttons.children.unshift(React.createElement(MediaButton, { type: "video" }));
+							if (this.settings.image.showBtn && this.settings.audio.enabled) buttons.children.unshift(React.createElement(MediaButton, { type: "image" }));
+						} else {
+							if (this.settings.audio.showBtn && this.settings.audio.enabled) buttons.children.splice(4, 0, React.createElement(MediaButton, { type: "audio" }));
+							if (this.settings.video.showBtn && this.settings.video.enabled) buttons.children.splice(4, 0, React.createElement(MediaButton, { type: "video" }));
+							if (this.settings.image.showBtn && this.settings.image.enabled) buttons.children.splice(4, 0, React.createElement(MediaButton, { type: "image" }));
+						}
 					});
 				}
 
 				patchMedias() {
 					Patcher.after(MediaPlayer.prototype, "render", ({ props }, __, returnValue) => {
 						const type = returnValue.props.children[1].type === "audio" ? "audio" : "video";
+						if (!this.settings[type].enabled) return;
 						let url = props.src;
 						if (!url) return;
 						url = url.split("https/")[1];
 						if (!url) url = props.src;
 						else url = "https://" + url;
+						// force cdn link because on PC media link videos can't be played
 						url = url.replace("media.discordapp.net", "cdn.discordapp.com");
 						returnValue = returnValue.props.children.push(React.createElement(MediaFavButton, {
 							type: type,
@@ -1632,6 +1686,7 @@ const FavoriteMedia = (() => {
 						}));
 					});
 					Patcher.after(Image.prototype, "render", (_, __, returnValue) => {
+						if (!this.settings.image.enabled) return;
 						if (!returnValue.props) return;
 						if ((returnValue.props.className && returnValue.props.className.includes("embedVideo")) || (returnValue.props.href && (returnValue.props.href.includes(".gif?") || returnValue.props.href.endsWith(".gif")))) return;
 						let url = returnValue.props.href;
