@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 0.2.0
+ * @version 0.2.1
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "0.2.0",
+			version: "0.2.1",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -117,31 +117,6 @@ const FavoriteMedia = (() => {
 						note: "Show audio button on chat",
 						value: true
 					}
-				]
-			}
-		],
-		changelog: [
-			{
-				title: "Added",
-				type: "added",
-				items: [
-					"Added classNames for many elements",
-					"Added a dropdown option in the settings to select the position of the buttons on the chat",
-					"Added options in the settings to enable or not each media"
-				]
-			},
-			{
-				title: "Improved",
-				type: "improved",
-				items: [
-					"Hold shift while sending media will keep the picker open"
-				]
-			},
-			{
-				title: "Fixed",
-				type: "fixed",
-				items: [
-					"Clicking on a button again now closes the expression picker"
 				]
 			}
 		]
@@ -1655,9 +1630,9 @@ const FavoriteMedia = (() => {
 						const buttons = Utilities.findInReactTree(returnValue, e => e && e.className && e.className.startsWith("buttons"));
 						if (!buttons || !Array.isArray(buttons.children)) return;
 						if (this.settings.btnsPosition === "left") {
-							if (this.settings.audio.showBtn && this.settings.image.enabled) buttons.children.unshift(React.createElement(MediaButton, { type: "audio" }));
+							if (this.settings.audio.showBtn && this.settings.audio.enabled) buttons.children.unshift(React.createElement(MediaButton, { type: "audio" }));
 							if (this.settings.video.showBtn && this.settings.video.enabled) buttons.children.unshift(React.createElement(MediaButton, { type: "video" }));
-							if (this.settings.image.showBtn && this.settings.audio.enabled) buttons.children.unshift(React.createElement(MediaButton, { type: "image" }));
+							if (this.settings.image.showBtn && this.settings.image.enabled) buttons.children.unshift(React.createElement(MediaButton, { type: "image" }));
 						} else {
 							if (this.settings.audio.showBtn && this.settings.audio.enabled) buttons.children.splice(4, 0, React.createElement(MediaButton, { type: "audio" }));
 							if (this.settings.video.showBtn && this.settings.video.enabled) buttons.children.splice(4, 0, React.createElement(MediaButton, { type: "video" }));
