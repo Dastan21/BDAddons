@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 0.2.1
+ * @version 0.2.2
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "0.2.1",
+			version: "0.2.2",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -119,6 +119,15 @@ const FavoriteMedia = (() => {
 					}
 				]
 			}
+		],
+		changelog: [
+			{
+				title: "Fixed",
+				type: "fixed",
+				items: [
+					"Buttons will no longer be displayed in chat restricted channels"
+				]
+			}
 		]
 	};
 
@@ -144,7 +153,7 @@ const FavoriteMedia = (() => {
 		stop() { }
 	} : (([Plugin, Api]) => {
 		const plugin = (Plugin, Api) => {
-			const { WebpackModules, PluginUpdater, DiscordContextMenu, PluginUtilities, Utilities, ColorConverter, Toasts, Modals, Tooltip, DiscordModules: { React, ElectronModule, Strings, Dispatcher, UserSettingsStore, SelectedChannelStore }, Patcher } = Api;
+			const { WebpackModules, PluginUpdater, DiscordContextMenu, PluginUtilities, Utilities, ColorConverter, Toasts, Modals, Tooltip, DiscordModules: { React, ElectronModule, Strings, Dispatcher, UserSettingsStore, SelectedChannelStore, Permissions, UserStore, ChannelStore }, Patcher } = Api;
 
 			const class_modules = {
 				icon: WebpackModules.getByProps("hoverScale", "buttonWrapper", "button"),
@@ -273,6 +282,7 @@ const FavoriteMedia = (() => {
 			const ExpressionPicker = WebpackModules.getModule(e => e.type && e.type.displayName === "ExpressionPicker");
 			const ChannelTextArea = WebpackModules.getModule(e => e.type && e.type.render && e.type.render.displayName === "ChannelTextAreaContainer").type;
 			const EPS = WebpackModules.getByProps("toggleExpressionPicker");
+			const PermissionsConstants = WebpackModules.getByProps("Permissions", "ActivityTypes").Permissions;
 			const MediaPlayer = WebpackModules.getByDisplayName("MediaPlayer");
 			const Image = WebpackModules.getByDisplayName("Image");
 			const ImageSVG = () => React.createElement("svg", { className: classes.icon.icon, "aria-hidden": "false", viewBox: "0 0 384 384", width: "24", height: "24" }, React.createElement("path", { fill: "currentColor", d: "M341.333,0H42.667C19.093,0,0,19.093,0,42.667v298.667C0,364.907,19.093,384,42.667,384h298.667 C364.907,384,384,364.907,384,341.333V42.667C384,19.093,364.907,0,341.333,0z M42.667,320l74.667-96l53.333,64.107L245.333,192l96,128H42.667z" }));
@@ -1627,6 +1637,7 @@ const FavoriteMedia = (() => {
 
 				patchChannelTextArea() {
 					Patcher.after(ChannelTextArea, "render", (_, __, returnValue) => {
+						if (!Permissions.can(PermissionsConstants.SEND_MESSAGES, UserStore.getCurrentUser().id, ChannelStore.getChannel(SelectedChannelStore.getChannelId()))) return;
 						const buttons = Utilities.findInReactTree(returnValue, e => e && e.className && e.className.startsWith("buttons"));
 						if (!buttons || !Array.isArray(buttons.children)) return;
 						if (this.settings.btnsPosition === "left") {
