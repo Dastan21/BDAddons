@@ -125,7 +125,7 @@ const FavoriteMedia = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Fixed chat buttons order for 'right' option."
+					"Fixed chat buttons in wrong order for 'right'."
 				]
 			}
 		]
