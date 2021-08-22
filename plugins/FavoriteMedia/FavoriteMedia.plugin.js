@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 0.2.6
+ * @version 1.3.0
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "0.2.6",
+			version: "1.3.0",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -70,7 +70,7 @@ const FavoriteMedia = (() => {
 						name: "Button",
 						note: "Show image button on chat",
 						value: true
-					},
+					}
 				]
 			},
 			{
@@ -122,10 +122,18 @@ const FavoriteMedia = (() => {
 		],
 		changelog: [
 			{
+				title: "Added",
+				type: "added",
+				items: [
+					"Added Drag & Drop for unsorted medias.",
+					"Added download buttons for medias and categories."
+				]
+			},
+			{
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Fixed chat buttons in wrong order for 'right'."
+					"Chinese(Taiwan) translation fix. Thanks to JimLi999 (https://github.com/JimLi999)"
 				]
 			}
 		]
@@ -154,6 +162,7 @@ const FavoriteMedia = (() => {
 	} : (([Plugin, Api]) => {
 		const plugin = (Plugin, Api) => {
 			const { WebpackModules, PluginUpdater, DiscordContextMenu, PluginUtilities, Utilities, ColorConverter, Toasts, Modals, Tooltip, DiscordModules: { React, ElectronModule, Strings, Dispatcher, UserSettingsStore, SelectedChannelStore, Permissions, UserStore, ChannelStore }, Patcher } = Api;
+			const { mkdir, access, writeFile, constants } = require('fs');
 
 			const class_modules = {
 				icon: WebpackModules.getByProps("hoverScale", "buttonWrapper", "button"),
@@ -369,7 +378,6 @@ const FavoriteMedia = (() => {
 					this.favoriteMedia = this.favoriteMedia.bind(this);
 					this.unfavoriteMedia = this.unfavoriteMedia.bind(this);
 					this.favButton = this.favButton.bind(this);
-					this.getUrlName = this.getUrlName.bind(this);
 				}
 
 				componentDidMount() {
@@ -408,14 +416,6 @@ const FavoriteMedia = (() => {
 					}, 200);
 				}
 
-				getUrlName() {
-					return this.props.url.replace(/\.([^\.]*)$/gm, "").split("/").pop();
-				}
-
-				getUrlExt() {
-					return this.props.url.match(/\.([0-9a-z]+)(?=[?#])|(\.)(?:[\w]+)$/gmi)[0];
-				}
-
 				favoriteMedia() {
 					let type_data = PluginUtilities.loadData(config.info.name, this.props.type, { medias: [] });
 					if (type_data.medias.find(m => m.url === this.props.url)) return;
@@ -427,14 +427,14 @@ const FavoriteMedia = (() => {
 								poster: this.props.poster,
 								width: this.props.width,
 								height: this.props.height,
-								name: this.getUrlName()
+								name: getUrlName(this.props.url)
 							};
 							break;
 						case "audio":
 							data = {
 								url: this.props.url,
-								name: this.getUrlName(),
-								ext: this.getUrlExt()
+								name: getUrlName(this.props.url),
+								ext: getUrlExt(this.props.url)
 							};
 							break;
 						default: // image
@@ -442,7 +442,7 @@ const FavoriteMedia = (() => {
 								url: this.props.url,
 								width: this.props.width,
 								height: this.props.height,
-								name: this.getUrlName()
+								name: getUrlName(this.props.url)
 							};
 					}
 					if (!data) return;
@@ -625,6 +625,7 @@ const FavoriteMedia = (() => {
 					super(props);
 
 					this.onContextMenu = this.onContextMenu.bind(this);
+					this.onDrop = this.onDrop.bind(this);
 				}
 
 				get nameColor() {
@@ -658,15 +659,38 @@ const FavoriteMedia = (() => {
 					}
 					const items = [
 						{
-							label: labels.category.edit,
-							action: () => this.props.openCategoryModal("edit", { name: this.props.name, color: this.props.color, id: this.props.id })
-						},
-						{
 							label: labels.category.copyColor,
 							action: () => {
 								ElectronModule.copy(this.props.color || DEFAULT_BACKGROUND_COLOR);
 								Toasts.success(labels.category.copiedColor);
 							}
+						},
+						{
+							label: labels.category.download,
+							action: () => BdApi.openDialog({ openDirectory: true }).then(({ filePaths }) => {
+								if (!filePaths) return;
+								const path = filePaths[0];
+								if (!path) return;
+								const category_folder = path + `\\${this.props.name}`;
+								mkdir(category_folder, () => {
+									const medias = PluginUtilities.loadData(config.info.name, this.props.type, { medias: [] }).medias.filter(m => m.category_id === this.props.id).map(m => { return this.props.type === "audio" ? m : { ...m, ext: getUrlExt(m.url) } });
+									Promise.all(medias.map(m => new Promise((resolve, reject) => {
+										access(category_folder + `\\${m.name}${m.ext}`, constants.F_OK, e => {
+											if (!e) return resolve();
+											require("https").get(m.url, res => {
+												const bufs = [];
+												res.on('data', chunk => bufs.push(chunk));
+												res.on('end', () => writeFile(category_folder + `\\${m.name}${m.ext}`, Buffer.concat(bufs), err => err ? reject(err) : resolve()));
+												res.on('error', err => reject(err));
+											});
+										});
+									}))).then(() => Toasts.success(labels.category.success.download)).catch(() => Toasts.error(labels.category.error.download));
+								});
+							})
+						},
+						{
+							label: labels.category.edit,
+							action: () => this.props.openCategoryModal("edit", { name: this.props.name, color: this.props.color, id: this.props.id })
 						},
 						{
 							label: labels.category.delete,
@@ -677,7 +701,7 @@ const FavoriteMedia = (() => {
 							}
 						}
 					];
-					if (moveItems.length > 0) items.splice(1, 0, {
+					if (moveItems.length > 0) items.unshift({
 						label: labels.category.move,
 						type: "submenu",
 						items: moveItems
@@ -692,6 +716,19 @@ const FavoriteMedia = (() => {
 					});
 				}
 
+				onDrop(e) {
+					const data = e.dataTransfer.getData("card-data");
+					let media;
+					try {
+						media = JSON.parse(data);
+					} catch (err) {
+						console.error(err);
+					}
+					if (!media) return;
+					this.props.changeMediaCategory(media.id, this.props.id);
+					this.refs.category.classList.remove("category-dragover");
+				}
+
 				render() {
 					return React.createElement("div", {
 						className: classes.result.result,
@@ -704,15 +741,23 @@ const FavoriteMedia = (() => {
 							width: `${this.props.positions.width}px`,
 							height: "110px"
 						},
+						ref: "category",
 						onClick: () => this.props.setCategory({ name: this.props.name, color: this.props.color, id: this.props.id }),
-						onContextMenu: this.onContextMenu
+						onContextMenu: this.onContextMenu,
+						onDragEnter: e => { e.preventDefault(); this.refs.category.classList.add("category-dragover"); },
+						onDragLeave: e => { e.preventDefault(); this.refs.category.classList.remove("category-dragover"); },
+						onDragOver: e => { e.stopPropagation(); e.preventDefault(); },
+						onDrop: this.onDrop
 					},
 						React.createElement("div", {
 							className: classes.category.categoryFade,
 							style: { "background-color": `${this.showColor ? (this.props.color || DEFAULT_BACKGROUND_COLOR) : ""}` }
 						}),
 						React.createElement("div", { className: classes.category.categoryText },
-							React.createElement("span", { className: classes.category.categoryName, style: this.showColor ? { color: this.nameColor, "text-shadow": "none" } : {} }, this.props.name)
+							React.createElement("span", {
+								className: classes.category.categoryName,
+								style: this.showColor ? { color: this.nameColor, "text-shadow": "none" } : {}
+							}, this.props.name)
 						),
 						this.props.thumbnail && !PluginUtilities.loadSettings(config.info.name).hideThumbnail ?
 							React.createElement("img", {
@@ -739,6 +784,7 @@ const FavoriteMedia = (() => {
 					this.changeControls = this.changeControls.bind(this);
 					this.sendMedia = this.sendMedia.bind(this);
 					this.handleVisible = this.handleVisible.bind(this);
+					this.onDragStart = this.onDragStart.bind(this);
 				}
 
 				get isPlayable() {
@@ -776,6 +822,11 @@ const FavoriteMedia = (() => {
 						}
 						return ({ showControls: newControls });
 					});
+				}
+
+				onDragStart(e) {
+					e.dataTransfer.setData('card-data', JSON.stringify(this.props));
+					e.dataTransfer.effectAllowed = "move";
 				}
 
 				sendMedia(e) {
@@ -854,7 +905,8 @@ const FavoriteMedia = (() => {
 							height: this.props.positions.height,
 							ref: "media",
 							controls: this.state.showControls,
-							style: this.props.type === "audio" ? { position: "absolute", bottom: "0", left: "0", "z-index": "2" } : null
+							style: this.props.type === "audio" ? { position: "absolute", bottom: "0", left: "0", "z-index": "2" } : null,
+							onDragStart: this.onDragStart
 						}) : null,
 						this.props.type === "audio" ? React.createElement("div", {
 							className: classes.category.categoryFade,
@@ -1127,7 +1179,8 @@ const FavoriteMedia = (() => {
 					let type_data = PluginUtilities.loadData(config.info.name, this.props.type);
 					type_data.medias[media_id].category_id = category_id;
 					PluginUtilities.saveData(config.info.name, this.props.type, type_data);
-					return Toasts.success(labels.media.success.move[this.props.type]);
+					Toasts.success(labels.media.success.move[this.props.type]);
+					this.loadMedias();
 				}
 
 				removeMediaCategory(media_id) {
@@ -1143,10 +1196,7 @@ const FavoriteMedia = (() => {
 						return {
 							label: c.name,
 							key: c.id,
-							action: () => {
-								this.changeMediaCategory(media_id, c.id);
-								this.loadMedias();
-							},
+							action: () => this.changeMediaCategory(media_id, c.id),
 							render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })
 						};
 					}).filter(c => c.key !== (this.state.category && this.state.category.id) && c.key !== this.isInCategory(media_id));
@@ -1200,7 +1250,8 @@ const FavoriteMedia = (() => {
 					const items = [{
 						label: "media-input",
 						render: () => React.createElement(MediaMenuItemInput, { id: media_id, type: this.props.type, loadMedias: this.loadMedias })
-					}, {
+					},
+					{
 						label: labels.media.upload.title,
 						type: "submenu",
 						items: [{
@@ -1210,6 +1261,24 @@ const FavoriteMedia = (() => {
 							label: labels.media.upload.spoiler,
 							action: () => this.uploadMedia(media_id, true)
 						}]
+					},
+					{
+						label: Strings.DOWNLOAD,
+						action: () => {
+							const media = PluginUtilities.loadData(config.info.name, this.props.type, { medias: [] }).medias[media_id];
+							const ext = getUrlExt(media.url);
+							BdApi.openDialog({ mode: "save", defaultPath: media.name + ext }).then(({ filePath }) => {
+								require("https").get(media.url, res => {
+									const bufs = [];
+									res.on('data', chunk => bufs.push(chunk));
+									res.on('end', () => writeFile(filePath, Buffer.concat(bufs), err => {
+										if (err) return Toasts.error(labels.media.error.download[this.props.type]);
+										Toasts.success(labels.media.success.download[this.props.type])
+									}));
+									res.on('error', () => Toasts.error(labels.media.error.download[this.props.type]));
+								});
+							})
+						}
 					}];
 					const items_categories = this.categoriesItems(media_id);
 					if (items_categories.length > 0) {
@@ -1374,6 +1443,7 @@ const FavoriteMedia = (() => {
 													type: this.props.type,
 													setCategory: this.setCategory,
 													openCategoryModal: this.openCategoryModal,
+													changeMediaCategory: this.changeMediaCategory,
 													length: this.state.categories.length
 												}
 											})
@@ -1475,11 +1545,11 @@ const FavoriteMedia = (() => {
 			}
 
 			function categoryValidator(type, name, color, id) {
-				if (!name || typeof name !== "string") return { error: "error", message: labels.category.error.need_name };
-				if (name.length > 20) return { error: "error", message: labels.category.error.invalid_name_length };
-				if (!color || typeof color !== "string" || !color.startsWith("#")) return { error: "error", message: labels.category.error.wrong_color };
+				if (!name || typeof name !== "string") return { error: "error", message: labels.category.error.needName };
+				if (name.length > 20) return { error: "error", message: labels.category.error.invalidNameLength };
+				if (!color || typeof color !== "string" || !color.startsWith("#")) return { error: "error", message: labels.category.error.wrongColor };
 				const type_data = PluginUtilities.loadData(config.info.name, type, { categories: [], medias: [] });
-				if (type_data.categories.find(c => c.name === name && c.id !== id) !== undefined) return { error: "error", message: labels.category.error.name_exists };
+				if (type_data.categories.find(c => c.name === name && c.id !== id) !== undefined) return { error: "error", message: labels.category.error.nameExists };
 				return type_data;
 			}
 
@@ -1516,7 +1586,7 @@ const FavoriteMedia = (() => {
 
 			function deleteCategory(type, id) {
 				let type_data = PluginUtilities.loadData(config.info.name, type, { categories: [], medias: [] });
-				if (type_data.categories.find(c => c.id === id) === undefined) { Toasts.error(labels.category.error.invalid_category); return false; }
+				if (type_data.categories.find(c => c.id === id) === undefined) { Toasts.error(labels.category.error.invalidCategory); return false; }
 				type_data.categories = type_data.categories.filter(c => c.id !== id);
 				type_data.medias = type_data.medias.map(m => { if (m.category_id === id) delete m.category_id; return m; });
 				PluginUtilities.saveData(config.info.name, type, type_data);
@@ -1590,6 +1660,10 @@ const FavoriteMedia = (() => {
 						.${classes.image.imageAccessory} > div:not(.${classes.gif.selected}) > svg {
 							filter: drop-shadow(2px 2px 2px rgb(0 0 0 / 0.3));
 						}
+						.category-dragover:after {
+							-webkit-box-shadow: inset 0 0 0 2px var(--brand-experiment), inset 0 0 0 3px #2f3136 !important;
+    						box-shadow: inset 0 0 0 2px var(--brand-experiment), inset 0 0 0 3px #2f3136 !important;
+						}
 					`);
 				}
 				onStop() {
@@ -1610,7 +1684,7 @@ const FavoriteMedia = (() => {
 						React.createElement(tabProps.children.type, {
 							viewType: type,
 							isActive: type === WebpackModules.getByProps("useExpressionPickerStore").useExpressionPickerStore.getState().activeView
-						}, labels.tab_name[type])
+						}, labels.tabName[type])
 					);
 				}
 
@@ -1647,10 +1721,9 @@ const FavoriteMedia = (() => {
 							if (this.settings.video.showBtn && this.settings.video.enabled) buttons.children.unshift(React.createElement(MediaButton, { type: "video" }));
 							if (this.settings.image.showBtn && this.settings.image.enabled) buttons.children.unshift(React.createElement(MediaButton, { type: "image" }));
 						} else {
-							let index = 4;
-							if (this.settings.image.showBtn && this.settings.image.enabled) { buttons.children.splice(index, 0, React.createElement(MediaButton, { type: "image" })); index++; };
-							if (this.settings.video.showBtn && this.settings.video.enabled) { buttons.children.splice(index, 0, React.createElement(MediaButton, { type: "video" })); index++; };
-							if (this.settings.audio.showBtn && this.settings.audio.enabled) buttons.children.splice(index, 0, React.createElement(MediaButton, { type: "audio" }));
+							if (this.settings.image.showBtn && this.settings.image.enabled) buttons.children.splice(4, 0, React.createElement(MediaButton, { type: "image" }));
+							if (this.settings.video.showBtn && this.settings.video.enabled) buttons.children.splice(4, 0, React.createElement(MediaButton, { type: "video" }));
+							if (this.settings.audio.showBtn && this.settings.audio.enabled) buttons.children.splice(4, 0, React.createElement(MediaButton, { type: "audio" }));
 						}
 					});
 				}
@@ -1706,7 +1779,7 @@ const FavoriteMedia = (() => {
 				switch (UserSettingsStore.locale) {
 					case "bg":		// Bulgarian
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Картина",
 								"video": "Видео",
 								"audio": "Аудио"
@@ -1717,6 +1790,7 @@ const FavoriteMedia = (() => {
 								"create": "Създайте категория",
 								"edit": "Редактиране на категорията",
 								"delete": "Изтриване на категорията",
+								"download": "Изтеглете мултимедия",
 								"placeholder": "Име на категория",
 								"move": "Ход",
 								"moveNext": "След",
@@ -1725,17 +1799,20 @@ const FavoriteMedia = (() => {
 								"copyColor": "Копиране на цвят",
 								"copiedColor": "Цветът е копиран!",
 								"error": {
-									"need_name": "Името не може да бъде празно",
-									"invalid_name_length": "Името трябва да съдържа максимум 20 знака",
-									"wrong_color": "Цветът е невалиден",
-									"name_exists": "това име вече съществува",
-									"invalid_category": "Категорията не съществува"
+									"needName": "Името не може да бъде празно",
+									"invalidNameLength": "Името трябва да съдържа максимум 20 знака",
+									"wrongColor": "Цветът е невалиден",
+									"nameExists": "това име вече съществува",
+									"invalidCategory": "Категорията не съществува",
+									"download": "Изтеглянето на мултимедия не бе успешно",
+									"download": "Median lataaminen epäonnistui"
 								},
 								"success": {
 									"create": "Категорията е създадена!",
 									"delete": "Категорията е изтрита!",
 									"edit": "Категорията е променена!",
-									"move": "Категорията е преместена!"
+									"move": "Категорията е преместена!",
+									"download": "Медиите са качени!"
 								},
 								"emptyHint": "Щракнете с десния бутон, за да създадете категория!"
 							},
@@ -1763,6 +1840,18 @@ const FavoriteMedia = (() => {
 										"image": "Изображението е премахнато от категориите!",
 										"video": "Видеото е премахнато от категориите!",
 										"audio": "Аудиото е премахнато от категориите!"
+									},
+									"download": {
+										"image": "Изображението е качено!",
+										"video": "Видеото е качено!",
+										"audio": "Аудиото е изтеглено!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Качването на изображението не бе успешно",
+										"video": "Изтеглянето на видеоклипа не бе успешно",
+										"audio": "Изтеглянето на аудио не бе успешно"
 									}
 								},
 								"controls": {
@@ -1783,7 +1872,7 @@ const FavoriteMedia = (() => {
 						};
 					case "da":		// Danish
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Billede",
 								"video": "Video",
 								"audio": "Lyd"
@@ -1794,6 +1883,7 @@ const FavoriteMedia = (() => {
 								"create": "Opret en kategori",
 								"edit": "Rediger kategori",
 								"delete": "Slet kategori",
+								"download": "Download medier",
 								"placeholder": "Kategorinavn",
 								"move": "Bevæge sig",
 								"moveNext": "Efter",
@@ -1802,17 +1892,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Kopier farve",
 								"copiedColor": "Farve kopieret!",
 								"error": {
-									"need_name": "Navnet kan ikke være tomt",
-									"invalid_name_length": "Navnet skal maksimalt indeholde 20 tegn",
-									"wrong_color": "Farven er ugyldig",
-									"name_exists": "dette navn findes allerede",
-									"invalid_category": "Kategorien findes ikke"
+									"needName": "Navnet kan ikke være tomt",
+									"invalidNameLength": "Navnet skal maksimalt indeholde 20 tegn",
+									"wrongColor": "Farven er ugyldig",
+									"nameExists": "dette navn findes allerede",
+									"invalidCategory": "Kategorien findes ikke",
+									"download": "Kunne ikke downloade medier"
 								},
 								"success": {
 									"create": "Kategorien er oprettet!",
 									"delete": "Kategorien er blevet slettet!",
 									"edit": "Kategorien er blevet ændret!",
-									"move": "Kategorien er flyttet!"
+									"move": "Kategorien er flyttet!",
+									"download": "Medierne er blevet uploadet!"
 								},
 								"emptyHint": "Højreklik for at oprette en kategori!"
 							},
@@ -1834,12 +1926,29 @@ const FavoriteMedia = (() => {
 									"move": {
 										"image": "Billedet er flyttet!",
 										"video": "Videoen er flyttet!",
-										"audio": "Lyden er flyttet!"
+										"audio": "Lyden er flyttet!",
+										"download": {
+											"image": "Billedet er uploadet!",
+											"video": "Videoen er blevet uploadet!",
+											"audio": "Lyden er downloadet!"
+										}
 									},
 									"remove": {
 										"image": "Billedet er fjernet fra kategorierne!",
 										"video": "Videoen er fjernet fra kategorierne!",
 										"audio": "Lyd er fjernet fra kategorier!"
+									},
+									"download": {
+										"image": "Billedet er uploadet!",
+										"video": "Videoen er blevet uploadet!",
+										"audio": "Lyden er downloadet!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Billedet kunne ikke uploades",
+										"video": "Videoen kunne ikke downloades",
+										"audio": "Kunne ikke downloade lyd"
 									}
 								},
 								"controls": {
@@ -1860,7 +1969,7 @@ const FavoriteMedia = (() => {
 						};
 					case "de":		// German
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Bild",
 								"video": "Video",
 								"audio": "Audio"
@@ -1871,6 +1980,7 @@ const FavoriteMedia = (() => {
 								"create": "Erstellen Sie eine Kategorie",
 								"edit": "Kategorie bearbeiten",
 								"delete": "Kategorie löschen",
+								"download": "Medien herunterladen",
 								"placeholder": "Kategoriename",
 								"move": "Bewegung",
 								"moveNext": "Nach dem",
@@ -1879,17 +1989,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Farbe kopieren",
 								"copiedColor": "Farbe kopiert!",
 								"error": {
-									"need_name": "Name darf nicht leer sein",
-									"invalid_name_length": "Der Name darf maximal 20 Zeichen lang sein",
-									"wrong_color": "Farbe ist ungültig",
-									"name_exists": "Dieser Name existiert bereits",
-									"invalid_category": "Die Kategorie existiert nicht"
+									"needName": "Name darf nicht leer sein",
+									"invalidNameLength": "Der Name darf maximal 20 Zeichen lang sein",
+									"wrongColor": "Farbe ist ungültig",
+									"nameExists": "Dieser Name existiert bereits",
+									"invalidCategory": "Die Kategorie existiert nicht",
+									"download": "Fehler beim Herunterladen der Medien"
 								},
 								"success": {
 									"create": "Die Kategorie wurde erstellt!",
 									"delete": "Die Kategorie wurde gelöscht!",
 									"edit": "Die Kategorie wurde geändert!",
-									"move": "Die Kategorie wurde verschoben!"
+									"move": "Die Kategorie wurde verschoben!",
+									"download": "Die Medien wurden hochgeladen!"
 								},
 								"emptyHint": "Rechtsklick um eine Kategorie zu erstellen!"
 							},
@@ -1917,6 +2029,18 @@ const FavoriteMedia = (() => {
 										"image": "Das Bild wurde aus den Kategorien entfernt!",
 										"video": "Das Video wurde aus den Kategorien entfernt!",
 										"audio": "Audio wurde aus den Kategorien entfernt!"
+									},
+									"download": {
+										"image": "Das Bild wurde hochgeladen!",
+										"video": "Das Video wurde hochgeladen!",
+										"audio": "Die Audiodatei wurde heruntergeladen!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Fehler beim Hochladen des Bildes",
+										"video": "Video konnte nicht heruntergeladen werden",
+										"audio": "Audio konnte nicht heruntergeladen werden"
 									}
 								},
 								"controls": {
@@ -1937,7 +2061,7 @@ const FavoriteMedia = (() => {
 						};
 					case "el":		// Greek
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Εικόνα",
 								"video": "βίντεο",
 								"audio": "Ήχος"
@@ -1948,6 +2072,7 @@ const FavoriteMedia = (() => {
 								"create": "Δημιουργήστε μια κατηγορία",
 								"edit": "Επεξεργασία κατηγορίας",
 								"delete": "Διαγραφή κατηγορίας",
+								"download": "Λήψη μέσων",
 								"placeholder": "Ονομα κατηγορίας",
 								"move": "Κίνηση",
 								"moveNext": "Μετά",
@@ -1956,17 +2081,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Αντιγραφή χρώματος",
 								"copiedColor": "Το χρώμα αντιγράφηκε!",
 								"error": {
-									"need_name": "Το όνομα δεν μπορεί να είναι κενό",
-									"invalid_name_length": "Το όνομα πρέπει να περιέχει έως και 20 χαρακτήρες",
-									"wrong_color": "Το χρώμα δεν είναι έγκυρο",
-									"name_exists": "αυτό το όνομα υπάρχει ήδη",
-									"invalid_category": "Η κατηγορία δεν υπάρχει"
+									"needName": "Το όνομα δεν μπορεί να είναι κενό",
+									"invalidNameLength": "Το όνομα πρέπει να περιέχει έως και 20 χαρακτήρες",
+									"wrongColor": "Το χρώμα δεν είναι έγκυρο",
+									"nameExists": "αυτό το όνομα υπάρχει ήδη",
+									"invalidCategory": "Η κατηγορία δεν υπάρχει",
+									"download": "Αποτυχία λήψης μέσων"
 								},
 								"success": {
 									"create": "Η κατηγορία έχει δημιουργηθεί!",
 									"delete": "Η κατηγορία διαγράφηκε!",
 									"edit": "Η κατηγορία άλλαξε!",
-									"move": "Η κατηγορία έχει μετακινηθεί!"
+									"move": "Η κατηγορία έχει μετακινηθεί!",
+									"download": "Τα μέσα έχουν ανέβει!"
 								},
 								"emptyHint": "Κάντε δεξί κλικ για να δημιουργήσετε μια κατηγορία!"
 							},
@@ -1994,6 +2121,18 @@ const FavoriteMedia = (() => {
 										"image": "Η εικόνα έχει αφαιρεθεί από τις κατηγορίες!",
 										"video": "Το βίντεο καταργήθηκε από τις κατηγορίες!",
 										"audio": "Ο ήχος καταργήθηκε από κατηγορίες!"
+									},
+									"download": {
+										"image": "Η εικόνα ανέβηκε!",
+										"video": "Το βίντεο ανέβηκε!",
+										"audio": "Ο ήχος έχει γίνει λήψη!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Αποτυχία μεταφόρτωσης εικόνας",
+										"video": "Αποτυχία λήψης βίντεο",
+										"audio": "Αποτυχία λήψης ήχου"
 									}
 								},
 								"controls": {
@@ -2014,7 +2153,7 @@ const FavoriteMedia = (() => {
 						};
 					case "es":		// Spanish
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Imagen",
 								"video": "Video",
 								"audio": "Audio"
@@ -2025,6 +2164,7 @@ const FavoriteMedia = (() => {
 								"create": "Crea una categoria",
 								"edit": "Editar categoria",
 								"delete": "Eliminar categoría",
+								"download": "Descargar medios",
 								"placeholder": "Nombre de la categoría",
 								"move": "Moverse",
 								"moveNext": "Después",
@@ -2033,17 +2173,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Copiar color",
 								"copiedColor": "¡Color copiado!",
 								"error": {
-									"need_name": "El nombre no puede estar vacío",
-									"invalid_name_length": "El nombre debe contener un máximo de 20 caracteres.",
-									"wrong_color": "El color no es válido",
-									"name_exists": "Este nombre ya existe",
-									"invalid_category": "La categoría no existe"
+									"needName": "El nombre no puede estar vacío",
+									"invalidNameLength": "El nombre debe contener un máximo de 20 caracteres.",
+									"wrongColor": "El color no es válido",
+									"nameExists": "Este nombre ya existe",
+									"invalidCategory": "La categoría no existe",
+									"download": "¡Los medios han sido cargados!"
 								},
 								"success": {
 									"create": "¡La categoría ha sido creada!",
 									"delete": "¡La categoría ha sido eliminada!",
 									"edit": "¡La categoría ha sido cambiada!",
-									"move": "¡La categoría ha sido movida!"
+									"move": "¡La categoría ha sido movida!",
+									"download": "¡Los medios han sido cargados!"
 								},
 								"emptyHint": "¡Haz clic derecho para crear una categoría!"
 							},
@@ -2071,6 +2213,18 @@ const FavoriteMedia = (() => {
 										"image": "¡La imagen ha sido eliminada de las categorías!",
 										"video": "¡El video ha sido eliminado de las categorías!",
 										"audio": "¡El audio ha sido eliminado de las categorías!"
+									},
+									"download": {
+										"image": "¡La imagen ha sido cargada!",
+										"video": "¡El video ha sido subido!",
+										"audio": "¡El audio se ha descargado!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "No se pudo cargar la imagen.",
+										"video": "No se pudo descargar el video",
+										"audio": "No se pudo descargar el audio"
 									}
 								},
 								"controls": {
@@ -2091,7 +2245,7 @@ const FavoriteMedia = (() => {
 						};
 					case "fi":		// Finnish
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Kuva",
 								"video": "Video",
 								"audio": "Audio"
@@ -2102,6 +2256,7 @@ const FavoriteMedia = (() => {
 								"create": "Luo luokka",
 								"edit": "Muokkaa kategoriaa",
 								"delete": "Poista luokka",
+								"download": "Lataa media",
 								"placeholder": "Kategorian nimi",
 								"move": "Liikkua",
 								"moveNext": "Jälkeen",
@@ -2110,17 +2265,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Kopioi väri",
 								"copiedColor": "Väri kopioitu!",
 								"error": {
-									"need_name": "Nimi ei voi olla tyhjä",
-									"invalid_name_length": "Nimi saa sisältää enintään 20 merkkiä",
-									"wrong_color": "Väri on virheellinen",
-									"name_exists": "tämä nimi on jo olemassa",
-									"invalid_category": "Luokkaa ei ole olemassa"
+									"needName": "Nimi ei voi olla tyhjä",
+									"invalidNameLength": "Nimi saa sisältää enintään 20 merkkiä",
+									"wrongColor": "Väri on virheellinen",
+									"nameExists": "tämä nimi on jo olemassa",
+									"invalidCategory": "Luokkaa ei ole olemassa",
+									"download": "Median lataaminen epäonnistui"
 								},
 								"success": {
 									"create": "Luokka on luotu!",
 									"delete": "Luokka on poistettu!",
 									"edit": "Luokkaa on muutettu!",
-									"move": "Luokka on siirretty!"
+									"move": "Luokka on siirretty!",
+									"download": "Media on ladattu!"
 								},
 								"emptyHint": "Napsauta hiiren kakkospainikkeella luodaksesi luokan!"
 							},
@@ -2148,6 +2305,18 @@ const FavoriteMedia = (() => {
 										"image": "Kuva on poistettu luokista!",
 										"video": "Video on poistettu luokista!",
 										"audio": "Ääni on poistettu luokista!"
+									},
+									"download": {
+										"image": "Kuva on ladattu!",
+										"video": "Video on ladattu!",
+										"audio": "Ääni on ladattu!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Kuvan lataaminen epäonnistui",
+										"video": "Videon lataaminen epäonnistui",
+										"audio": "Äänen lataaminen epäonnistui"
 									}
 								},
 								"controls": {
@@ -2168,7 +2337,7 @@ const FavoriteMedia = (() => {
 						};
 					case "fr":		// French
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Image",
 								"video": "Vidéo",
 								"audio": "Audio",
@@ -2179,6 +2348,7 @@ const FavoriteMedia = (() => {
 								"create": "Créer une catégorie",
 								"edit": "Modifier la catégorie",
 								"delete": "Supprimer la catégorie",
+								"download": "Télécharger les médias",
 								"placeholder": "Nom de la catégorie",
 								"move": "Déplacer",
 								"moveNext": "Après",
@@ -2187,17 +2357,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Copier la couleur",
 								"copiedColor": "Couleur copiée !",
 								"error": {
-									"need_name": "Le nom ne peut être vide",
-									"invalid_name_length": "Le nom doit contenir au maximum 20 caractères",
-									"wrong_color": "La couleur est invalide",
-									"name_exists": "Ce nom existe déjà",
-									"invalid_category": "La catégorie n'existe pas",
+									"needName": "Le nom ne peut être vide",
+									"invalidNameLength": "Le nom doit contenir au maximum 20 caractères",
+									"wrongColor": "La couleur est invalide",
+									"nameExists": "Ce nom existe déjà",
+									"invalidCategory": "La catégorie n'existe pas",
+									"download": "Échec lors du téléchargement des médias"
 								},
 								"success": {
 									"create": "La catégorie a été créée !",
 									"delete": "La catégorie a été supprimée !",
 									"edit": "La catégorie a été modifiée !",
-									"move": "La catégorie a été déplacée !"
+									"move": "La catégorie a été déplacée !",
+									"download": "Les médias ont été téléchargées !",
 								},
 								"emptyHint": "Fais un clique-droit pour créer une catégorie !",
 							},
@@ -2226,6 +2398,18 @@ const FavoriteMedia = (() => {
 										"video": "La vidéo a été enlevée des catégories !",
 										"audio": "L'audio a été enlevé des catégories !",
 									},
+									"download": {
+										"image": "L'image a été téléchargée !",
+										"video": "La vidéo a été téléchargée !",
+										"audio": "L'audio a été téléchargée !",
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Échec lors du téléchargement de l'image",
+										"video": "Échec lors du téléchargement de la vidéo",
+										"audio": "Échec lors du téléchargement de l'audio",
+									}
 								},
 								"controls": {
 									"show": "Afficher les commandes",
@@ -2245,7 +2429,7 @@ const FavoriteMedia = (() => {
 						};
 					case "hr":		// Croatian
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Slika",
 								"video": "Video",
 								"audio": "Audio"
@@ -2256,6 +2440,7 @@ const FavoriteMedia = (() => {
 								"create": "Stvorite kategoriju",
 								"edit": "Uredi kategoriju",
 								"delete": "Izbriši kategoriju",
+								"download": "Preuzmite medije",
 								"placeholder": "Ime kategorije",
 								"move": "Potez",
 								"moveNext": "Nakon",
@@ -2264,17 +2449,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Kopiraj u boji",
 								"copiedColor": "Kopirana boja!",
 								"error": {
-									"need_name": "Ime ne može biti prazno",
-									"invalid_name_length": "Ime mora sadržavati najviše 20 znakova",
-									"wrong_color": "Boja je nevaljana",
-									"name_exists": "ovo ime već postoji",
-									"invalid_category": "Kategorija ne postoji"
+									"needName": "Ime ne može biti prazno",
+									"invalidNameLength": "Ime mora sadržavati najviše 20 znakova",
+									"wrongColor": "Boja je nevaljana",
+									"nameExists": "ovo ime već postoji",
+									"invalidCategory": "Kategorija ne postoji",
+									"download": "Preuzimanje medija nije uspjelo"
 								},
 								"success": {
 									"create": "Kategorija je stvorena!",
 									"delete": "Kategorija je izbrisana!",
 									"edit": "Izmijenjena je kategorija!",
-									"move": "Kategorija je premještena!"
+									"move": "Kategorija je premještena!",
+									"download": "Mediji su učitani!"
 								},
 								"emptyHint": "Desni klik za stvaranje kategorije!"
 							},
@@ -2302,6 +2489,18 @@ const FavoriteMedia = (() => {
 										"image": "Slika je uklonjena iz kategorija!",
 										"video": "Videozapis je uklonjen iz kategorija!",
 										"audio": "Audio je uklonjen iz kategorija!"
+									},
+									"download": {
+										"image": "Slika je učitana!",
+										"video": "Video je postavljen!",
+										"audio": "Zvuk je preuzet!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Učitavanje slike nije uspjelo",
+										"video": "Preuzimanje videozapisa nije uspjelo",
+										"audio": "Preuzimanje zvuka nije uspjelo"
 									}
 								},
 								"controls": {
@@ -2322,7 +2521,7 @@ const FavoriteMedia = (() => {
 						};
 					case "hu":		// Hungarian
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Kép",
 								"video": "Videó",
 								"audio": "Hang"
@@ -2333,6 +2532,7 @@ const FavoriteMedia = (() => {
 								"create": "Hozzon létre egy kategóriát",
 								"edit": "Kategória szerkesztése",
 								"delete": "Kategória törlése",
+								"download": "Média letöltése",
 								"placeholder": "Kategória név",
 								"move": "Mozog",
 								"moveNext": "Utána",
@@ -2341,17 +2541,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Szín másolása",
 								"copiedColor": "Szín másolva!",
 								"error": {
-									"need_name": "A név nem lehet üres",
-									"invalid_name_length": "A név legfeljebb 20 karakterből állhat",
-									"wrong_color": "A szín érvénytelen",
-									"name_exists": "Ez a név már létezik",
-									"invalid_category": "A kategória nem létezik"
+									"needName": "A név nem lehet üres",
+									"invalidNameLength": "A név legfeljebb 20 karakterből állhat",
+									"wrongColor": "A szín érvénytelen",
+									"nameExists": "Ez a név már létezik",
+									"invalidCategory": "A kategória nem létezik",
+									"download": "Nem sikerült letölteni a médiát"
 								},
 								"success": {
 									"create": "A kategória elkészült!",
 									"delete": "A kategória törölve lett!",
 									"edit": "A kategória megváltozott!",
-									"move": "A kategória áthelyezve!"
+									"move": "A kategória áthelyezve!",
+									"download": "A média feltöltve!"
 								},
 								"emptyHint": "Kattintson jobb gombbal a kategória létrehozásához!"
 							},
@@ -2379,6 +2581,18 @@ const FavoriteMedia = (() => {
 										"image": "A képet eltávolítottuk a kategóriákból!",
 										"video": "A videót eltávolítottuk a kategóriákból!",
 										"audio": "A hangot eltávolítottuk a kategóriákból!"
+									},
+									"download": {
+										"image": "A kép feltöltve!",
+										"video": "A videó feltöltve!",
+										"audio": "A hanganyag letöltve!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Nem sikerült feltölteni a képet",
+										"video": "Nem sikerült letölteni a videót",
+										"audio": "Nem sikerült letölteni a hangot"
 									}
 								},
 								"controls": {
@@ -2399,7 +2613,7 @@ const FavoriteMedia = (() => {
 						};
 					case "it":		// Italian
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Immagine",
 								"video": "video",
 								"audio": "Audio"
@@ -2410,6 +2624,7 @@ const FavoriteMedia = (() => {
 								"create": "Crea una categoria",
 								"edit": "Modifica categoria",
 								"delete": "Elimina categoria",
+								"download": "Scarica file multimediali",
 								"placeholder": "Nome della categoria",
 								"move": "Spostare",
 								"moveNext": "Dopo",
@@ -2418,17 +2633,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Copia colore",
 								"copiedColor": "Colore copiato!",
 								"error": {
-									"need_name": "Il nome non può essere vuoto",
-									"invalid_name_length": "Il nome deve contenere un massimo di 20 caratteri",
-									"wrong_color": "Il colore non è valido",
-									"name_exists": "Questo nome esiste già",
-									"invalid_category": "La categoria non esiste"
+									"needName": "Il nome non può essere vuoto",
+									"invalidNameLength": "Il nome deve contenere un massimo di 20 caratteri",
+									"wrongColor": "Il colore non è valido",
+									"nameExists": "Questo nome esiste già",
+									"invalidCategory": "La categoria non esiste",
+									"download": "Impossibile scaricare i media"
 								},
 								"success": {
 									"create": "La categoria è stata creata!",
 									"delete": "La categoria è stata eliminata!",
 									"edit": "La categoria è stata cambiata!",
-									"move": "La categoria è stata spostata!"
+									"move": "La categoria è stata spostata!",
+									"download": "Il supporto è stato caricato!"
 								},
 								"emptyHint": "Fare clic con il tasto destro per creare una categoria!"
 							},
@@ -2456,6 +2673,18 @@ const FavoriteMedia = (() => {
 										"image": "L'immagine è stata rimossa dalle categorie!",
 										"video": "Il video è stato rimosso dalle categorie!",
 										"audio": "L'audio è stato rimosso dalle categorie!"
+									},
+									"download": {
+										"image": "L'immagine è stata caricata!",
+										"video": "Il video è stato caricato!",
+										"audio": "L'audio è stato scaricato!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Impossibile caricare l'immagine",
+										"video": "Impossibile scaricare il video",
+										"audio": "Impossibile scaricare l'audio"
 									}
 								},
 								"controls": {
@@ -2476,7 +2705,7 @@ const FavoriteMedia = (() => {
 						};
 					case "ja":		// Japanese
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "画像",
 								"video": "ビデオ",
 								"audio": "オーディオ"
@@ -2487,6 +2716,7 @@ const FavoriteMedia = (() => {
 								"create": "カテゴリを作成する",
 								"edit": "カテゴリを編集",
 								"delete": "カテゴリを削除",
+								"download": "メディアをダウンロード",
 								"placeholder": "種別名",
 								"move": "移動",
 								"moveNext": "後",
@@ -2495,17 +2725,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "コピーカラー",
 								"copiedColor": "カラーコピー！",
 								"error": {
-									"need_name": "名前を空にすることはできません",
-									"invalid_name_length": "名前には最大20文字を含める必要があります",
-									"wrong_color": "色が無効です",
-									"name_exists": "この名前はすでに存在します",
-									"invalid_category": "カテゴリが存在しません"
+									"needName": "名前を空にすることはできません",
+									"invalidNameLength": "名前には最大20文字を含める必要があります",
+									"wrongColor": "色が無効です",
+									"nameExists": "この名前はすでに存在します",
+									"invalidCategory": "カテゴリが存在しません",
+									"download": "メディアのダウンロードに失敗しました"
 								},
 								"success": {
 									"create": "カテゴリが作成されました！",
 									"delete": "カテゴリが削除されました！",
 									"edit": "カテゴリが変更されました！",
-									"move": "カテゴリが移動しました！"
+									"move": "カテゴリが移動しました！",
+									"download": "メディアがアップしました！"
 								},
 								"emptyHint": "右クリックしてカテゴリを作成してください！"
 							},
@@ -2533,6 +2765,18 @@ const FavoriteMedia = (() => {
 										"image": "画像はカテゴリから削除されました！",
 										"video": "動画はカテゴリから削除されました！",
 										"audio": "オーディオはカテゴリから削除されました！"
+									},
+									"download": {
+										"image": "画像をアップしました！",
+										"video": "動画がアップしました！",
+										"audio": "音声がダウンロードされました！"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "画像のアップロードに失敗しました",
+										"video": "ビデオのダウンロードに失敗しました",
+										"audio": "オーディオのダウンロードに失敗しました"
 									}
 								},
 								"controls": {
@@ -2553,7 +2797,7 @@ const FavoriteMedia = (() => {
 						};
 					case "ko":		// Korean
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "그림",
 								"video": "비디오",
 								"audio": "오디오"
@@ -2564,6 +2808,7 @@ const FavoriteMedia = (() => {
 								"create": "카테고리 생성",
 								"edit": "카테고리 수정",
 								"delete": "카테고리 삭제",
+								"download": "미디어 다운로드",
 								"placeholder": "카테고리 이름",
 								"move": "움직임",
 								"moveNext": "후",
@@ -2572,17 +2817,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "색상 복사",
 								"copiedColor": "색상이 복사되었습니다!",
 								"error": {
-									"need_name": "이름은 비워 둘 수 없습니다.",
-									"invalid_name_length": "이름은 최대 20 자 여야합니다.",
-									"wrong_color": "색상이 잘못되었습니다.",
-									"name_exists": "이 이름은 이미 존재합니다",
-									"invalid_category": "카테고리가 없습니다."
+									"needName": "이름은 비워 둘 수 없습니다.",
+									"invalidNameLength": "이름은 최대 20 자 여야합니다.",
+									"wrongColor": "색상이 잘못되었습니다.",
+									"nameExists": "이 이름은 이미 존재합니다",
+									"invalidCategory": "카테고리가 없습니다.",
+									"download": "미디어 다운로드 실패"
 								},
 								"success": {
 									"create": "카테고리가 생성되었습니다!",
 									"delete": "카테고리가 삭제되었습니다!",
 									"edit": "카테고리가 변경되었습니다!",
-									"move": "카테고리가 이동되었습니다!"
+									"move": "카테고리가 이동되었습니다!",
+									"download": "미디어가 업로드되었습니다!"
 								},
 								"emptyHint": "카테고리를 만들려면 마우스 오른쪽 버튼을 클릭하십시오!"
 							},
@@ -2610,6 +2857,18 @@ const FavoriteMedia = (() => {
 										"image": "카테고리에서 이미지가 제거되었습니다!",
 										"video": "비디오가 카테고리에서 제거되었습니다!",
 										"audio": "카테고리에서 오디오가 제거되었습니다!"
+									},
+									"download": {
+										"image": "이미지가 업로드되었습니다!",
+										"video": "영상이 업로드 되었습니다!",
+										"audio": "오디오가 다운로드되었습니다!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "이미지를 업로드하지 못했습니다.",
+										"video": "동영상 다운로드 실패",
+										"audio": "오디오 다운로드 실패"
 									}
 								},
 								"controls": {
@@ -2630,7 +2889,7 @@ const FavoriteMedia = (() => {
 						};
 					case "lt":		// Lithuanian
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Paveikslėlis",
 								"video": "Vaizdo įrašas",
 								"audio": "Garso įrašas"
@@ -2641,6 +2900,7 @@ const FavoriteMedia = (() => {
 								"create": "Sukurkite kategoriją",
 								"edit": "Redaguoti kategoriją",
 								"delete": "Ištrinti kategoriją",
+								"download": "Parsisiųsti mediją",
 								"placeholder": "Kategorijos pavadinimas",
 								"move": "Perkelti",
 								"moveNext": "Po",
@@ -2649,17 +2909,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Kopijuoti spalvą",
 								"copiedColor": "Spalva nukopijuota!",
 								"error": {
-									"need_name": "Pavadinimas negali būti tuščias",
-									"invalid_name_length": "Pavadinime gali būti ne daugiau kaip 20 simbolių",
-									"wrong_color": "Spalva neteisinga",
-									"name_exists": "šis vardas jau egzistuoja",
-									"invalid_category": "Kategorija neegzistuoja"
+									"needName": "Pavadinimas negali būti tuščias",
+									"invalidNameLength": "Pavadinime gali būti ne daugiau kaip 20 simbolių",
+									"wrongColor": "Spalva neteisinga",
+									"nameExists": "šis vardas jau egzistuoja",
+									"invalidCategory": "Kategorija neegzistuoja",
+									"download": "Nepavyko atsisiųsti medijos"
 								},
 								"success": {
 									"create": "Kategorija sukurta!",
 									"delete": "Kategorija ištrinta!",
 									"edit": "Kategorija pakeista!",
-									"move": "Kategorija perkelta!"
+									"move": "Kategorija perkelta!",
+									"download": "Žiniasklaida įkelta!"
 								},
 								"emptyHint": "Dešiniuoju pelės mygtuku spustelėkite norėdami sukurti kategoriją!"
 							},
@@ -2687,6 +2949,18 @@ const FavoriteMedia = (() => {
 										"image": "Vaizdas pašalintas iš kategorijų!",
 										"video": "Vaizdo įrašas pašalintas iš kategorijų!",
 										"audio": "Garso įrašas pašalintas iš kategorijų!"
+									},
+									"download": {
+										"image": "Vaizdas įkeltas!",
+										"video": "Vaizdo įrašas įkeltas!",
+										"audio": "Garso įrašas atsisiųstas!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Nepavyko įkelti vaizdo",
+										"video": "Nepavyko atsisiųsti vaizdo įrašo",
+										"audio": "Nepavyko atsisiųsti garso įrašo"
 									}
 								},
 								"controls": {
@@ -2707,7 +2981,7 @@ const FavoriteMedia = (() => {
 						};
 					case "nl":		// Dutch
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Afbeelding",
 								"video": "Video",
 								"audio": "Audio"
@@ -2718,6 +2992,7 @@ const FavoriteMedia = (() => {
 								"create": "Maak een categorie",
 								"edit": "Categorie bewerken",
 								"delete": "Categorie verwijderen",
+								"download": "Media downloaden",
 								"placeholder": "Categorie naam",
 								"move": "Verplaatsen, verschuiven",
 								"moveNext": "Na",
@@ -2726,17 +3001,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Kopieer kleur",
 								"copiedColor": "Kleur gekopieerd!",
 								"error": {
-									"need_name": "Naam mag niet leeg zijn",
-									"invalid_name_length": "De naam mag maximaal 20 tekens bevatten",
-									"wrong_color": "Kleur is ongeldig",
-									"name_exists": "Deze naam bestaat al",
-									"invalid_category": "De categorie bestaat niet"
+									"needName": "Naam mag niet leeg zijn",
+									"invalidNameLength": "De naam mag maximaal 20 tekens bevatten",
+									"wrongColor": "Kleur is ongeldig",
+									"nameExists": "Deze naam bestaat al",
+									"invalidCategory": "De categorie bestaat niet",
+									"download": "Kan media niet downloaden"
 								},
 								"success": {
 									"create": "De categorie is aangemaakt!",
 									"delete": "De categorie is verwijderd!",
 									"edit": "De categorie is gewijzigd!",
-									"move": "De categorie is verplaatst!"
+									"move": "De categorie is verplaatst!",
+									"download": "De media is geüpload!"
 								},
 								"emptyHint": "Klik met de rechtermuisknop om een categorie aan te maken!"
 							},
@@ -2764,6 +3041,18 @@ const FavoriteMedia = (() => {
 										"image": "De afbeelding is verwijderd uit de categorieën!",
 										"video": "De video is verwijderd uit de categorieën!",
 										"audio": "Audio is verwijderd uit categorieën!"
+									},
+									"download": {
+										"image": "De afbeelding is geüpload!",
+										"video": "De video is geüpload!",
+										"audio": "De audio is gedownload!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Kan afbeelding niet uploaden",
+										"video": "Kan video niet downloaden",
+										"audio": "Kan audio niet downloaden"
 									}
 								},
 								"controls": {
@@ -2784,7 +3073,7 @@ const FavoriteMedia = (() => {
 						};
 					case "no":		// Norwegian
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Bilde",
 								"video": "Video",
 								"audio": "Lyd"
@@ -2795,6 +3084,7 @@ const FavoriteMedia = (() => {
 								"create": "Opprett en kategori",
 								"edit": "Rediger kategori",
 								"delete": "Slett kategori",
+								"download": "Last ned media",
 								"placeholder": "Kategori navn",
 								"move": "Bevege seg",
 								"moveNext": "Etter",
@@ -2803,17 +3093,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Kopier farge",
 								"copiedColor": "Farge kopiert!",
 								"error": {
-									"need_name": "Navnet kan ikke være tomt",
-									"invalid_name_length": "Navnet må inneholde maksimalt 20 tegn",
-									"wrong_color": "Fargen er ugyldig",
-									"name_exists": "dette navnet eksisterer allerede",
-									"invalid_category": "Kategorien eksisterer ikke"
+									"needName": "Navnet kan ikke være tomt",
+									"invalidNameLength": "Navnet må inneholde maksimalt 20 tegn",
+									"wrongColor": "Fargen er ugyldig",
+									"nameExists": "dette navnet eksisterer allerede",
+									"invalidCategory": "Kategorien eksisterer ikke",
+									"download": "Kunne ikke laste ned medier"
 								},
 								"success": {
 									"create": "Kategorien er opprettet!",
 									"delete": "Kategorien er slettet!",
 									"edit": "Kategorien er endret!",
-									"move": "Kategorien er flyttet!"
+									"move": "Kategorien er flyttet!",
+									"download": "Mediene er lastet opp!"
 								},
 								"emptyHint": "Høyreklikk for å opprette en kategori!"
 							},
@@ -2841,6 +3133,18 @@ const FavoriteMedia = (() => {
 										"image": "Bildet er fjernet fra kategoriene!",
 										"video": "Videoen er fjernet fra kategoriene!",
 										"audio": "Lyd er fjernet fra kategorier!"
+									},
+									"download": {
+										"image": "Bildet er lastet opp!",
+										"video": "Videoen er lastet opp!",
+										"audio": "Lyden er lastet ned!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Kunne ikke laste opp bildet",
+										"video": "Kunne ikke laste ned video",
+										"audio": "Kunne ikke laste ned lyd"
 									}
 								},
 								"controls": {
@@ -2861,7 +3165,7 @@ const FavoriteMedia = (() => {
 						};
 					case "pl":		// Polish
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Obrazek",
 								"video": "Wideo",
 								"audio": "Audio"
@@ -2872,6 +3176,7 @@ const FavoriteMedia = (() => {
 								"create": "Utwórz kategorię",
 								"edit": "Edytuj kategorię",
 								"delete": "Usuń kategorię",
+								"download": "Pobierz multimedia",
 								"placeholder": "Nazwa Kategorii",
 								"move": "Ruszaj się",
 								"moveNext": "Po",
@@ -2880,17 +3185,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Kopiuj kolor",
 								"copiedColor": "Kolor skopiowany!",
 								"error": {
-									"need_name": "Nazwa nie może być pusta",
-									"invalid_name_length": "Nazwa musi zawierać maksymalnie 20 znaków",
-									"wrong_color": "Kolor jest nieprawidłowy",
-									"name_exists": "ta nazwa już istnieje",
-									"invalid_category": "Kategoria nie istnieje"
+									"needName": "Nazwa nie może być pusta",
+									"invalidNameLength": "Nazwa musi zawierać maksymalnie 20 znaków",
+									"wrongColor": "Kolor jest nieprawidłowy",
+									"nameExists": "ta nazwa już istnieje",
+									"invalidCategory": "Kategoria nie istnieje",
+									"download": "Nie udało się pobrać multimediów"
 								},
 								"success": {
 									"create": "Kategoria została stworzona!",
 									"delete": "Kategoria została usunięta!",
 									"edit": "Kategoria została zmieniona!",
-									"move": "Kategoria została przeniesiona!"
+									"move": "Kategoria została przeniesiona!",
+									"download": "Media zostały przesłane!"
 								},
 								"emptyHint": "Kliknij prawym przyciskiem myszy, aby utworzyć kategorię!"
 							},
@@ -2918,6 +3225,18 @@ const FavoriteMedia = (() => {
 										"image": "Obraz został usunięty z kategorii!",
 										"video": "Film został usunięty z kategorii!",
 										"audio": "Dźwięk został usunięty z kategorii!"
+									},
+									"download": {
+										"image": "Obraz został przesłany!",
+										"video": "Film został przesłany!",
+										"audio": "Dźwięk został pobrany!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Nie udało się przesłać obrazu",
+										"video": "Nie udało się pobrać wideo",
+										"audio": "Nie udało się pobrać dźwięku"
 									}
 								},
 								"controls": {
@@ -2938,7 +3257,7 @@ const FavoriteMedia = (() => {
 						};
 					case "pt-BR":	// Portuguese (Brazil)
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Foto",
 								"video": "Vídeo",
 								"audio": "Áudio"
@@ -2949,6 +3268,7 @@ const FavoriteMedia = (() => {
 								"create": "Crie uma categoria",
 								"edit": "Editar categoria",
 								"delete": "Apagar categoria",
+								"download": "Baixar mídia",
 								"placeholder": "Nome da Categoria",
 								"move": "Mover",
 								"moveNext": "Após",
@@ -2957,17 +3277,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Cor da cópia",
 								"copiedColor": "Cor copiada!",
 								"error": {
-									"need_name": "O nome não pode estar vazio",
-									"invalid_name_length": "O nome deve conter no máximo 20 caracteres",
-									"wrong_color": "Cor é inválida",
-									"name_exists": "Este nome já existe",
-									"invalid_category": "A categoria não existe"
+									"needName": "O nome não pode estar vazio",
+									"invalidNameLength": "O nome deve conter no máximo 20 caracteres",
+									"wrongColor": "Cor é inválida",
+									"nameExists": "Este nome já existe",
+									"invalidCategory": "A categoria não existe",
+									"download": "Falha ao baixar mídia"
 								},
 								"success": {
 									"create": "A categoria foi criada!",
 									"delete": "A categoria foi excluída!",
 									"edit": "A categoria foi alterada!",
-									"move": "A categoria foi movida!"
+									"move": "A categoria foi movida!",
+									"download": "A mídia foi carregada!"
 								},
 								"emptyHint": "Clique com o botão direito para criar uma categoria!"
 							},
@@ -2995,6 +3317,18 @@ const FavoriteMedia = (() => {
 										"image": "A imagem foi removida das categorias!",
 										"video": "O vídeo foi removido das categorias!",
 										"audio": "O áudio foi removido das categorias!"
+									},
+									"download": {
+										"image": "A imagem foi carregada!",
+										"video": "O vídeo foi carregado!",
+										"audio": "O áudio foi baixado!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Falha ao carregar imagem",
+										"video": "Falha ao baixar o vídeo",
+										"audio": "Falha ao baixar áudio"
 									}
 								},
 								"controls": {
@@ -3015,7 +3349,7 @@ const FavoriteMedia = (() => {
 						};
 					case "ro":		// Romanian
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Imagine",
 								"video": "Video",
 								"audio": "Audio"
@@ -3026,6 +3360,7 @@ const FavoriteMedia = (() => {
 								"create": "Creați o categorie",
 								"edit": "Editați categoria",
 								"delete": "Ștergeți categoria",
+								"download": "Descărcați conținut media",
 								"placeholder": "Numele categoriei",
 								"move": "Mișcare",
 								"moveNext": "După",
@@ -3034,17 +3369,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Copiați culoarea",
 								"copiedColor": "Culoare copiată!",
 								"error": {
-									"need_name": "Numele nu poate fi gol",
-									"invalid_name_length": "Numele trebuie să conțină maximum 20 de caractere",
-									"wrong_color": "Culoarea nu este validă",
-									"name_exists": "Acest nume există deja",
-									"invalid_category": "Categoria nu există"
+									"needName": "Numele nu poate fi gol",
+									"invalidNameLength": "Numele trebuie să conțină maximum 20 de caractere",
+									"wrongColor": "Culoarea nu este validă",
+									"nameExists": "Acest nume există deja",
+									"invalidCategory": "Categoria nu există",
+									"download": "Descărcarea conținutului media nu a reușit"
 								},
 								"success": {
 									"create": "Categoria a fost creată!",
 									"delete": "Categoria a fost ștearsă!",
 									"edit": "Categoria a fost schimbată!",
-									"move": "Categoria a fost mutată!"
+									"move": "Categoria a fost mutată!",
+									"download": "Media a fost încărcată!"
 								},
 								"emptyHint": "Faceți clic dreapta pentru a crea o categorie!"
 							},
@@ -3072,6 +3409,18 @@ const FavoriteMedia = (() => {
 										"image": "Imaginea a fost eliminată din categorii!",
 										"video": "Videoclipul a fost eliminat din categorii!",
 										"audio": "Sunetul a fost eliminat din categorii!"
+									},
+									"download": {
+										"image": "Imaginea a fost încărcată!",
+										"video": "Videoclipul a fost încărcat!",
+										"audio": "Sunetul a fost descărcat!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Nu s-a încărcat imaginea",
+										"video": "Descărcarea videoclipului nu a reușit",
+										"audio": "Descărcarea audio nu a reușit"
 									}
 								},
 								"controls": {
@@ -3092,7 +3441,7 @@ const FavoriteMedia = (() => {
 						};
 					case "ru":		// Russian
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Картина",
 								"video": "видео",
 								"audio": "Аудио"
@@ -3103,6 +3452,7 @@ const FavoriteMedia = (() => {
 								"create": "Создать категорию",
 								"edit": "Изменить категорию",
 								"delete": "Удалить категорию",
+								"download": "Скачать медиа",
 								"placeholder": "Название категории",
 								"move": "Двигаться",
 								"moveNext": "После",
@@ -3111,17 +3461,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Цвет копии",
 								"copiedColor": "Цвет скопирован!",
 								"error": {
-									"need_name": "Имя не может быть пустым",
-									"invalid_name_length": "Имя должно содержать не более 20 символов.",
-									"wrong_color": "Цвет недействителен",
-									"name_exists": "Это имя уже существует",
-									"invalid_category": "Категория не существует"
+									"needName": "Имя не может быть пустым",
+									"invalidNameLength": "Имя должно содержать не более 20 символов.",
+									"wrongColor": "Цвет недействителен",
+									"nameExists": "Это имя уже существует",
+									"invalidCategory": "Категория не существует",
+									"download": "Не удалось скачать медиа"
 								},
 								"success": {
 									"create": "Категория создана!",
 									"delete": "Категория удалена!",
 									"edit": "Категория изменена!",
-									"move": "Категория перемещена!"
+									"move": "Категория перемещена!",
+									"download": "Медиа загружена!"
 								},
 								"emptyHint": "Щелкните правой кнопкой мыши, чтобы создать категорию!"
 							},
@@ -3149,6 +3501,18 @@ const FavoriteMedia = (() => {
 										"image": "Изображение удалено из категорий!",
 										"video": "Видео удалено из категорий!",
 										"audio": "Аудио удалено из категорий!"
+									},
+									"download": {
+										"image": "Изображение загружено!",
+										"video": "Видео загружено!",
+										"audio": "Аудио скачано!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Не удалось загрузить изображение",
+										"video": "Не удалось скачать видео",
+										"audio": "Не удалось скачать аудио"
 									}
 								},
 								"controls": {
@@ -3169,7 +3533,7 @@ const FavoriteMedia = (() => {
 						};
 					case "sv":		// Swedish
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Bild",
 								"video": "Video",
 								"audio": "Audio"
@@ -3180,6 +3544,7 @@ const FavoriteMedia = (() => {
 								"create": "Skapa en kategori",
 								"edit": "Redigera kategori",
 								"delete": "Ta bort kategori",
+								"download": "Ladda ner media",
 								"placeholder": "Kategori namn",
 								"move": "Flytta",
 								"moveNext": "Efter",
@@ -3188,17 +3553,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Kopiera färg",
 								"copiedColor": "Färg kopieras!",
 								"error": {
-									"need_name": "Namnet kan inte vara tomt",
-									"invalid_name_length": "Namnet måste innehålla högst 20 tecken",
-									"wrong_color": "Färgen är ogiltig",
-									"name_exists": "detta namn finns redan",
-									"invalid_category": "Kategorin finns inte"
+									"needName": "Namnet kan inte vara tomt",
+									"invalidNameLength": "Namnet måste innehålla högst 20 tecken",
+									"wrongColor": "Färgen är ogiltig",
+									"nameExists": "detta namn finns redan",
+									"invalidCategory": "Kategorin finns inte",
+									"download": "Det gick inte att ladda ner media"
 								},
 								"success": {
 									"create": "Kategorin har skapats!",
 									"delete": "Kategorin har tagits bort!",
 									"edit": "Kategorin har ändrats!",
-									"move": "Kategorin har flyttats!"
+									"move": "Kategorin har flyttats!",
+									"download": "Media har laddats upp!"
 								},
 								"emptyHint": "Högerklicka för att skapa en kategori!"
 							},
@@ -3226,6 +3593,18 @@ const FavoriteMedia = (() => {
 										"image": "Bilden har tagits bort från kategorierna!",
 										"video": "Videon har tagits bort från kategorierna!",
 										"audio": "Ljud har tagits bort från kategorier!"
+									},
+									"download": {
+										"image": "Bilden har laddats upp!",
+										"video": "Videon har laddats upp!",
+										"audio": "Ljudet har laddats ner!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Det gick inte att ladda upp bilden",
+										"video": "Det gick inte att ladda ner videon",
+										"audio": "Det gick inte att ladda ner ljudet"
 									}
 								},
 								"controls": {
@@ -3246,7 +3625,7 @@ const FavoriteMedia = (() => {
 						};
 					case "th":		// Thai
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "ภาพ",
 								"video": "วีดีโอ",
 								"audio": "เครื่องเสียง"
@@ -3257,6 +3636,7 @@ const FavoriteMedia = (() => {
 								"create": "สร้างหมวดหมู่",
 								"edit": "แก้ไขหมวดหมู่",
 								"delete": "ลบหมวดหมู่",
+								"download": "ดาวน์โหลดสื่อ",
 								"placeholder": "ชื่อหมวดหมู่",
 								"move": "ย้าย",
 								"moveNext": "หลังจาก",
@@ -3265,17 +3645,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "คัดลอกสี",
 								"copiedColor": "คัดลอกสี!",
 								"error": {
-									"need_name": "ชื่อไม่สามารถเว้นว่างได้",
-									"invalid_name_length": "ชื่อต้องมีอักขระไม่เกิน 20 ตัว",
-									"wrong_color": "สีไม่ถูกต้อง",
-									"name_exists": "มีชื่อนี้แล้ว",
-									"invalid_category": "ไม่มีหมวดหมู่"
+									"needName": "ชื่อไม่สามารถเว้นว่างได้",
+									"invalidNameLength": "ชื่อต้องมีอักขระไม่เกิน 20 ตัว",
+									"wrongColor": "สีไม่ถูกต้อง",
+									"nameExists": "มีชื่อนี้แล้ว",
+									"invalidCategory": "ไม่มีหมวดหมู่",
+									"download": "ไม่สามารถดาวน์โหลดสื่อ"
 								},
 								"success": {
 									"create": "หมวดหมู่ถูกสร้างขึ้น!",
 									"delete": "หมวดหมู่ถูกลบ!",
 									"edit": "หมวดหมู่มีการเปลี่ยนแปลง!",
-									"move": "หมวดหมู่ถูกย้าย!"
+									"move": "หมวดหมู่ถูกย้าย!",
+									"download": "สื่อได้รับการอัปโหลด!"
 								},
 								"emptyHint": "คลิกขวาเพื่อสร้างหมวดหมู่!"
 							},
@@ -3303,6 +3685,18 @@ const FavoriteMedia = (() => {
 										"image": "รูปภาพถูกลบออกจากหมวดหมู่!",
 										"video": "วิดีโอถูกลบออกจากหมวดหมู่แล้ว!",
 										"audio": "เสียงถูกลบออกจากหมวดหมู่!"
+									},
+									"download": {
+										"image": "อัปโหลดรูปภาพแล้ว!",
+										"video": "อัปโหลดวิดีโอแล้ว!",
+										"audio": "ดาวน์โหลดไฟล์เสียงแล้ว!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "ไม่สามารถอัปโหลดภาพ",
+										"video": "ไม่สามารถดาวน์โหลดวิดีโอ",
+										"audio": "ไม่สามารถดาวน์โหลดเสียง"
 									}
 								},
 								"controls": {
@@ -3323,7 +3717,7 @@ const FavoriteMedia = (() => {
 						};
 					case "tr":		// Turkish
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Resim",
 								"video": "Video",
 								"audio": "Ses"
@@ -3334,6 +3728,7 @@ const FavoriteMedia = (() => {
 								"create": "Kategori oluştur",
 								"edit": "Kategoriyi düzenle",
 								"delete": "Kategoriyi sil",
+								"download": "Medyayı indir",
 								"placeholder": "Kategori adı",
 								"move": "Hareket",
 								"moveNext": "Sonra",
@@ -3342,17 +3737,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "rengi kopyala",
 								"copiedColor": "Renk kopyalandı!",
 								"error": {
-									"need_name": "Ad boş olamaz",
-									"invalid_name_length": "Ad en fazla 20 karakter içermelidir",
-									"wrong_color": "Renk geçersiz",
-									"name_exists": "bu isim zaten var",
-									"invalid_category": "Kategori mevcut değil"
+									"needName": "Ad boş olamaz",
+									"invalidNameLength": "Ad en fazla 20 karakter içermelidir",
+									"wrongColor": "Renk geçersiz",
+									"nameExists": "bu isim zaten var",
+									"invalidCategory": "Kategori mevcut değil",
+									"download": "Medya indirilemedi"
 								},
 								"success": {
 									"create": "Kategori oluşturuldu!",
 									"delete": "Kategori silindi!",
 									"edit": "Kategori değiştirildi!",
-									"move": "Kategori taşındı!"
+									"move": "Kategori taşındı!",
+									"download": "Medya yüklendi!"
 								},
 								"emptyHint": "Kategori oluşturmak için sağ tıklayın!"
 							},
@@ -3380,6 +3777,18 @@ const FavoriteMedia = (() => {
 										"image": "Resim kategorilerden kaldırıldı!",
 										"video": "Video kategorilerden kaldırıldı!",
 										"audio": "Ses kategorilerden kaldırıldı!"
+									},
+									"download": {
+										"image": "Resim yüklendi!",
+										"video": "Video yüklendi!",
+										"audio": "Ses indirildi!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Resim yüklenemedi",
+										"video": "Video indirilemedi",
+										"audio": "Ses indirilemedi"
 									}
 								},
 								"controls": {
@@ -3400,7 +3809,7 @@ const FavoriteMedia = (() => {
 						};
 					case "uk":		// Ukrainian
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Картина",
 								"video": "Відео",
 								"audio": "Аудіо"
@@ -3411,6 +3820,7 @@ const FavoriteMedia = (() => {
 								"create": "Створіть категорію",
 								"edit": "Редагувати категорію",
 								"delete": "Видалити категорію",
+								"download": "Завантажити медіафайли",
 								"placeholder": "Назва категорії",
 								"move": "Рухайся",
 								"moveNext": "Після",
@@ -3419,17 +3829,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Копіювати кольорові",
 								"copiedColor": "Колір скопійовано!",
 								"error": {
-									"need_name": "Ім'я не може бути порожнім",
-									"invalid_name_length": "Назва повинна містити максимум 20 символів",
-									"wrong_color": "Колір недійсний",
-									"name_exists": "ця назва вже існує",
-									"invalid_category": "Категорія не існує"
+									"needName": "Ім'я не може бути порожнім",
+									"invalidNameLength": "Назва повинна містити максимум 20 символів",
+									"wrongColor": "Колір недійсний",
+									"nameExists": "ця назва вже існує",
+									"invalidCategory": "Категорія не існує",
+									"download": "Не вдалося завантажити медіафайл"
 								},
 								"success": {
 									"create": "Категорію створено!",
 									"delete": "Категорію видалено!",
 									"edit": "Категорію змінено!",
-									"move": "Категорію переміщено!"
+									"move": "Категорію переміщено!",
+									"download": "ЗМІ завантажено!"
 								},
 								"emptyHint": "Клацніть правою кнопкою миші, щоб створити категорію!"
 							},
@@ -3457,6 +3869,18 @@ const FavoriteMedia = (() => {
 										"image": "Зображення видалено з категорій!",
 										"video": "Відео видалено з категорій!",
 										"audio": "Аудіо вилучено з категорій!"
+									},
+									"download": {
+										"image": "Зображення завантажено!",
+										"video": "Відео завантажено!",
+										"audio": "Аудіо завантажено!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Не вдалося завантажити зображення",
+										"video": "Не вдалося завантажити відео",
+										"audio": "Не вдалося завантажити аудіо"
 									}
 								},
 								"controls": {
@@ -3477,7 +3901,7 @@ const FavoriteMedia = (() => {
 						};
 					case "vi":		// Vietnamese
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Hình ảnh",
 								"video": "Video",
 								"audio": "Âm thanh"
@@ -3488,6 +3912,7 @@ const FavoriteMedia = (() => {
 								"create": "Tạo một danh mục",
 								"edit": "Chỉnh sửa danh mục",
 								"delete": "Xóa danh mục",
+								"download": "Завантажити медіафайли",
 								"placeholder": "Tên danh mục",
 								"move": "Di chuyển",
 								"moveNext": "Sau",
@@ -3496,17 +3921,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Sao chép màu",
 								"copiedColor": "Đã sao chép màu!",
 								"error": {
-									"need_name": "Tên không được để trống",
-									"invalid_name_length": "Tên phải chứa tối đa 20 ký tự",
-									"wrong_color": "Màu không hợp lệ",
-									"name_exists": "tên này đã tồn tại",
-									"invalid_category": "Danh mục không tồn tại"
+									"needName": "Tên không được để trống",
+									"invalidNameLength": "Tên phải chứa tối đa 20 ký tự",
+									"wrongColor": "Màu không hợp lệ",
+									"nameExists": "tên này đã tồn tại",
+									"invalidCategory": "Danh mục không tồn tại",
+									"download": "Не вдалося завантажити медіафайл"
 								},
 								"success": {
 									"create": "Chuyên mục đã được tạo!",
 									"delete": "Danh mục đã bị xóa!",
 									"edit": "Danh mục đã được thay đổi!",
-									"move": "Danh mục đã được di chuyển!"
+									"move": "Danh mục đã được di chuyển!",
+									"download": "ЗМІ завантажено!"
 								},
 								"emptyHint": "Nhấp chuột phải để tạo một danh mục!"
 							},
@@ -3534,6 +3961,18 @@ const FavoriteMedia = (() => {
 										"image": "Hình ảnh đã bị xóa khỏi danh mục!",
 										"video": "Video đã bị xóa khỏi danh mục!",
 										"audio": "Âm thanh đã bị xóa khỏi danh mục!"
+									},
+									"download": {
+										"image": "Зображення завантажено!",
+										"video": "Відео завантажено!",
+										"audio": "Аудіо завантажено!"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Не вдалося завантажити зображення",
+										"video": "Не вдалося завантажити відео",
+										"audio": "Не вдалося завантажити аудіо"
 									}
 								},
 								"controls": {
@@ -3554,7 +3993,7 @@ const FavoriteMedia = (() => {
 						};
 					case "zh-CN":	// Chinese (China)
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "图片",
 								"video": "视频",
 								"audio": "声音的"
@@ -3565,6 +4004,7 @@ const FavoriteMedia = (() => {
 								"create": "创建一个类别",
 								"edit": "编辑类别",
 								"delete": "删除类别",
+								"download": "下载媒体",
 								"placeholder": "分类名称",
 								"move": "移动",
 								"moveNext": "后",
@@ -3573,17 +4013,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "复印颜色",
 								"copiedColor": "颜色复制！",
 								"error": {
-									"need_name": "名称不能为空",
-									"invalid_name_length": "名称必须最多包含 20 个字符",
-									"wrong_color": "颜色无效",
-									"name_exists": "这个名字已经存在",
-									"invalid_category": "该类别不存在"
+									"needName": "名称不能为空",
+									"invalidNameLength": "名称必须最多包含 20 个字符",
+									"wrongColor": "颜色无效",
+									"nameExists": "这个名字已经存在",
+									"invalidCategory": "该类别不存在",
+									"download": "无法下载媒体"
 								},
 								"success": {
 									"create": "该类别已创建！",
 									"delete": "该分类已被删除！",
 									"edit": "类别已更改！",
-									"move": "类别已移动！"
+									"move": "类别已移动！",
+									"download": "媒体已上传！"
 								},
 								"emptyHint": "右键创建一个类别！"
 							},
@@ -3611,6 +4053,18 @@ const FavoriteMedia = (() => {
 										"image": "该图片已从类别中删除！",
 										"video": "该视频已从类别中删除！",
 										"audio": "音频已从类别中删除！"
+									},
+									"download": {
+										"image": "图片已上传！",
+										"video": "视频已上传！",
+										"audio": "音频已下载！"
+									}
+								},
+								"error": {
+									"download": {
+										"image": "上传图片失败",
+										"video": "下载视频失败",
+										"audio": "无法下载音频"
 									}
 								},
 								"controls": {
@@ -3631,84 +4085,97 @@ const FavoriteMedia = (() => {
 						};
 					case "zh-TW":	// Chinese (Taiwan)
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "圖片",
-								"video": "視頻",
-								"audio": "聲音的"
+								"video": "影片",
+								"audio": "音訊"
 							},
-							"create": "創造",
+							"create": "創建",
 							"category": {
 								"unsorted": "未排序",
-								"create": "創建一個類別",
-								"edit": "編輯類別",
-								"delete": "刪除類別",
+								"create": "創建一個分類",
+								"edit": "編輯分類",
+								"delete": "刪除分類",
+								"download": "下載媒體",
 								"placeholder": "分類名稱",
 								"move": "移動",
-								"moveNext": "後",
-								"movePrevious": "前",
+								"moveNext": "下一個",
+								"movePrevious": "上一個",
 								"color": "顏色",
-								"copyColor": "複印顏色",
-								"copiedColor": "顏色複製！",
+								"copyColor": "複製顏色",
+								"copiedColor": "顏色已複製！",
 								"error": {
-									"need_name": "名稱不能為空",
-									"invalid_name_length": "名稱必須最多包含 20 個字符",
-									"wrong_color": "顏色無效",
-									"name_exists": "這個名字已經存在",
-									"invalid_category": "該類別不存在"
+									"needName": "名稱不能為空",
+									"invalidNameLength": "名稱需少於20個字符",
+									"wrongColor": "無效的顏色",
+									"nameExists": "這個名稱已經存在",
+									"invalidCategory": "該分類不存在",
+									"download": "無法下載媒體"
 								},
 								"success": {
-									"create": "該類別已創建！",
-									"delete": "該分類已被刪除！",
-									"edit": "類別已更改！",
-									"move": "類別已移動！"
+									"create": "該分類已創建！",
+									"delete": "該分類已刪除！",
+									"edit": "分類已更改！",
+									"move": "分類已移動！",
+									"download": "媒體已上傳！"
 								},
-								"emptyHint": "右鍵創建一個類別！"
+								"emptyHint": "右鍵創建一個新分類！"
 							},
 							"media": {
 								"emptyHint": {
-									"image": "單擊圖像角落的星星將其放入您的收藏夾",
-									"video": "點擊視頻角落的星星，將其放入您的收藏夾",
-									"audio": "單擊音頻一角的星星將其放入您的收藏夾"
+									"image": "點擊圖像角落的星星將其放入您的收藏夾",
+									"video": "點擊影片角落的星星將其放入您的收藏夾",
+									"audio": "單擊音訊角落的星星將其放入您的收藏夾"
 								},
 								"addTo": "添加",
 								"moveTo": "移動",
-								"removeFrom": "從類別中刪除",
+								"removeFrom": "從分類中刪除",
 								"upload": {
 									"title": "上傳",
-									"normal": "普通的",
-									"spoiler": "劇透"
+									"normal": "正常",
+									"spoiler": "防雷"
 								},
 								"success": {
 									"move": {
 										"image": "圖片已移動！",
-										"video": "視頻已移！",
-										"audio": "音頻已移動！"
+										"video": "影片已移動！",
+										"audio": "音訊已移動！"
 									},
 									"remove": {
-										"image": "該圖片已從類別中刪除！",
-										"video": "該視頻已從類別中刪除！",
-										"audio": "音頻已從類別中刪除！"
+										"image": "該圖片已從分類中刪除！",
+										"video": "該影片已從分類中刪除！",
+										"audio": "該音訊已從分類中刪除！"
+									},
+									"download": {
+										"image": "圖片已上傳！",
+										"video": "視頻已上傳！",
+										"audio": "音頻已下載！"
 									}
 								},
+								"download": {
+									"image": "上傳圖片失敗",
+									"video": "下載視頻失敗",
+									"audio": "無法下載音頻"
+								},
 								"controls": {
-									"show": "顯示訂單",
-									"hide": "隱藏訂單"
+									"show": "顯示控制選單",
+									"hide": "隱藏控制選單"
 								},
 								"placeholder": {
 									"image": "圖片名稱",
-									"video": "視頻名稱",
-									"audio": "音頻名稱"
+									"video": "影片名稱",
+									"audio": "音訊名稱"
 								}
 							},
 							"searchItem": {
-								"image": "搜索圖像或類別",
-								"video": "搜索視頻或類別",
-								"audio": "搜索音頻或類別"
+								"image": "搜索圖片或分類",
+								"video": "搜索影片或分類",
+								"audio": "搜索音訊或分類"
 							}
 						};
 					default:		// English
 						return {
-							"tab_name": {
+							"tabName": {
 								"image": "Image",
 								"video": "Video",
 								"audio": "Audio",
@@ -3719,6 +4186,7 @@ const FavoriteMedia = (() => {
 								"create": "Create category",
 								"edit": "Edit category",
 								"delete": "Delete category",
+								"download": "Download medias",
 								"placeholder": "Category name",
 								"move": "Move",
 								"moveNext": "Next",
@@ -3727,17 +4195,19 @@ const FavoriteMedia = (() => {
 								"copyColor": "Copy color",
 								"copiedColor": "Copied color!",
 								"error": {
-									"need_name": "Name cannot be empty",
-									"invalid_name_length": "Name must contain less than 20 characters",
-									"wrong_color": "Invalid color",
-									"name_exists": "Name already exists",
-									"invalid_category": "Category not found"
+									"needName": "Name cannot be empty",
+									"invalidNameLength": "Name must contain less than 20 characters",
+									"wrongColor": "Invalid color",
+									"nameExists": "Name already exists",
+									"invalidCategory": "Category not found",
+									"download": "Error while downloading medias!",
 								},
 								"success": {
 									"create": "Category created!",
 									"delete": "Category deleted!",
 									"edit": "Category edited!",
-									"move": "Category moved!"
+									"move": "Category moved!",
+									"download": "Medias downloaded!",
 								},
 								"emptyHint": "Right-click to create a category!",
 							},
@@ -3766,6 +4236,18 @@ const FavoriteMedia = (() => {
 										"video": "Video removed from categories!",
 										"audio": "Audio removed from categories!",
 									},
+									"download": {
+										"image": "Image downloaded!",
+										"video": "Video downloaded!",
+										"audio": "Audio downloaded!",
+									}
+								},
+								"error": {
+									"download": {
+										"image": "Failed to download image",
+										"video": "Failed to download video",
+										"audio": "Failed to download audio",
+									}
 								},
 								"controls": {
 									"show": "Show controls",
@@ -3789,6 +4271,14 @@ const FavoriteMedia = (() => {
 		return plugin(Plugin, Api);
 	})(global.ZeresPluginLibrary.buildPlugin(config));
 })();
+
+function getUrlName(url) {
+	return url.replace(/\.([^\.]*)$/gm, "").split("/").pop();
+}
+
+function getUrlExt(url) {
+	return url.match(/\.([0-9a-z]+)(?=[?#])|(\.)(?:[\w]+)$/gmi)[0];
+}
 
 // https://stackoverflow.com/a/5306832/13314290
 function array_move(arr, old_index, new_index) {
