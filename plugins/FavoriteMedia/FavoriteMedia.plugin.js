@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.3.1
+ * @version 1.3.2
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.3.1",
+			version: "1.3.2",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -122,18 +122,10 @@ const FavoriteMedia = (() => {
 		],
 		changelog: [
 			{
-				title: "Added",
-				type: "added",
-				items: [
-					"Added Drag & Drop for unsorted medias.",
-					"Added download buttons for medias and categories."
-				]
-			},
-			{
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Chinese(Taiwan) translation fix. Thanks to JimLi999 (https://github.com/JimLi999)"
+					"Buttons not showing on channel textarea because of a Discord change on the Permission module."
 				]
 			}
 		]
@@ -161,7 +153,7 @@ const FavoriteMedia = (() => {
 		stop() { }
 	} : (([Plugin, Api]) => {
 		const plugin = (Plugin, Api) => {
-			const { WebpackModules, PluginUpdater, DiscordContextMenu, PluginUtilities, Utilities, ColorConverter, Toasts, Modals, Tooltip, DiscordModules: { React, ElectronModule, Strings, Dispatcher, UserSettingsStore, SelectedChannelStore, Permissions, UserStore, ChannelStore }, Patcher } = Api;
+			const { WebpackModules, PluginUpdater, DiscordContextMenu, PluginUtilities, Utilities, ColorConverter, Toasts, Modals, Tooltip, DiscordModules: { React, ElectronModule, Strings, Dispatcher, UserSettingsStore, SelectedChannelStore, ChannelStore, Permissions }, Patcher } = Api;
 			const { mkdir, access, writeFile, constants } = require('fs');
 
 			const class_modules = {
@@ -1712,8 +1704,7 @@ const FavoriteMedia = (() => {
 				patchChannelTextArea() {
 					Patcher.after(ChannelTextArea, "render", (_, [props], returnValue) => {
 						if (props.className.includes("Upload")) return;
-						const channel = ChannelStore.getChannel(SelectedChannelStore.getChannelId());
-						if (!channel.type && !Permissions.can(PermissionsConstants.SEND_MESSAGES, UserStore.getCurrentUser().id, channel)) return;
+						if (!getPermissionsArray(Permissions.getChannelPermissions(ChannelStore.getChannel(SelectedChannelStore.getChannelId()))).includes(Number(PermissionsConstants.SEND_MESSAGES.toString()))) return;
 						const buttons = Utilities.findInReactTree(returnValue, e => e && e.className && e.className.startsWith("buttons"));
 						if (!buttons || !Array.isArray(buttons.children)) return;
 						if (this.settings.btnsPosition === "left") {
@@ -4290,3 +4281,18 @@ function array_move(arr, old_index, new_index) {
 	}
 	arr.splice(new_index, 0, arr.splice(old_index, 1)[0]);
 };
+
+// function to return the permissions list of a Discord permission string
+function getPermissionsArray(perms) {
+	const NB_PERMS = 38;
+	const perms_list = [];
+
+	for (let i = NB_PERMS; i > 0; i--) {
+		let _perms = perms;
+		perms = perms - (2 ** i);
+		if (perms < 0) perms = _perms;
+		else perms_list[perms_list.push(_perms) - 1] -= perms;
+	}
+
+	return perms_list;
+}
