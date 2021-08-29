@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.3.2
+ * @version 1.3.3
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.3.2",
+			version: "1.3.3",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -1704,7 +1704,7 @@ const FavoriteMedia = (() => {
 				patchChannelTextArea() {
 					Patcher.after(ChannelTextArea, "render", (_, [props], returnValue) => {
 						if (props.className.includes("Upload")) return;
-						if (!getPermissionsArray(Permissions.getChannelPermissions(ChannelStore.getChannel(SelectedChannelStore.getChannelId()))).includes(Number(PermissionsConstants.SEND_MESSAGES.toString()))) return;
+						if (!ChannelStore.getChannel(SelectedChannelStore.getChannelId()).type && !getPermissionsArray(Permissions.getChannelPermissions(ChannelStore.getChannel(SelectedChannelStore.getChannelId()))).includes(Number(PermissionsConstants.SEND_MESSAGES.toString()))) return;
 						const buttons = Utilities.findInReactTree(returnValue, e => e && e.className && e.className.startsWith("buttons"));
 						if (!buttons || !Array.isArray(buttons.children)) return;
 						if (this.settings.btnsPosition === "left") {
