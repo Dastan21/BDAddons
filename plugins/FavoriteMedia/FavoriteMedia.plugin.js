@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.3.6
+ * @version 1.3.7
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.3.6",
+			version: "1.3.7",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -125,7 +125,7 @@ const FavoriteMedia = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Fixed buttons not showing on channel textarea because of a Discord change on the Permission module."
+					"Long audio name display bug."
 				]
 			}
 		]
@@ -917,7 +917,7 @@ const FavoriteMedia = (() => {
 							},
 								React.createElement("path", { fill: "currentColor", d: "M328.712,264.539c12.928-21.632,21.504-48.992,23.168-76.064c1.056-17.376-2.816-35.616-11.2-52.768c-13.152-26.944-35.744-42.08-57.568-56.704c-16.288-10.912-31.68-21.216-42.56-35.936l-1.952-2.624c-6.432-8.64-13.696-18.432-14.848-26.656c-1.152-8.32-8.704-14.24-16.96-13.76c-8.384,0.576-14.88,7.52-14.88,15.936v285.12c-13.408-8.128-29.92-13.12-48-13.12c-44.096,0-80,28.704-80,64s35.904,64,80,64s80-28.704,80-64V165.467c24.032,9.184,63.36,32.576,74.176,87.2c-2.016,2.976-3.936,6.176-6.176,8.736c-5.856,6.624-5.216,16.736,1.44,22.56c6.592,5.888,16.704,5.184,22.56-1.44c4.288-4.864,8.096-10.56,11.744-16.512C328.04,265.563,328.393,265.083,328.712,264.539z" }),
 							),
-							React.createElement("span", { className: classes.category.categoryName }, this.props.name + this.props.ext)
+							React.createElement("span", { className: classes.category.categoryName }, React.createElement("div", {}, this.props.name.replace(/_/gm, ' '))),
 						) : null
 					)
 				}
