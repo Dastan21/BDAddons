@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.3.8
+ * @version 1.3.9
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.3.8",
+			version: "1.3.9",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -1798,17 +1798,19 @@ const FavoriteMedia = (() => {
 					Patcher.after(MessageContextMenu, "default", (_, [props], returnValue) => {
 						if (!this.settings.showContextMenuFavorite) return;
 						if (!(
-							((props.target.tagName === "IMG" && !props.target.className) || (props.target.tagName === "svg" && props.target.className && props.target.className.baseVal === classes.gif.icon)) || // image
+							((props.target.tagName === "IMG" && !props.target.className) || (props.target.tagName === "svg" && props.target.className && props.target.className.baseVal === classes.gif.icon) || props.target.tagName === "path") || // image
 							(props.target.tagName === "VIDEO" && props.target.className && !props.target.className.includes("embedMedia")) || // video
 							(props.target.tagName === "A" && props.target.className && props.target.className.includes("metadataName")) // audio
 						)) return;
 						let target = props.target;
 						if (target.tagName === "svg") target = props.target.parentElement?.parentElement?.previousSibling;
 						if (target.tagName === "path") target = props.target.parentElement?.parentElement?.parentElement?.previousSibling;
+						if (!target) return;
+						if (target.tagName === "IMG") target = target?.parentElement;
 						const data = {
 							type: "image",
-							url: target.src,
-							poster: target.src,
+							url: target.src || target.href,
+							poster: target.poster,
 							width: Number(target.style.width.replace("px", "")),
 							height: Number(target.style.height.replace("px", "")),
 							favorited: undefined
