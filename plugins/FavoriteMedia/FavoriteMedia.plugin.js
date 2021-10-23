@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.3.7
+ * @version 1.3.8
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.3.7",
+			version: "1.3.8",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -32,6 +32,20 @@ const FavoriteMedia = (() => {
 				name: "Hide Thumbnail",
 				note: "Show the category color instead of a random media thumbnail",
 				value: false
+			},
+			{
+				type: "switch",
+				id: "showContextMenuFavorite",
+				name: "Show ContextMenu Favorite Button",
+				note: "Show the button in the message context menu to favorite a media",
+				value: true
+			},
+			{
+				type: "slider",
+				id: "mediaVolume",
+				name: "Preview Media Volume",
+				note: "Volume of the previews medias on the picker tab",
+				value: 10
 			},
 			{
 				type: "dropdown",
@@ -122,10 +136,12 @@ const FavoriteMedia = (() => {
 		],
 		changelog: [
 			{
-				title: "Fixed",
-				type: "fixed",
+				title: "Added",
+				type: "added",
 				items: [
-					"Long audio name display bug."
+					"Button on message context menu to favorite media (can be disabled in settings)",
+					"Volume option for videos and audios previews",
+					"Playing previews now stop when starting another one",
 				]
 			}
 		]
@@ -286,6 +302,7 @@ const FavoriteMedia = (() => {
 			const PermissionsConstants = WebpackModules.getByProps("Permissions", "ActivityTypes").Permissions;
 			const MediaPlayer = WebpackModules.getByDisplayName("MediaPlayer");
 			const Image = WebpackModules.getByDisplayName("Image");
+			const MessageContextMenu = WebpackModules.getModule(m => m?.default?.displayName === "MessageContextMenu");
 			const ImageSVG = () => React.createElement("svg", { className: classes.icon.icon, "aria-hidden": "false", viewBox: "0 0 384 384", width: "24", height: "24" }, React.createElement("path", { fill: "currentColor", d: "M341.333,0H42.667C19.093,0,0,19.093,0,42.667v298.667C0,364.907,19.093,384,42.667,384h298.667 C364.907,384,384,364.907,384,341.333V42.667C384,19.093,364.907,0,341.333,0z M42.667,320l74.667-96l53.333,64.107L245.333,192l96,128H42.667z" }));
 			const VideoSVG = () => React.createElement("svg", { className: classes.icon.icon, "aria-hidden": "false", viewBox: "0 0 298 298", width: "24", height: "24" }, React.createElement("path", { fill: "currentColor", d: "M298,33c0-13.255-10.745-24-24-24H24C10.745,9,0,19.745,0,33v232c0,13.255,10.745,24,24,24h250c13.255,0,24-10.745,24-24V33zM91,39h43v34H91V39z M61,259H30v-34h31V259z M61,73H30V39h31V73z M134,259H91v-34h43V259z M123,176.708v-55.417c0-8.25,5.868-11.302,12.77-6.783l40.237,26.272c6.902,4.519,6.958,11.914,0.056,16.434l-40.321,26.277C128.84,188.011,123,184.958,123,176.708z M207,259h-43v-34h43V259z M207,73h-43V39h43V73z M268,259h-31v-34h31V259z M268,73h-31V39h31V73z" }));
 			const AudioSVG = () => React.createElement("svg", { className: classes.icon.icon, "aria-hidden": "false", viewBox: "0 0 115.3 115.3", width: "24", height: "24" }, React.createElement("path", { fill: "currentColor", d: "M47.9,14.306L26,30.706H6c-3.3,0-6,2.7-6,6v41.8c0,3.301,2.7,6,6,6h20l21.9,16.4c4,3,9.6,0.2,9.6-4.8v-77C57.5,14.106,51.8,11.306,47.9,14.306z" }), React.createElement("path", { fill: "currentColor", d: "M77.3,24.106c-2.7-2.7-7.2-2.7-9.899,0c-2.7,2.7-2.7,7.2,0,9.9c13,13,13,34.101,0,47.101c-2.7,2.7-2.7,7.2,0,9.899c1.399,1.4,3.199,2,4.899,2s3.601-0.699,4.9-2.1C95.8,72.606,95.8,42.606,77.3,24.106z" }), React.createElement("path", { fill: "currentColor", d: "M85.1,8.406c-2.699,2.7-2.699,7.2,0,9.9c10.5,10.5,16.301,24.4,16.301,39.3s-5.801,28.8-16.301,39.3c-2.699,2.7-2.699,7.2,0,9.9c1.4,1.399,3.2,2.1,4.9,2.1c1.8,0,3.6-0.7,4.9-2c13.1-13.1,20.399-30.6,20.399-49.2c0-18.6-7.2-36-20.399-49.2C92.3,5.706,87.9,5.706,85.1,8.406z" }));
@@ -387,8 +404,8 @@ const FavoriteMedia = (() => {
 
 				updateFavorite(data) {
 					if (this.props.fromPicker) return;
+					if (data.url !== this.props.url) return;
 					const fav = this.isFavorited;
-					if (data.url !== this.props.url || fav) return;
 					this.setState({ favorited: fav });
 					this.tooltipFav.label = fav ? Strings.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.GIF_TOOLTIP_ADD_TO_FAVORITES;
 				}
@@ -774,6 +791,7 @@ const FavoriteMedia = (() => {
 					}
 
 					this.changeControls = this.changeControls.bind(this);
+					this.hideControls = this.hideControls.bind(this);
 					this.sendMedia = this.sendMedia.bind(this);
 					this.handleVisible = this.handleVisible.bind(this);
 					this.onDragStart = this.onDragStart.bind(this);
@@ -790,10 +808,12 @@ const FavoriteMedia = (() => {
 				componentDidMount() {
 					this.url = this.props.url;
 					if (this.isPlayable) this.tooltipControls = Tooltip.create(this.refs.tooltipControls, this.state.showControls ? labels.media.controls.hide : labels.media.controls.show);
+					Dispatcher.subscribe("TOGGLE_CONTROLS", this.hideControls);
 					Dispatcher.subscribe("SCROLLING_MEDIAS", this.handleVisible);
 				}
 
 				componentWillUnmount() {
+					Dispatcher.unsubscribe("TOGGLE_CONTROLS", this.hideControls);
 					Dispatcher.unsubscribe("SCROLLING_MEDIAS", this.handleVisible);
 				}
 
@@ -801,6 +821,7 @@ const FavoriteMedia = (() => {
 					if (this.url !== this.props.url && this.state.showControls) this.changeControls(false);
 					if (this.isPlayable && !this.tooltipControls) this.tooltipControls = Tooltip.create(this.refs.tooltipControls, this.state.showControls ? labels.media.controls.hide : labels.media.controls.show);
 					this.url = this.props.url;
+					if (this.state.showControls) this.refs.media.volume = this.props.volume / 100 || 0.1;
 				}
 
 				changeControls(force) {
@@ -812,8 +833,13 @@ const FavoriteMedia = (() => {
 							this.tooltipControls.show();
 							if (force !== undefined) this.tooltipControls.hide();
 						}
+						if (newControls) Dispatcher.dispatch({ type: "TOGGLE_CONTROLS" });
 						return ({ showControls: newControls });
 					});
+				}
+
+				hideControls() {
+					if (this.state.showControls) this.changeControls(false);
 				}
 
 				onDragStart(e) {
@@ -1446,6 +1472,7 @@ const FavoriteMedia = (() => {
 												items: this.positionedMedias,
 												componentProps: {
 													type: this.props.type,
+													volume: this.props.volume,
 													onMediaContextMenu: this.onMediaContextMenu
 												}
 											})
@@ -1599,6 +1626,7 @@ const FavoriteMedia = (() => {
 					this.patchChannelTextArea();
 					this.patchMedias();
 					this.patchClosePicker();
+					this.patchMessageContextMenu();
 					PluginUtilities.addStyle(this.getName() + "-css", `
 						.category-input-color > input[type="color"] {
 							opacity: 0;
@@ -1695,7 +1723,7 @@ const FavoriteMedia = (() => {
 							if (this.settings.video.enabled) head.push(this.MediaTab("video", tabProps));
 							if (this.settings.audio.enabled) head.push(this.MediaTab("audio", tabProps));
 							const activeMediaPicker = WebpackModules.getByProps("useExpressionPickerStore").useExpressionPickerStore.getState().activeView;
-							if (["image", "video", "audio"].includes(activeMediaPicker)) body.push(React.createElement(MediaPicker, { type: activeMediaPicker }));
+							if (["image", "video", "audio"].includes(activeMediaPicker)) body.push(React.createElement(MediaPicker, { type: activeMediaPicker, volume: this.settings.mediaVolume }));
 							return childrenReturn;
 						};
 					});
@@ -1764,6 +1792,92 @@ const FavoriteMedia = (() => {
 					Patcher.instead(WebpackModules.getByProps("closeExpressionPicker"), "closeExpressionPicker", (_, __, originalFunction) => {
 						if (canClosePicker) originalFunction();
 					});
+				}
+
+				patchMessageContextMenu() {
+					Patcher.after(MessageContextMenu, "default", (_, [props], returnValue) => {
+						if (!this.settings.showContextMenuFavorite) return;
+						if (!(
+							((props.target.tagName === "IMG" && !props.target.className) || (props.target.tagName === "svg" && props.target.className && props.target.className.baseVal === classes.gif.icon)) || // image
+							(props.target.tagName === "VIDEO" && props.target.className && !props.target.className.includes("embedMedia")) || // video
+							(props.target.tagName === "A" && props.target.className && props.target.className.includes("metadataName")) // audio
+						)) return;
+						let target = props.target;
+						if (target.tagName === "svg") target = props.target.parentElement?.parentElement?.previousSibling;
+						if (target.tagName === "path") target = props.target.parentElement?.parentElement?.parentElement?.previousSibling;
+						const data = {
+							type: "image",
+							url: target.src,
+							poster: target.src,
+							width: Number(target.style.width.replace("px", "")),
+							height: Number(target.style.height.replace("px", "")),
+							favorited: undefined
+						};
+						data.url = data.url.replace("media.discordapp.net", "cdn.discordapp.com");
+						if (props.target.tagName === "VIDEO") data.type = "video";
+						if (props.target.tagName === "A") data.type = "audio";
+						data.favorited = this.isFavorited(data.type, data.url);
+						const button = DiscordContextMenu.buildMenuItem({
+							id: "favorite-media",
+							label: data.favorited ? Strings.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.GIF_TOOLTIP_ADD_TO_FAVORITES,
+							action: () => {
+								this.updateFavorite(data);
+								Dispatcher.dispatch({ type: "FAVORITE_MEDIA", url: data.url });
+							}
+						});
+						returnValue.props.children.splice(returnValue.props.children.length - 1, 0, button);
+					});
+				}
+
+				isFavorited(type, url) {
+					return PluginUtilities.loadData(config.info.name, type, { medias: [] }).medias.find(e => e.url === url) !== undefined;
+				}
+
+				updateFavorite(props) {
+					if (props.favorited) this.unfavoriteMedia(props);
+					else this.favoriteMedia(props);
+				}
+
+				favoriteMedia(props) {
+					let type_data = PluginUtilities.loadData(config.info.name, props.type, { medias: [] });
+					if (type_data.medias.find(m => m.url === props.url)) return;
+					let data = null;
+					switch (props.type) {
+						case "video":
+							data = {
+								url: props.url,
+								poster: props.poster,
+								width: props.width,
+								height: props.height,
+								name: getUrlName(props.url)
+							};
+							break;
+						case "audio":
+							data = {
+								url: props.url,
+								name: getUrlName(props.url),
+								ext: getUrlExt(props.url)
+							};
+							break;
+						default: // image
+							data = {
+								url: props.url,
+								width: props.width,
+								height: props.height,
+								name: getUrlName(props.url)
+							};
+					}
+					if (!data) return;
+					type_data.medias.push(data);
+					PluginUtilities.saveData(config.info.name, props.type, type_data);
+				}
+
+				unfavoriteMedia(props) {
+					let type_data = PluginUtilities.loadData(config.info.name, props.type, { medias: [] });
+					if (!type_data.medias.length) return;
+					type_data.medias = type_data.medias.filter(e => e.url !== props.url);
+					PluginUtilities.saveData(config.info.name, props.type, type_data);
+					if (props.fromPicker) Dispatcher.dispatch({ type: "UPDATE_MEDIAS" });
 				}
 			};
 
