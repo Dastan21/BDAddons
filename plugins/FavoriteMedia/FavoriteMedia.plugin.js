@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.3.10
+ * @version 1.3.11
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.3.10",
+			version: "1.3.11",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -136,19 +136,10 @@ const FavoriteMedia = (() => {
 		],
 		changelog: [
 			{
-				title: "Added",
-				type: "added",
-				items: [
-					"Button on message context menu to favorite media (can be disabled in settings)",
-					"Volume option for videos and audios previews",
-					"Playing previews now stop when starting another one",
-				]
-			},
-			{
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Textarea buttons work again on canary"
+					"Discord Strings module (translations) has changed"
 				]
 			}
 		]
@@ -397,7 +388,7 @@ const FavoriteMedia = (() => {
 				}
 
 				componentDidMount() {
-					this.tooltipFav = Tooltip.create(this.refs.tooltipFav, this.isFavorited ? Strings.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.GIF_TOOLTIP_ADD_TO_FAVORITES);
+					this.tooltipFav = Tooltip.create(this.refs.tooltipFav, this.isFavorited ? Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES);
 					Dispatcher.subscribe("FAVORITE_MEDIA", this.updateFavorite);
 				}
 
@@ -414,7 +405,7 @@ const FavoriteMedia = (() => {
 					if (data.url !== this.props.url) return;
 					const fav = this.isFavorited;
 					this.setState({ favorited: fav });
-					this.tooltipFav.label = fav ? Strings.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.GIF_TOOLTIP_ADD_TO_FAVORITES;
+					this.tooltipFav.label = fav ? Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES;
 				}
 
 				changeFavorite() {
@@ -423,7 +414,7 @@ const FavoriteMedia = (() => {
 					if (!this.props.fromPicker) this.setState({ favorited: this.isFavorited });
 					Dispatcher.dispatch({ type: "FAVORITE_MEDIA", url: this.props.url });
 					if (this.props.fromPicker) return;
-					this.tooltipFav.label = this.state.favorited ? Strings.GIF_TOOLTIP_ADD_TO_FAVORITES : Strings.GIF_TOOLTIP_REMOVE_FROM_FAVORITES;
+					this.tooltipFav.label = this.state.favorited ? Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES : Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES;
 					this.tooltipFav.hide();
 					this.tooltipFav.show();
 					this.setState({ pulse: true });
@@ -1169,8 +1160,8 @@ const FavoriteMedia = (() => {
 						}),
 						{
 							danger: false,
-							confirmText: op === "create" ? labels.create : Strings.EDIT,
-							cancelText: Strings.CANCEL,
+							confirmText: op === "create" ? labels.create : Strings.Messages.EDIT,
+							cancelText: Strings.Messages.CANCEL,
 							onConfirm: () => {
 								let res = false;
 								if (op === "create") res = createCategory(this.props.type, this.modal.getValues());
@@ -1288,7 +1279,7 @@ const FavoriteMedia = (() => {
 						}]
 					},
 					{
-						label: Strings.DOWNLOAD,
+						label: Strings.Messages.DOWNLOAD,
 						action: () => {
 							const media = PluginUtilities.loadData(config.info.name, this.props.type, { medias: [] }).medias[media_id];
 							const ext = getUrlExt(media.url);
@@ -1832,7 +1823,7 @@ const FavoriteMedia = (() => {
 						data.favorited = this.isFavorited(data.type, data.url);
 						const button = DiscordContextMenu.buildMenuItem({
 							id: "favorite-media",
-							label: data.favorited ? Strings.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.GIF_TOOLTIP_ADD_TO_FAVORITES,
+							label: data.favorited ? Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES,
 							action: () => {
 								this.updateFavorite(data);
 								Dispatcher.dispatch({ type: "FAVORITE_MEDIA", url: data.url });
