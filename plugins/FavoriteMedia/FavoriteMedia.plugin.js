@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.3.11
+ * @version 1.3.12
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.3.11",
+			version: "1.3.12",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -139,7 +139,7 @@ const FavoriteMedia = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Discord Strings module (translations) has changed"
+					"Fixed Discord broken things"
 				]
 			}
 		]
@@ -290,6 +290,13 @@ const FavoriteMedia = (() => {
 					grow: class_modules.look.grow,
 					contents: class_modules.look.contents,
 				}
+			};
+			const DefaultStrings = {
+				GIF_TOOLTIP_ADD_TO_FAVORITES: "Add to favorites",
+				GIF_TOOLTIP_REMOVE_FROM_FAVORITES: "Remove from favorites",
+				EDIT: "Edit",
+				CANCEL: "Cancel",
+				DOWNLOAD: "Download",
 			};
 			const DEFAULT_BACKGROUND_COLOR = "#202225";
 			let canClosePicker = true;
@@ -1620,6 +1627,7 @@ const FavoriteMedia = (() => {
 						this.getVersion(),
 						"https://raw.githubusercontent.com/Dastan21/BDAddons/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 					);
+					this.fixStringsModule();
 					this.patchExpressionPicker();
 					this.patchChannelTextArea();
 					this.patchMedias();
@@ -1693,6 +1701,12 @@ const FavoriteMedia = (() => {
 					return this.buildSettingsPanel().getElement();
 				}
 
+				fixStringsModule() {
+					for (const key of Object.keys(DefaultStrings)) {
+						Strings.Messages[key] = DefaultStrings[key];
+					}
+				}
+
 				MediaTab(type, tabProps) {
 					return React.createElement("div", {
 						className: `${tabProps.className} fm-pickerTab`,
@@ -1731,10 +1745,13 @@ const FavoriteMedia = (() => {
 					Patcher.after(ChannelTextArea, "render", (_, [props], returnValue) => {
 						if (props.className.includes("Upload")) return;
 						const channel = ChannelStore.getChannel(SelectedChannelStore.getChannelId());
-						const perms = DiscordNative.app.getReleaseChannel() === "canary" ?
-							Permissions.can(PermissionsConstants.SEND_MESSAGES, UserStore.getCurrentUser(), channel)
-							:
-							Permissions.can(PermissionsConstants.SEND_MESSAGES, channel, UserStore.getCurrentUser().id);
+						let perms = true;
+						try {
+							perms = Permissions.can(PermissionsConstants.SEND_MESSAGES, channel, UserStore.getCurrentUser().id);
+						} catch (_) {}
+						try {
+							perms = Permissions.can(PermissionsConstants.SEND_MESSAGES, UserStore.getCurrentUser(), channel)
+						} catch (_) {}
 						if (!channel.type && !perms) return;
 						const buttons = Utilities.findInReactTree(returnValue, e => e && e.className && e.className.startsWith("buttons"));
 						if (!buttons || !Array.isArray(buttons.children)) return;
