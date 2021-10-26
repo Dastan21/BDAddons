@@ -1703,7 +1703,7 @@ const FavoriteMedia = (() => {
 
 				fixStringsModule() {
 					for (const key of Object.keys(DefaultStrings)) {
-						Strings.Messages[key] = DefaultStrings[key];
+						Strings.Messages[key] = Strings.Messages[key] || DefaultStrings[key];
 					}
 				}
 
