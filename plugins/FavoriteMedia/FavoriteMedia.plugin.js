@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.3.13
+ * @version 1.4.0
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.3.13",
+			version: "1.4.0",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -139,7 +139,7 @@ const FavoriteMedia = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Discord translations module import"
+					"Fixed crashes caused by the changes to GIF/Emoji picker tab"
 				]
 			}
 		]
@@ -1694,17 +1694,16 @@ const FavoriteMedia = (() => {
 					return this.buildSettingsPanel().getElement();
 				}
 
-				MediaTab(type, tabProps) {
-					return React.createElement("div", {
-						className: `${tabProps.className} fm-pickerTab`,
-						id: `${type}-picker-tab`,
-						role: "tab"
-					},
-						React.createElement(tabProps.children.type, {
-							viewType: type,
-							isActive: type === WebpackModules.getByProps("useExpressionPickerStore").useExpressionPickerStore.getState().activeView
-						}, labels.tabName[type])
-					);
+				MediaTab(mediaType, elementType) {
+					const selected = mediaType === WebpackModules.getByProps("useExpressionPickerStore").useExpressionPickerStore.getState().activeView;
+					return React.createElement(elementType, {
+						id: `${mediaType}-picker-tab`,
+						"aria-controls": `${mediaType}-picker-tab-panel`,
+						"aria-selected": selected,
+						className: "fm-pickerTab",
+						viewType: mediaType,
+						isActive: selected
+					}, labels.tabName[mediaType]);
 				}
 
 				patchExpressionPicker() {
@@ -1717,10 +1716,10 @@ const FavoriteMedia = (() => {
 							const head = Utilities.getNestedProp(childrenReturn, "props.children.props.children.1.props.children.0.props.children.props.children");
 							const body = Utilities.getNestedProp(childrenReturn, "props.children.props.children.1.props.children");
 							if (!head || !body) return childrenReturn;
-							const tabProps = head[0].props;
-							if (this.settings.image.enabled) head.push(this.MediaTab("image", tabProps));
-							if (this.settings.video.enabled) head.push(this.MediaTab("video", tabProps));
-							if (this.settings.audio.enabled) head.push(this.MediaTab("audio", tabProps));
+							const elementType = head[0].type.type;
+							if (this.settings.image.enabled) head.push(this.MediaTab("image", elementType));
+							if (this.settings.video.enabled) head.push(this.MediaTab("video", elementType));
+							if (this.settings.audio.enabled) head.push(this.MediaTab("audio", elementType));
 							const activeMediaPicker = WebpackModules.getByProps("useExpressionPickerStore").useExpressionPickerStore.getState().activeView;
 							if (["image", "video", "audio"].includes(activeMediaPicker)) body.push(React.createElement(MediaPicker, { type: activeMediaPicker, volume: this.settings.mediaVolume }));
 							return childrenReturn;
@@ -1735,10 +1734,10 @@ const FavoriteMedia = (() => {
 						let perms = true;
 						try {
 							perms = Permissions.can(PermissionsConstants.SEND_MESSAGES, channel, UserStore.getCurrentUser().id);
-						} catch (_) {}
+						} catch (_) { }
 						try {
 							perms = Permissions.can(PermissionsConstants.SEND_MESSAGES, UserStore.getCurrentUser(), channel)
-						} catch (_) {}
+						} catch (_) { }
 						if (!channel.type && !perms) return;
 						const buttons = Utilities.findInReactTree(returnValue, e => e && e.className && e.className.startsWith("buttons"));
 						if (!buttons || !Array.isArray(buttons.children)) return;
