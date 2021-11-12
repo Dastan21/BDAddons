@@ -143,10 +143,10 @@ const FavoriteMedia = (() => {
 		],
 		changelog: [
 			{
-				title: "Fixed",
-				type: "fixed",
+				title: "Added",
+				type: "added",
 				items: [
-					"Fixed crashes caused by the changes to GIF/Emoji picker tab"
+					"Added option to force show favorites GIFs over trendings categories"
 				]
 			}
 		]
