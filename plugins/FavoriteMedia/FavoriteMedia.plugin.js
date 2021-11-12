@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.4.0
+ * @version 1.5.0
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.4.0",
+			version: "1.5.0",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -39,6 +39,13 @@ const FavoriteMedia = (() => {
 				name: "Show ContextMenu Favorite Button",
 				note: "Show the button in the message context menu to favorite a media",
 				value: true
+			},
+			{
+				type: "switch",
+				id: "forceShowFavoritesGIFs",
+				name: "Show only favorites in GIFs tab",
+				note: "Force show favorites GIFs over trendings categories",
+				value: false
 			},
 			{
 				type: "slider",
@@ -167,7 +174,7 @@ const FavoriteMedia = (() => {
 		stop() { }
 	} : (([Plugin, Api]) => {
 		const plugin = (Plugin, Api) => {
-			const { WebpackModules, PluginUpdater, DiscordContextMenu, PluginUtilities, Utilities, ColorConverter, Toasts, Modals, Tooltip, DiscordModules: { React, ElectronModule, Dispatcher, UserSettingsStore, SelectedChannelStore, ChannelStore, UserStore, Permissions }, Patcher } = Api;
+			const { WebpackModules, ReactComponents, PluginUpdater, DiscordContextMenu, PluginUtilities, Utilities, ColorConverter, Toasts, Modals, Tooltip, DiscordModules: { React, ElectronModule, Dispatcher, UserSettingsStore, SelectedChannelStore, ChannelStore, UserStore, Permissions }, Patcher } = Api;
 			const { mkdir, access, writeFile, constants } = require('fs');
 
 			const class_modules = {
@@ -1625,6 +1632,7 @@ const FavoriteMedia = (() => {
 					this.patchChannelTextArea();
 					this.patchMedias();
 					this.patchClosePicker();
+					this.patchGIFTab();
 					this.patchMessageContextMenu();
 					PluginUtilities.addStyle(this.getName() + "-css", `
 						.category-input-color > input[type="color"] {
@@ -1796,6 +1804,14 @@ const FavoriteMedia = (() => {
 				patchClosePicker() {
 					Patcher.instead(WebpackModules.getByProps("closeExpressionPicker"), "closeExpressionPicker", (_, __, originalFunction) => {
 						if (canClosePicker) originalFunction();
+					});
+				}
+
+				async patchGIFTab() {
+					const GIFPicker = await ReactComponents.getComponentByName("GIFPicker", "#gif-picker-tab-panel");
+					Patcher.after(GIFPicker.component.prototype, "render", (_this, _, __) => {
+						if (!this.settings.forceShowFavoritesGIFs) return;
+						_this.setState({ resultType: "Favorites" });
 					});
 				}
 
