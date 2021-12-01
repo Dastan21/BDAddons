@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.0
+ * @version 1.5.1
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.0",
+			version: "1.5.1",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -143,10 +143,10 @@ const FavoriteMedia = (() => {
 		],
 		changelog: [
 			{
-				title: "Added",
-				type: "added",
+				title: "Fixed",
+				type: "fixed",
 				items: [
-					"Added option to force show favorites GIFs over trendings categories"
+					"Tabs weren't showing up"
 				]
 			}
 		]
@@ -1721,15 +1721,19 @@ const FavoriteMedia = (() => {
 						if (!originalChildren) return;
 						returnValue.props.children.props.children = (props) => {
 							const childrenReturn = Reflect.apply(originalChildren, null, [props]);
-							const head = Utilities.getNestedProp(childrenReturn, "props.children.props.children.1.props.children.0.props.children.props.children");
+							const head = Utilities.getNestedProp(childrenReturn, "props.children.props.children.1.props.children.1.props.children.props.children");
 							const body = Utilities.getNestedProp(childrenReturn, "props.children.props.children.1.props.children");
 							if (!head || !body) return childrenReturn;
-							const elementType = head[0].type.type;
-							if (this.settings.image.enabled) head.push(this.MediaTab("image", elementType));
-							if (this.settings.video.enabled) head.push(this.MediaTab("video", elementType));
-							if (this.settings.audio.enabled) head.push(this.MediaTab("audio", elementType));
-							const activeMediaPicker = WebpackModules.getByProps("useExpressionPickerStore").useExpressionPickerStore.getState().activeView;
-							if (["image", "video", "audio"].includes(activeMediaPicker)) body.push(React.createElement(MediaPicker, { type: activeMediaPicker, volume: this.settings.mediaVolume }));
+							try {
+								const elementType = head[0].type.type;
+								if (this.settings.image.enabled) head.push(this.MediaTab("image", elementType));
+								if (this.settings.video.enabled) head.push(this.MediaTab("video", elementType));
+								if (this.settings.audio.enabled) head.push(this.MediaTab("audio", elementType));
+								const activeMediaPicker = WebpackModules.getByProps("useExpressionPickerStore").useExpressionPickerStore.getState().activeView;
+								if (["image", "video", "audio"].includes(activeMediaPicker)) body.push(React.createElement(MediaPicker, { type: activeMediaPicker, volume: this.settings.mediaVolume }));
+							} catch (err) {
+								console.error("[FavoriteMedia] Error in ExpressionPicker\n", err);
+							}
 							return childrenReturn;
 						};
 					});
