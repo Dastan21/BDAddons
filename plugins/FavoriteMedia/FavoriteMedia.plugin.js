@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.1
+ * @version 1.5.2
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.1",
+			version: "1.5.2",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -143,10 +143,10 @@ const FavoriteMedia = (() => {
 		],
 		changelog: [
 			{
-				title: "Fixed",
-				type: "fixed",
+				title: "Added",
+				type: "added",
 				items: [
-					"Tabs weren't showing up"
+					"Added more options on context menu"
 				]
 			}
 		]
@@ -1841,28 +1841,74 @@ const FavoriteMedia = (() => {
 							favorited: undefined
 						};
 						data.url = data.url.replace("media.discordapp.net", "cdn.discordapp.com");
-						if (props.target.tagName === "VIDEO") data.type = "video";
+						if (props.target.tagName === "VIDEO") {
+							data.type = "video";
+							data.width = Number(target.parentElement.parentElement.style.width.replace("px", ""))
+							data.height = Number(target.parentElement.parentElement.style.height.replace("px", ""))
+						}
 						if (props.target.tagName === "A") data.type = "audio";
 						data.favorited = this.isFavorited(data.type, data.url);
-						const button = DiscordContextMenu.buildMenuItem({
-							id: "favorite-media",
-							label: data.favorited ? Strings.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.GIF_TOOLTIP_ADD_TO_FAVORITES,
-							action: () => {
-								this.updateFavorite(data);
-								Dispatcher.dispatch({ type: "FAVORITE_MEDIA", url: data.url });
-							}
+						const menuItems = [];
+						if (data.favorited) {
+							const category_id = PluginUtilities.loadData(config.info.name, data.type, { medias: [] }).medias.find(m => m.url === data.url)?.category_id;
+							const categories = PluginUtilities.loadData(config.info.name, data.type, { categories: [] }).categories.filter(c => category_id !== undefined ? c.id !== category_id : true);
+							const buttonCategories = categories.map(c => ({
+								label: c.name,
+								key: c.id,
+								action: () => {
+									this.moveMediaCategory(data.type, data.url, c.id);
+								},
+								render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })								
+							}));
+							menuItems.push({
+								label: Strings.GIF_TOOLTIP_REMOVE_FROM_FAVORITES,
+								action: () => {
+									this.unfavoriteMedia(data);
+									Dispatcher.dispatch({ type: "FAVORITE_MEDIA", url: data.url });
+								}
+							});
+							if (categories.length) menuItems.push({
+								label: category_id !== undefined ? labels.media.moveTo : labels.media.addTo,
+								type: "submenu",
+								items: buttonCategories
+							});
+						} else {
+							const categories = PluginUtilities.loadData(config.info.name, data.type, { categories: [] }).categories;
+							const buttonCategories = categories.map(c => ({
+								label: c.name,
+								key: c.id,
+								action: () => {
+									this.favoriteMedia(data);
+									this.moveMediaCategory(data.type, data.url, c.id);
+									Dispatcher.dispatch({ type: "FAVORITE_MEDIA", url: data.url });
+								},
+								render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })								
+							}));
+							menuItems.push({
+								label: Strings.GIF_TOOLTIP_ADD_TO_FAVORITES,
+								action: () => {
+									this.favoriteMedia(data);
+									Dispatcher.dispatch({ type: "FAVORITE_MEDIA", url: data.url });
+								}
+							});
+							if (categories.length) menuItems.push({
+								label: labels.media.addTo,
+								type: "submenu",
+								items: buttonCategories
+							});
+						}
+						const contextMenu = DiscordContextMenu.buildMenuItem({
+							id: "favoriteMedia",
+							label: config.info.name,
+							type: "submenu",
+							items: menuItems
 						});
-						returnValue.props.children.splice(returnValue.props.children.length - 1, 0, button);
+						returnValue.props.children.splice(returnValue.props.children.length - 1, 0, contextMenu);
 					});
 				}
 
 				isFavorited(type, url) {
 					return PluginUtilities.loadData(config.info.name, type, { medias: [] }).medias.find(e => e.url === url) !== undefined;
-				}
-
-				updateFavorite(props) {
-					if (props.favorited) this.unfavoriteMedia(props);
-					else this.favoriteMedia(props);
 				}
 
 				favoriteMedia(props) {
@@ -1905,6 +1951,15 @@ const FavoriteMedia = (() => {
 					type_data.medias = type_data.medias.filter(e => e.url !== props.url);
 					PluginUtilities.saveData(config.info.name, props.type, type_data);
 					if (props.fromPicker) Dispatcher.dispatch({ type: "UPDATE_MEDIAS" });
+				}
+
+				moveMediaCategory(type, url, category_id) {
+					let type_data = PluginUtilities.loadData(config.info.name, type, { medias: [] });
+					const index = type_data.medias.findIndex(m => m.url === url);
+					if (index < 0) return;
+					type_data.medias[index].category_id = category_id;
+					PluginUtilities.saveData(config.info.name, type, type_data);
+					Toasts.success(labels.media.success.move[type]);
 				}
 			};
 
