@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.2
+ * @version 1.5.3
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.2",
+			version: "1.5.3",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -143,10 +143,10 @@ const FavoriteMedia = (() => {
 		],
 		changelog: [
 			{
-				title: "Added",
-				type: "added",
+				title: "Fixed",
+				type: "fixed",
 				items: [
-					"Added more options on context menu"
+					"Fixed undefined classes crash on Canary"
 				]
 			}
 		]
@@ -182,7 +182,7 @@ const FavoriteMedia = (() => {
 				menu: WebpackModules.getByProps("menu", "scroller", "styleFixed"),
 				result: WebpackModules.getByProps("desiredItemWidth", "results", "result"),
 				input: WebpackModules.getByProps("inputWrapper", "input", "focused"),
-				role: WebpackModules.getByProps("desaturate", "roleRow", "roleDot"),
+				role: WebpackModules.getByProps("flex", "alignCenter", "justifyCenter"),
 				_gif: WebpackModules.getByProps("container", "gifFavoriteButton", "embedWrapper"),
 				gif: WebpackModules.getByProps("size", "gifFavoriteButton", "selected"),
 				image: WebpackModules.getByProps("flexCenter", "imageWrapper", "imageWrapperBackground"),
@@ -195,7 +195,7 @@ const FavoriteMedia = (() => {
 				color: WebpackModules.getByProps("selectable", "strong", "colorStandard"),
 				size: WebpackModules.getByProps("size10", "size12", "size14"),
 				title: WebpackModules.getByProps("title", "h1", "h2"),
-				container: WebpackModules.getByProps("container", "inner", "disabled"),
+				container: WebpackModules.getByProps("container", "inner", "pointer"),
 				scroller: WebpackModules.getByProps("scrollerBase", "thin", "fade"),
 				look: WebpackModules.getByProps("lowSaturationUnderline", "button", "lookFilled"),
 			};
@@ -229,7 +229,7 @@ const FavoriteMedia = (() => {
 					inputDefault: class_modules.input.inputDefault,
 					inputWrapper: class_modules.input.inputWrapper,
 				},
-				roleDot: class_modules.role.roleDot,
+				roleDot: class_modules.role.roleCircle,
 				gif: {
 					gifFavoriteButton1: class_modules._gif.gifFavoriteButton,
 					size: class_modules.gif.size,
@@ -1858,7 +1858,7 @@ const FavoriteMedia = (() => {
 								action: () => {
 									this.moveMediaCategory(data.type, data.url, c.id);
 								},
-								render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })								
+								render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })
 							}));
 							menuItems.push({
 								label: Strings.GIF_TOOLTIP_REMOVE_FROM_FAVORITES,
@@ -1882,7 +1882,7 @@ const FavoriteMedia = (() => {
 									this.moveMediaCategory(data.type, data.url, c.id);
 									Dispatcher.dispatch({ type: "FAVORITE_MEDIA", url: data.url });
 								},
-								render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })								
+								render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })
 							}));
 							menuItems.push({
 								label: Strings.GIF_TOOLTIP_ADD_TO_FAVORITES,
@@ -1903,7 +1903,7 @@ const FavoriteMedia = (() => {
 							type: "submenu",
 							items: menuItems
 						});
-						returnValue.props.children.splice(returnValue.props.children.length - 1, 0, contextMenu);
+						returnValue.props.children.splice(returnValue.props.children.length, 0, contextMenu);
 					});
 				}
 
