@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.3
+ * @version 1.5.4
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.3",
+			version: "1.5.4",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -146,7 +146,7 @@ const FavoriteMedia = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Fixed undefined classes crash on Canary"
+					"Fixed tabs not showing on the new Canary update"
 				]
 			}
 		]
@@ -1721,7 +1721,8 @@ const FavoriteMedia = (() => {
 						if (!originalChildren) return;
 						returnValue.props.children.props.children = (props) => {
 							const childrenReturn = Reflect.apply(originalChildren, null, [props]);
-							const head = Utilities.getNestedProp(childrenReturn, "props.children.props.children.1.props.children.1.props.children.props.children");
+							let head = Utilities.getNestedProp(childrenReturn, "props.children.props.children.1.props.children.1.props.children.props.children");
+							if (!head) head = Utilities.getNestedProp(childrenReturn, "props.children.props.children.1.props.children.0.props.children.props.children");
 							const body = Utilities.getNestedProp(childrenReturn, "props.children.props.children.1.props.children");
 							if (!head || !body) return childrenReturn;
 							try {
