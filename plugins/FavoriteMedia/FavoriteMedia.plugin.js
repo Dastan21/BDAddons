@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.4
+ * @version 1.5.5
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.4",
+			version: "1.5.5",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -146,7 +146,8 @@ const FavoriteMedia = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Fixed tabs not showing on the new Canary update"
+					"Fixed context menus (using the new update of ZLibrary)",
+					"Fixed categories colored dots in context menus"
 				]
 			}
 		]
@@ -174,7 +175,7 @@ const FavoriteMedia = (() => {
 		stop() { }
 	} : (([Plugin, Api]) => {
 		const plugin = (Plugin, Api) => {
-			const { WebpackModules, ReactComponents, PluginUpdater, DiscordContextMenu, PluginUtilities, Utilities, ColorConverter, Toasts, Modals, Tooltip, DiscordModules: { React, ElectronModule, Dispatcher, UserSettingsStore, SelectedChannelStore, ChannelStore, UserStore, Permissions }, Patcher } = Api;
+			const { WebpackModules, ReactComponents, PluginUpdater, ContextMenu, PluginUtilities, Utilities, ColorConverter, Toasts, Modals, Tooltip, DiscordModules: { React, ElectronModule, Dispatcher, UserSettingsStore, SelectedChannelStore, ChannelStore, UserStore, Permissions }, Patcher } = Api;
 			const { mkdir, access, writeFile, constants } = require('fs');
 
 			const class_modules = {
@@ -182,7 +183,7 @@ const FavoriteMedia = (() => {
 				menu: WebpackModules.getByProps("menu", "scroller", "styleFixed"),
 				result: WebpackModules.getByProps("desiredItemWidth", "results", "result"),
 				input: WebpackModules.getByProps("inputWrapper", "input", "focused"),
-				role: WebpackModules.getByProps("flex", "alignCenter", "justifyCenter"),
+				role: WebpackModules.getByProps("roleIcon", "roleName", "roleCircle"),
 				_gif: WebpackModules.getByProps("container", "gifFavoriteButton", "embedWrapper"),
 				gif: WebpackModules.getByProps("size", "gifFavoriteButton", "selected"),
 				image: WebpackModules.getByProps("flexCenter", "imageWrapper", "imageWrapperBackground"),
@@ -229,7 +230,7 @@ const FavoriteMedia = (() => {
 					inputDefault: class_modules.input.inputDefault,
 					inputWrapper: class_modules.input.inputWrapper,
 				},
-				roleDot: class_modules.role.roleCircle,
+				roleCircle: class_modules.role.roleCircle,
 				gif: {
 					gifFavoriteButton1: class_modules._gif.gifFavoriteButton,
 					size: class_modules.gif.size,
@@ -307,12 +308,11 @@ const FavoriteMedia = (() => {
 			const PermissionsConstants = WebpackModules.getByProps("Permissions", "ActivityTypes").Permissions;
 			const MediaPlayer = WebpackModules.getByDisplayName("MediaPlayer");
 			const Image = WebpackModules.getByDisplayName("Image");
-			const MessageContextMenu = WebpackModules.getModule(m => m?.default?.displayName === "MessageContextMenu");
 			const Strings = BdApi.findModule(m => m.Messages && m.getLocale && m.Messages.CLOSE).Messages;
 			const ImageSVG = () => React.createElement("svg", { className: classes.icon.icon, "aria-hidden": "false", viewBox: "0 0 384 384", width: "24", height: "24" }, React.createElement("path", { fill: "currentColor", d: "M341.333,0H42.667C19.093,0,0,19.093,0,42.667v298.667C0,364.907,19.093,384,42.667,384h298.667 C364.907,384,384,364.907,384,341.333V42.667C384,19.093,364.907,0,341.333,0z M42.667,320l74.667-96l53.333,64.107L245.333,192l96,128H42.667z" }));
 			const VideoSVG = () => React.createElement("svg", { className: classes.icon.icon, "aria-hidden": "false", viewBox: "0 0 298 298", width: "24", height: "24" }, React.createElement("path", { fill: "currentColor", d: "M298,33c0-13.255-10.745-24-24-24H24C10.745,9,0,19.745,0,33v232c0,13.255,10.745,24,24,24h250c13.255,0,24-10.745,24-24V33zM91,39h43v34H91V39z M61,259H30v-34h31V259z M61,73H30V39h31V73z M134,259H91v-34h43V259z M123,176.708v-55.417c0-8.25,5.868-11.302,12.77-6.783l40.237,26.272c6.902,4.519,6.958,11.914,0.056,16.434l-40.321,26.277C128.84,188.011,123,184.958,123,176.708z M207,259h-43v-34h43V259z M207,73h-43V39h43V73z M268,259h-31v-34h31V259z M268,73h-31V39h31V73z" }));
 			const AudioSVG = () => React.createElement("svg", { className: classes.icon.icon, "aria-hidden": "false", viewBox: "0 0 115.3 115.3", width: "24", height: "24" }, React.createElement("path", { fill: "currentColor", d: "M47.9,14.306L26,30.706H6c-3.3,0-6,2.7-6,6v41.8c0,3.301,2.7,6,6,6h20l21.9,16.4c4,3,9.6,0.2,9.6-4.8v-77C57.5,14.106,51.8,11.306,47.9,14.306z" }), React.createElement("path", { fill: "currentColor", d: "M77.3,24.106c-2.7-2.7-7.2-2.7-9.899,0c-2.7,2.7-2.7,7.2,0,9.9c13,13,13,34.101,0,47.101c-2.7,2.7-2.7,7.2,0,9.899c1.399,1.4,3.199,2,4.899,2s3.601-0.699,4.9-2.1C95.8,72.606,95.8,42.606,77.3,24.106z" }), React.createElement("path", { fill: "currentColor", d: "M85.1,8.406c-2.699,2.7-2.699,7.2,0,9.9c10.5,10.5,16.301,24.4,16.301,39.3s-5.801,28.8-16.301,39.3c-2.699,2.7-2.699,7.2,0,9.9c1.4,1.399,3.2,2.1,4.9,2.1c1.8,0,3.6-0.7,4.9-2c13.1-13.1,20.399-30.6,20.399-49.2c0-18.6-7.2-36-20.399-49.2C92.3,5.706,87.9,5.706,85.1,8.406z" }));
-			const ColorDot = props => React.createElement("div", { className: classes.roleDot, style: { "background-color": props.color || DEFAULT_BACKGROUND_COLOR } });
+			const ColorDot = props => React.createElement("div", { className: classes.roleCircle, style: { "background-color": props.color || DEFAULT_BACKGROUND_COLOR } });
 
 			const MediaMenuItemInput = class extends React.Component {
 				constructor(props) {
@@ -721,7 +721,7 @@ const FavoriteMedia = (() => {
 						type: "submenu",
 						items: moveItems
 					});
-					DiscordContextMenu.openContextMenu(e, DiscordContextMenu.buildMenu([
+					ContextMenu.openContextMenu(e, ContextMenu.buildMenu([
 						{
 							type: "group",
 							items: items
@@ -1183,8 +1183,8 @@ const FavoriteMedia = (() => {
 				onContextMenu(e) {
 					if (this.state.category) return;
 					canClosePicker = false;
-					DiscordContextMenu.openContextMenu(e,
-						DiscordContextMenu.buildMenu([{
+					ContextMenu.openContextMenu(e,
+						ContextMenu.buildMenu([{
 							type: "group",
 							items: [{
 								label: labels.category.create,
@@ -1318,7 +1318,7 @@ const FavoriteMedia = (() => {
 						action: () => this.removeMediaCategory(media_id)
 					});
 					canClosePicker = false;
-					DiscordContextMenu.openContextMenu(e, DiscordContextMenu.buildMenu([
+					ContextMenu.openContextMenu(e, ContextMenu.buildMenu([
 						{
 							type: "group",
 							items: items
@@ -1820,7 +1820,8 @@ const FavoriteMedia = (() => {
 					});
 				}
 
-				patchMessageContextMenu() {
+				async patchMessageContextMenu() {
+					const MessageContextMenu = await ContextMenu.getDiscordMenu(m => m?.displayName === "MessageContextMenu");
 					Patcher.after(MessageContextMenu, "default", (_, [props], returnValue) => {
 						if (!this.settings.showContextMenuFavorite) return;
 						if (!(
@@ -1898,7 +1899,7 @@ const FavoriteMedia = (() => {
 								items: buttonCategories
 							});
 						}
-						const contextMenu = DiscordContextMenu.buildMenuItem({
+						const contextMenu = ContextMenu.buildMenuItem({
 							id: "favoriteMedia",
 							label: config.info.name,
 							type: "submenu",
