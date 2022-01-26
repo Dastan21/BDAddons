@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.5
+ * @version 1.5.6
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.5",
+			version: "1.5.6",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -146,8 +146,7 @@ const FavoriteMedia = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Fixed context menus (using the new update of ZLibrary)",
-					"Fixed categories colored dots in context menus"
+					"Fixed buttons not showing on the textarea"
 				]
 			}
 		]
@@ -302,8 +301,8 @@ const FavoriteMedia = (() => {
 			const DEFAULT_BACKGROUND_COLOR = "#202225";
 			let canClosePicker = true;
 			const labels = setLabelsByLanguage();
-			const ExpressionPicker = WebpackModules.getModule(e => e.type && e.type.displayName === "ExpressionPicker");
-			const ChannelTextArea = WebpackModules.getModule(e => e.type && e.type.render && e.type.render.displayName === "ChannelTextAreaContainer").type;
+			const ExpressionPicker = WebpackModules.getModule(e => e.type?.displayName === "ExpressionPicker");
+			const ChannelTextAreaButtons = WebpackModules.getModule(m => m.type?.displayName === "ChannelTextAreaButtons");
 			const EPS = WebpackModules.getByProps("toggleExpressionPicker");
 			const PermissionsConstants = WebpackModules.getByProps("Permissions", "ActivityTypes").Permissions;
 			const MediaPlayer = WebpackModules.getByDisplayName("MediaPlayer");
@@ -1741,27 +1740,23 @@ const FavoriteMedia = (() => {
 				}
 
 				patchChannelTextArea() {
-					Patcher.after(ChannelTextArea, "render", (_, [props], returnValue) => {
-						if (props.className.includes("Upload")) return;
+					Patcher.after(ChannelTextAreaButtons, "type", (_, __, returnValue) => {
+						if (Utilities.getNestedProp(returnValue, "props.children.1.props.type") === "sidebar") return;
 						const channel = ChannelStore.getChannel(SelectedChannelStore.getChannelId());
 						let perms = true;
-						try {
-							perms = Permissions.can(PermissionsConstants.SEND_MESSAGES, channel, UserStore.getCurrentUser().id);
-						} catch (_) { }
-						try {
-							perms = Permissions.can(PermissionsConstants.SEND_MESSAGES, UserStore.getCurrentUser(), channel)
-						} catch (_) { }
+						try { perms = Permissions.can(PermissionsConstants.SEND_MESSAGES, channel, UserStore.getCurrentUser().id); } catch (_) { }
+						try { perms = Permissions.can(PermissionsConstants.SEND_MESSAGES, UserStore.getCurrentUser(), channel) } catch (_) { }
 						if (!channel.type && !perms) return;
-						const buttons = Utilities.findInReactTree(returnValue, e => e && e.className && e.className.startsWith("buttons"));
-						if (!buttons || !Array.isArray(buttons.children)) return;
+						const buttons = returnValue.props.children;
+						if (!buttons || !Array.isArray(buttons)) return;
 						if (this.settings.btnsPosition === "left") {
-							if (this.settings.audio.showBtn && this.settings.audio.enabled) buttons.children.unshift(React.createElement(MediaButton, { type: "audio" }));
-							if (this.settings.video.showBtn && this.settings.video.enabled) buttons.children.unshift(React.createElement(MediaButton, { type: "video" }));
-							if (this.settings.image.showBtn && this.settings.image.enabled) buttons.children.unshift(React.createElement(MediaButton, { type: "image" }));
+							if (this.settings.audio.showBtn && this.settings.audio.enabled) buttons.unshift(React.createElement(MediaButton, { type: "audio" }));
+							if (this.settings.video.showBtn && this.settings.video.enabled) buttons.unshift(React.createElement(MediaButton, { type: "video" }));
+							if (this.settings.image.showBtn && this.settings.image.enabled) buttons.unshift(React.createElement(MediaButton, { type: "image" }));
 						} else {
-							if (this.settings.image.showBtn && this.settings.image.enabled) buttons.children.push(React.createElement(MediaButton, { type: "image" }));
-							if (this.settings.video.showBtn && this.settings.video.enabled) buttons.children.push(React.createElement(MediaButton, { type: "video" }));
-							if (this.settings.audio.showBtn && this.settings.audio.enabled) buttons.children.push(React.createElement(MediaButton, { type: "audio" }));
+							if (this.settings.image.showBtn && this.settings.image.enabled) buttons.push(React.createElement(MediaButton, { type: "image" }));
+							if (this.settings.video.showBtn && this.settings.video.enabled) buttons.push(React.createElement(MediaButton, { type: "video" }));
+							if (this.settings.audio.showBtn && this.settings.audio.enabled) buttons.push(React.createElement(MediaButton, { type: "audio" }));
 						}
 					});
 				}
