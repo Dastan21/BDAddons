@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.7
+ * @version 1.5.8
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.7",
+			version: "1.5.8",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -146,7 +146,8 @@ const FavoriteMedia = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Fixed crash when posting media while editing message"
+					"Fixed textarea buttons not opening the tab",
+					"Prevent duplicated context menu items"
 				]
 			}
 		]
@@ -303,7 +304,9 @@ const FavoriteMedia = (() => {
 			const labels = setLabelsByLanguage();
 			const ExpressionPicker = WebpackModules.getModule(e => e.type?.displayName === "ExpressionPicker");
 			const ChannelTextAreaButtons = WebpackModules.getModule(m => m.type?.displayName === "ChannelTextAreaButtons");
+			const ComponentDispatch = WebpackModules.getByProps("ComponentDispatch");
 			const EPS = WebpackModules.getByProps("toggleExpressionPicker");
+			const EPSConstants = WebpackModules.getByProps("ChatInputTypes").ChatInputTypes.NORMAL;
 			const PermissionsConstants = WebpackModules.getByProps("Permissions", "ActivityTypes").Permissions;
 			const MediaPlayer = WebpackModules.getByDisplayName("MediaPlayer");
 			const Image = WebpackModules.getByDisplayName("Image");
@@ -869,10 +872,10 @@ const FavoriteMedia = (() => {
 						});
 					} else {
 						if (!shiftPressed) {
-							WebpackModules.getByProps("ComponentDispatch").ComponentDispatch.dispatchToLastSubscribed("INSERT_TEXT", { content: this.props.url });
+							ComponentDispatch.dispatchToLastSubscribed("INSERT_TEXT", { content: this.props.url });
 							const textarea = document.querySelector(`.${classes.textarea.textAreaSlate}`);
 							if (textarea?.firstChild?.className.includes("placeholder")) setTimeout(() => textarea?.firstChild?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", code: "Enter", which: 13, keyCode: 13, bubbles: true })), 0);
-							else EPS.toggleExpressionPicker(this.props.type, "normal")
+							else EPS.toggleExpressionPicker(this.props.type, EPSConstants)
 						} else {
 							WebpackModules.getByProps("sendMessage").sendMessage(SelectedChannelStore.getChannelId(), { content: this.props.url, validNonShortcutEmojis: [] });
 						}
@@ -1544,7 +1547,7 @@ const FavoriteMedia = (() => {
 				render() {
 					return React.createElement("div", {
 						onMouseDown: this.checkPicker,
-						onClick: () => EPS.toggleExpressionPicker(this.props.type, "normal"),
+						onClick: () => EPS.toggleExpressionPicker(this.props.type, EPSConstants),
 						className: `${classes.textarea.buttonContainer} fm-buttonContainer`
 					},
 						React.createElement("button", {
@@ -1819,6 +1822,7 @@ const FavoriteMedia = (() => {
 				async patchMessageContextMenu() {
 					const MessageContextMenu = await ContextMenu.getDiscordMenu(m => m?.displayName === "MessageContextMenu");
 					Patcher.after(MessageContextMenu, "default", (_, [props], returnValue) => {
+						if (returnValue.props?.children?.find(e => e?.props?.id === "favoriteMedia")) return;
 						if (!this.settings.showContextMenuFavorite) return;
 						if (!(
 							((props.target.tagName === "IMG" && !props.target.className) || (props.target.tagName === "svg" && props.target.className && props.target.className.baseVal === classes.gif.icon) || props.target.tagName === "path") || // image
