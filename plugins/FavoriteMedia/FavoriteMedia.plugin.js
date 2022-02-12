@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.8
+ * @version 1.5.9
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.8",
+			version: "1.5.9",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -304,7 +304,7 @@ const FavoriteMedia = (() => {
 			const labels = setLabelsByLanguage();
 			const ExpressionPicker = WebpackModules.getModule(e => e.type?.displayName === "ExpressionPicker");
 			const ChannelTextAreaButtons = WebpackModules.getModule(m => m.type?.displayName === "ChannelTextAreaButtons");
-			const ComponentDispatch = WebpackModules.getByProps("ComponentDispatch");
+			const ComponentDispatch = WebpackModules.getByProps("ComponentDispatch").ComponentDispatch;
 			const EPS = WebpackModules.getByProps("toggleExpressionPicker");
 			const EPSConstants = WebpackModules.getByProps("ChatInputTypes").ChatInputTypes.NORMAL;
 			const PermissionsConstants = WebpackModules.getByProps("Permissions", "ActivityTypes").Permissions;
