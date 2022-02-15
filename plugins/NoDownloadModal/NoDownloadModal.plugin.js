@@ -61,8 +61,9 @@ const NoDownloadModal = (() => {
 				}
 
 				async patchClickable() {
-					Patcher.after(Clickable.prototype, "render", (_, [props], ret) => {
-						if (ret.props.children.props.target === "_blank") ret.props.children.props.onClick = void 0
+					Patcher.after(Clickable.prototype, "render", (_, __, ret) => {
+						const props = ret.props.children.props
+						if (props.target === "_blank" && !props.rel?.includes("noopener")) ret.props.children.props.onClick = void 0
 					});
 				}
 			};
