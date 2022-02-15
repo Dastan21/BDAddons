@@ -20,54 +20,19 @@ const NoDownloadModal = (() => {
 		}
 	};
 
-	return !global.ZeresPluginLibrary ? class {
+	return class NoDownloadModal {
 		constructor() { this._config = config; }
 		getName() { return config.info.name }
 		getAuthor() { return config.info.authors.map(a => a.name).join(", ") }
 		getDescription() { return config.info.description }
 		getVersion() { return config.info.version }
-		load() {
-			BdApi.showConfirmationModal("Library Missing", `The library plugin needed for ${config.info.name} is missing. Please click Download Now to install it.`, {
-				confirmText: "Download Now",
-				cancelText: "Cancel",
-				onConfirm: () => {
-					require("request").get("https://rauenzi.github.io/BDPluginLibrary/release/0PluginLibrary.plugin.js", async (error, _, body) => {
-						if (error) return require("electron").shell.openExternal("https://raw.githubusercontent.com/rauenzi/BDPluginLibrary/master/release/0PluginLibrary.plugin.js");
-						await new Promise(r => require("fs").writeFile(require("path").join(BdApi.Plugins.folder, "0PluginLibrary.plugin.js"), body, r));
-					});
-				}
-			});
+		load() { }
+		start() {
+			const SuspiciousDownload = BdApi.findAllModules(m => m?.isSuspiciousDownload).find(m => m?.__esModule)
+			BdApi.Patcher.after("suspicious-download", SuspiciousDownload, "isSuspiciousDownload", () => null)
 		}
-		start() { }
-		stop() { }
-	} : (([Plugin, Api]) => {
-		const plugin = (Plugin, Api) => {
-			const { WebpackModules, PluginUpdater, Patcher } = Api;
-
-			const Clickable = WebpackModules.getByDisplayName("Clickable");
-
-			return class NoDownloadModal extends Plugin {
-
-				onStart() {
-					PluginUpdater.checkForUpdate(
-						this.getName(),
-						this.getVersion(),
-						"https://raw.githubusercontent.com/Dastan21/BDAddons/main/plugins/NoDownloadModal/NoDownloadModal.plugin.js"
-					);
-					this.patchClickable();
-				}
-				onStop() {
-					Patcher.unpatchAll();
-				}
-
-				async patchClickable() {
-					Patcher.after(Clickable.prototype, "render", (_, __, ret) => {
-						const props = ret.props.children.props
-						if (props.target === "_blank" && !props.rel?.includes("noopener")) ret.props.children.props.onClick = void 0
-					});
-				}
-			};
-		};
-		return plugin(Plugin, Api);
-	})(global.ZeresPluginLibrary.buildPlugin(config));
+		stop() {
+			BdApi.Patcher.unpatchAll("suspicious-download")
+		}
+	}
 })();
