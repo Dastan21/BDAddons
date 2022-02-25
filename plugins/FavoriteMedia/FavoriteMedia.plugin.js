@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.9
+ * @version 1.5.10
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.9",
+			version: "1.5.10",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -146,8 +146,14 @@ const FavoriteMedia = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Fixed textarea buttons not opening the tab",
-					"Prevent duplicated context menu items"
+					"Fixed images patching"
+				]
+			},
+			{
+				title: "Added",
+				type: "added",
+				items: [
+					"Added icons to the context menu"
 				]
 			}
 		]
@@ -314,7 +320,7 @@ const FavoriteMedia = (() => {
 			const ImageSVG = () => React.createElement("svg", { className: classes.icon.icon, "aria-hidden": "false", viewBox: "0 0 384 384", width: "24", height: "24" }, React.createElement("path", { fill: "currentColor", d: "M341.333,0H42.667C19.093,0,0,19.093,0,42.667v298.667C0,364.907,19.093,384,42.667,384h298.667 C364.907,384,384,364.907,384,341.333V42.667C384,19.093,364.907,0,341.333,0z M42.667,320l74.667-96l53.333,64.107L245.333,192l96,128H42.667z" }));
 			const VideoSVG = () => React.createElement("svg", { className: classes.icon.icon, "aria-hidden": "false", viewBox: "0 0 298 298", width: "24", height: "24" }, React.createElement("path", { fill: "currentColor", d: "M298,33c0-13.255-10.745-24-24-24H24C10.745,9,0,19.745,0,33v232c0,13.255,10.745,24,24,24h250c13.255,0,24-10.745,24-24V33zM91,39h43v34H91V39z M61,259H30v-34h31V259z M61,73H30V39h31V73z M134,259H91v-34h43V259z M123,176.708v-55.417c0-8.25,5.868-11.302,12.77-6.783l40.237,26.272c6.902,4.519,6.958,11.914,0.056,16.434l-40.321,26.277C128.84,188.011,123,184.958,123,176.708z M207,259h-43v-34h43V259z M207,73h-43V39h43V73z M268,259h-31v-34h31V259z M268,73h-31V39h31V73z" }));
 			const AudioSVG = () => React.createElement("svg", { className: classes.icon.icon, "aria-hidden": "false", viewBox: "0 0 115.3 115.3", width: "24", height: "24" }, React.createElement("path", { fill: "currentColor", d: "M47.9,14.306L26,30.706H6c-3.3,0-6,2.7-6,6v41.8c0,3.301,2.7,6,6,6h20l21.9,16.4c4,3,9.6,0.2,9.6-4.8v-77C57.5,14.106,51.8,11.306,47.9,14.306z" }), React.createElement("path", { fill: "currentColor", d: "M77.3,24.106c-2.7-2.7-7.2-2.7-9.899,0c-2.7,2.7-2.7,7.2,0,9.9c13,13,13,34.101,0,47.101c-2.7,2.7-2.7,7.2,0,9.899c1.399,1.4,3.199,2,4.899,2s3.601-0.699,4.9-2.1C95.8,72.606,95.8,42.606,77.3,24.106z" }), React.createElement("path", { fill: "currentColor", d: "M85.1,8.406c-2.699,2.7-2.699,7.2,0,9.9c10.5,10.5,16.301,24.4,16.301,39.3s-5.801,28.8-16.301,39.3c-2.699,2.7-2.699,7.2,0,9.9c1.4,1.399,3.2,2.1,4.9,2.1c1.8,0,3.6-0.7,4.9-2c13.1-13.1,20.399-30.6,20.399-49.2c0-18.6-7.2-36-20.399-49.2C92.3,5.706,87.9,5.706,85.1,8.406z" }));
-			const ColorDot = props => React.createElement("div", { className: classes.roleCircle, style: { "background-color": props.color || DEFAULT_BACKGROUND_COLOR } });
+			const ColorDot = props => React.createElement("div", { className: classes.roleCircle + " fm-colorDot", style: { "background-color": props.color || DEFAULT_BACKGROUND_COLOR } });
 
 			const MediaMenuItemInput = class extends React.Component {
 				constructor(props) {
@@ -483,18 +489,9 @@ const FavoriteMedia = (() => {
 						ref: "tooltipFav",
 						onClick: this.changeFavorite
 					},
-						React.createElement("svg", {
-							className: classes.gif.icon,
-							"aria-hidden": "false",
-							viewBox: "0 0 24 24",
-							width: "16",
-							height: "16"
-						},
-							this.state.favorited ?
-								React.createElement("path", { fill: "currentColor", d: "M12.5,17.6l3.6,2.2a1,1,0,0,0,1.5-1.1l-1-4.1a1,1,0,0,1,.3-1l3.2-2.8A1,1,0,0,0,19.5,9l-4.2-.4a.87.87,0,0,1-.8-.6L12.9,4.1a1.05,1.05,0,0,0-1.9,0l-1.6,4a1,1,0,0,1-.8.6L4.4,9a1.06,1.06,0,0,0-.6,1.8L7,13.6a.91.91,0,0,1,.3,1l-1,4.1a1,1,0,0,0,1.5,1.1l3.6-2.2A1.08,1.08,0,0,1,12.5,17.6Z" })
-								:
-								React.createElement("path", { fill: "currentColor", d: "M19.6,9l-4.2-0.4c-0.4,0-0.7-0.3-0.8-0.6l-1.6-3.9c-0.3-0.8-1.5-0.8-1.8,0L9.4,8.1C9.3,8.4,9,8.6,8.6,8.7L4.4,9 c-0.9,0.1-1.2,1.2-0.6,1.8L7,13.6c0.3,0.2,0.4,0.6,0.3,1l-1,4.1c-0.2,0.9,0.7,1.5,1.5,1.1l3.6-2.2c0.3-0.2,0.7-0.2,1,0l3.6,2.2 c0.8,0.5,1.7-0.2,1.5-1.1l-1-4.1c-0.1-0.4,0-0.7,0.3-1l3.2-2.8C20.9,10.2,20.5,9.1,19.6,9z M12,15.4l-3.8,2.3l1-4.3l-3.3-2.9 l4.4-0.4l1.7-4l1.7,4l4.4,0.4l-3.3,2.9l1,4.3L12,15.4z" })
-						)
+						React.createElement(StarSVG, {
+							filled: this.state.favorited
+						})
 					)
 				}
 
@@ -503,6 +500,27 @@ const FavoriteMedia = (() => {
 						React.createElement("div", {
 							className: `${classes.image.imageAccessory} ${classes.image.clickable} ${this.props.type}-favbtn`
 						}, this.favButton())
+				}
+			}
+
+			const StarSVG = class extends React.Component {
+				constructor(props) {
+					super(props);
+				}
+
+				render() {
+					return React.createElement("svg", {
+						className: classes.gif.icon,
+						"aria-hidden": "false",
+						viewBox: "0 0 24 24",
+						width: "16",
+						height: "16"
+					},
+						this.props.filled ?
+							React.createElement("path", { fill: "currentColor", d: "M12.5,17.6l3.6,2.2a1,1,0,0,0,1.5-1.1l-1-4.1a1,1,0,0,1,.3-1l3.2-2.8A1,1,0,0,0,19.5,9l-4.2-.4a.87.87,0,0,1-.8-.6L12.9,4.1a1.05,1.05,0,0,0-1.9,0l-1.6,4a1,1,0,0,1-.8.6L4.4,9a1.06,1.06,0,0,0-.6,1.8L7,13.6a.91.91,0,0,1,.3,1l-1,4.1a1,1,0,0,0,1.5,1.1l3.6-2.2A1.08,1.08,0,0,1,12.5,17.6Z" })
+							:
+							React.createElement("path", { fill: "currentColor", d: "M19.6,9l-4.2-0.4c-0.4,0-0.7-0.3-0.8-0.6l-1.6-3.9c-0.3-0.8-1.5-0.8-1.8,0L9.4,8.1C9.3,8.4,9,8.6,8.6,8.7L4.4,9 c-0.9,0.1-1.2,1.2-0.6,1.8L7,13.6c0.3,0.2,0.4,0.6,0.3,1l-1,4.1c-0.2,0.9,0.7,1.5,1.5,1.1l3.6-2.2c0.3-0.2,0.7-0.2,1,0l3.6,2.2 c0.8,0.5,1.7-0.2,1.5-1.1l-1-4.1c-0.1-0.4,0-0.7,0.3-1l3.2-2.8C20.9,10.2,20.5,9.1,19.6,9z M12,15.4l-3.8,2.3l1-4.3l-3.3-2.9 l4.4-0.4l1.7-4l1.7,4l4.4,0.4l-3.3,2.9l1,4.3L12,15.4z" })
+					)
 				}
 			}
 
@@ -1694,6 +1712,10 @@ const FavoriteMedia = (() => {
 							-webkit-box-shadow: inset 0 0 0 2px var(--brand-experiment), inset 0 0 0 3px #2f3136 !important;
     						box-shadow: inset 0 0 0 2px var(--brand-experiment), inset 0 0 0 3px #2f3136 !important;
 						}
+						.fm-colorDot {
+							margin-right: 0.7em;
+							margin-left: 0;
+						}
 					`);
 				}
 				onStop() {
@@ -1787,10 +1809,9 @@ const FavoriteMedia = (() => {
 					Patcher.after(Image.prototype, "render", (_, __, returnValue) => {
 						if (!this.settings.image.enabled) return;
 						if (!returnValue.props) return;
-						if ((returnValue.props.className && returnValue.props.className.includes("embedVideo")) || (returnValue.props.href && (returnValue.props.href.includes(".gif?") || returnValue.props.href.endsWith(".gif")))) return;
-						let url = returnValue.props.href;
-						if (!url) return;
-						url = url.replace("media.discordapp.net", "cdn.discordapp.com");
+						if ((returnValue.props.className?.includes("embedVideo")) || (returnValue.props.href?.includes(".gif?") || returnValue.props.href?.endsWith(".gif"))) return;
+						const props = Utilities.getNestedProp(returnValue, "props.children.1.props.children.props");
+						if (!props.src) return;
 						const onclick = returnValue.props.onClick;
 						returnValue.props.onClick = e => {
 							if (e.target.alt === undefined) e.preventDefault();
@@ -1798,9 +1819,9 @@ const FavoriteMedia = (() => {
 						}
 						returnValue = returnValue.props.children.push(React.createElement(MediaFavButton, {
 							type: "image",
-							url: url,
-							width: returnValue.props.style.width,
-							height: returnValue.props.style.height
+							url: props.src.replace("media.discordapp.net", "cdn.discordapp.com"),
+							width: props.style.width,
+							height: props.style.height
 						}));
 					});
 				}
@@ -1833,7 +1854,6 @@ const FavoriteMedia = (() => {
 						if (target.tagName === "svg") target = props.target.parentElement?.parentElement?.previousSibling;
 						if (target.tagName === "path") target = props.target.parentElement?.parentElement?.parentElement?.previousSibling;
 						if (!target) return;
-						if (target.tagName === "IMG") target = target?.parentElement;
 						const data = {
 							type: "image",
 							url: target.src || target.href,
@@ -1864,6 +1884,7 @@ const FavoriteMedia = (() => {
 							}));
 							menuItems.push({
 								label: Strings.GIF_TOOLTIP_REMOVE_FROM_FAVORITES,
+								icon: () => React.createElement(StarSVG, { filled: true }),
 								action: () => {
 									this.unfavoriteMedia(data);
 									Dispatcher.dispatch({ type: "FAVORITE_MEDIA", url: data.url });
@@ -1888,6 +1909,7 @@ const FavoriteMedia = (() => {
 							}));
 							menuItems.push({
 								label: Strings.GIF_TOOLTIP_ADD_TO_FAVORITES,
+								icon: () => React.createElement(StarSVG, { filled: true }),
 								action: () => {
 									this.favoriteMedia(data);
 									Dispatcher.dispatch({ type: "FAVORITE_MEDIA", url: data.url });
