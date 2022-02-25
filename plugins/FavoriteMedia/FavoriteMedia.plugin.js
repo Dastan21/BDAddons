@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.10
+ * @version 1.5.11
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.10",
+			version: "1.5.11",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -1811,7 +1811,7 @@ const FavoriteMedia = (() => {
 						if (!returnValue.props) return;
 						if ((returnValue.props.className?.includes("embedVideo")) || (returnValue.props.href?.includes(".gif?") || returnValue.props.href?.endsWith(".gif"))) return;
 						const props = Utilities.getNestedProp(returnValue, "props.children.1.props.children.props");
-						if (!props.src) return;
+						if (!props?.src || typeof props?.src !== "string") return;
 						const onclick = returnValue.props.onClick;
 						returnValue.props.onClick = e => {
 							if (e.target.alt === undefined) e.preventDefault();
@@ -1819,7 +1819,7 @@ const FavoriteMedia = (() => {
 						}
 						returnValue = returnValue.props.children.push(React.createElement(MediaFavButton, {
 							type: "image",
-							url: props.src.replace("media.discordapp.net", "cdn.discordapp.com"),
+							url: props.src?.replace("media.discordapp.net", "cdn.discordapp.com"),
 							width: props.style.width,
 							height: props.style.height
 						}));
