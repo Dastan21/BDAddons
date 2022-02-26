@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.12
+ * @version 1.5.13
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.12",
+			version: "1.5.13",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -146,7 +146,7 @@ const FavoriteMedia = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Fixed images patching (v2)"
+					"Fixed images patching (v3)"
 				]
 			}
 		]
@@ -1801,20 +1801,23 @@ const FavoriteMedia = (() => {
 					});
 					Patcher.after(Image.prototype, "render", (_, __, returnValue) => {
 						if (!this.settings.image.enabled) return;
-						const props = returnValue.props;
-						if (!props) return;
-						if ((props.className?.includes("embedVideo")) || (props.href?.includes(".gif?") || props.href?.endsWith(".gif"))) return;
-						if (!props.href) return;
-						const onclick = props.onClick;
-						returnValue.props.onClick = e => {
-							if (e.target.alt === undefined) e.preventDefault();
+						const propsDiv = returnValue.props?.children?.props;
+						if (!propsDiv) return;
+						const propsButton = propsDiv.children?.[1]?.props;
+						if (!propsButton) return;
+						const propsImg = propsButton.children?.props;
+						if (!propsImg?.src) return;
+						if ((propsButton.className?.includes("embedVideo")) || (propsImg.src.includes(".gif?") || propsImg.src.endsWith(".gif"))) return;
+						const onclick = propsButton.onClick;
+						propsButton.onClick = e => {
+							if (e.target?.alt === undefined) e.preventDefault();
 							else onclick(e);
 						}
-						returnValue.props.children.push(React.createElement(MediaFavButton, {
+						returnValue.props.children.props.children.push(React.createElement(MediaFavButton, {
 							type: "image",
-							url: props.href.replace("media.discordapp.net", "cdn.discordapp.com"),
-							width: props.style.width,
-							height: props.style.height
+							url: propsImg.src.replace("media.discordapp.net", "cdn.discordapp.com").replace(/\?width=([\d]*)\&height=([\d]*)/, ""),
+							width: propsImg.style.width,
+							height: propsImg.style.height
 						}));
 					});
 				}
@@ -1839,7 +1842,7 @@ const FavoriteMedia = (() => {
 						if (returnValue.props?.children?.find(e => e?.props?.id === "favoriteMedia")) return;
 						if (!this.settings.showContextMenuFavorite) return;
 						if (!(
-							((props.target.tagName === "IMG" && !props.target.className) || (props.target.tagName === "svg" && props.target.className && props.target.className.baseVal === classes.gif.icon) || props.target.tagName === "path") || // image
+							((props.target.tagName === "A" && props.target.className?.includes("originalLink")) || (props.target.tagName === "svg" && props.target.className && props.target.className.baseVal === classes.gif.icon) || props.target.tagName === "path") || // image
 							(props.target.tagName === "VIDEO" && props.target.className && !props.target.className.includes("embedMedia")) || // video
 							(props.target.tagName === "A" && props.target.className && props.target.className.includes("metadataName")) // audio
 						)) return;
@@ -1851,8 +1854,8 @@ const FavoriteMedia = (() => {
 							type: "image",
 							url: target.src || target.href,
 							poster: target.poster,
-							width: Number(target.style.width.replace("px", "")),
-							height: Number(target.style.height.replace("px", "")),
+							width: Number(target.clientWidth),
+							height: Number(target.clientHeight),
 							favorited: undefined
 						};
 						data.url = data.url.replace("media.discordapp.net", "cdn.discordapp.com");
@@ -1861,7 +1864,7 @@ const FavoriteMedia = (() => {
 							data.width = Number(target.parentElement.parentElement.style.width.replace("px", ""))
 							data.height = Number(target.parentElement.parentElement.style.height.replace("px", ""))
 						}
-						if (props.target.tagName === "A") data.type = "audio";
+						if (target.className.includes("metadataName")) data.type = "audio";
 						data.favorited = this.isFavorited(data.type, data.url);
 						const menuItems = [];
 						if (data.favorited) {
