@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.13
+ * @version 1.5.14
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.13",
+			version: "1.5.14",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -146,7 +146,7 @@ const FavoriteMedia = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Fixed images patching (v3)"
+					"Fixed not being able to send medias"
 				]
 			}
 		]
@@ -883,9 +883,11 @@ const FavoriteMedia = (() => {
 						});
 					} else {
 						if (!shiftPressed) {
-							ComponentDispatch.dispatchToLastSubscribed("INSERT_TEXT", { content: this.props.url });
+							ComponentDispatch.dispatchToLastSubscribed("INSERT_TEXT", { content: this.props.url, plainText: this.props.url });
 							const textarea = document.querySelector(`.${classes.textarea.textAreaSlate}`);
-							if (textarea?.firstChild?.className.includes("placeholder")) setTimeout(() => textarea?.firstChild?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", code: "Enter", which: 13, keyCode: 13, bubbles: true })), 0);
+							const input = textarea?.querySelector('[role="textbox"]')
+							const enterEvent = new KeyboardEvent('keydown', { charCode: 13, keyCode: 13, bubbles: true });
+							if (input) setTimeout(() => input?.dispatchEvent(enterEvent), 0);
 							else EPS.toggleExpressionPicker(this.props.type, EPSConstants)
 						} else {
 							WebpackModules.getByProps("sendMessage").sendMessage(SelectedChannelStore.getChannelId(), { content: this.props.url, validNonShortcutEmojis: [] });
