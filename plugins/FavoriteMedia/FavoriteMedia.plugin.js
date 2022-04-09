@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.15
+ * @version 1.5.16
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.15",
+			version: "1.5.16",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -146,7 +146,7 @@ const FavoriteMedia = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Fixed buttons not showing up on the textarea"
+					"Fixed media uploading not working"
 				]
 			}
 		]
@@ -876,7 +876,14 @@ const FavoriteMedia = (() => {
 							res.on('end', () => {
 								if (!shiftPressed) WebpackModules.getByProps("closeExpressionPicker").closeExpressionPicker();
 								try {
-									WebpackModules.getByProps("instantBatchUpload").upload(SelectedChannelStore.getChannelId(), new File([Buffer.concat(bufs)], this.props.name + this.props.ext), 0, "", false, this.props.name + this.props.ext);
+									const fileName = this.props.name + this.props.ext
+									WebpackModules.getByProps("instantBatchUpload").upload({
+										channelId: SelectedChannelStore.getChannelId(),
+										file: new File([Buffer.concat(bufs)], fileName),
+										hasSpoiler: false,
+										fileName: fileName,
+										draftType: 0
+									});
 								} catch (e) { console.error(e.message) }
 							});
 							res.on('error', err => console.error(err));
@@ -1278,9 +1285,16 @@ const FavoriteMedia = (() => {
 						res.on('data', chunk => bufs.push(chunk));
 						res.on('end', () => {
 							try {
-								WebpackModules.getByProps("instantBatchUpload").upload(SelectedChannelStore.getChannelId(), new File([Buffer.concat(bufs)], media.name || "unknown"), 0, "", false, (spoiler ? "SPOILER_" : "") + (media.name || "unknown") + "." + (media.url.split(".").pop().split("?").shift() || "png"));
+								const fileName = (media.name || "unknown") + "." + (media.url.split(".").pop().split("?").shift() || "png")
+								WebpackModules.getByProps("instantBatchUpload").upload({
+									channelId: SelectedChannelStore.getChannelId(),
+									file: new File([Buffer.concat(bufs)], fileName),
+									hasSpoiler: spoiler,
+									fileName: fileName,
+									draftType: 0
+								});
 								WebpackModules.getByProps("closeExpressionPicker").closeExpressionPicker();
-							} catch (e) { console.error(e.message) }
+							} catch (e) { console.error(e) }
 						});
 						res.on('error', err => console.error(err));
 					});
