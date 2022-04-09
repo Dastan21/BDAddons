@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.14
+ * @version 1.5.15
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.14",
+			version: "1.5.15",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -146,7 +146,7 @@ const FavoriteMedia = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Fixed not being able to send medias"
+					"Fixed buttons not showing up on the textarea"
 				]
 			}
 		]
@@ -1765,8 +1765,15 @@ const FavoriteMedia = (() => {
 						if (Utilities.getNestedProp(returnValue, "props.children.1.props.type") === "sidebar") return;
 						const channel = ChannelStore.getChannel(SelectedChannelStore.getChannelId());
 						let perms = true;
+						// Deprecated, just kept in case of old versions
 						try { perms = Permissions.can(PermissionsConstants.SEND_MESSAGES, channel, UserStore.getCurrentUser().id); } catch (_) { }
 						try { perms = Permissions.can(PermissionsConstants.SEND_MESSAGES, UserStore.getCurrentUser(), channel) } catch (_) { }
+
+						if (!perms) perms = Permissions.can({
+							permission: PermissionsConstants.SEND_MESSAGES,
+							user: UserStore.getCurrentUser(),
+							context: channel
+						})
 						if (!channel.type && !perms) return;
 						const buttons = returnValue.props.children;
 						if (!buttons || !Array.isArray(buttons)) return;
