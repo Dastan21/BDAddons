@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.16
+ * @version 1.5.17
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ const FavoriteMedia = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.16",
+			version: "1.5.17",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -146,7 +146,7 @@ const FavoriteMedia = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Fixed media uploading not working"
+					"Fixed media reply upload not working"
 				]
 			}
 		]
@@ -882,7 +882,8 @@ const FavoriteMedia = (() => {
 										file: new File([Buffer.concat(bufs)], fileName),
 										hasSpoiler: false,
 										fileName: fileName,
-										draftType: 0
+										draftType: 0,
+										message: ''
 									});
 								} catch (e) { console.error(e.message) }
 							});
@@ -1291,7 +1292,8 @@ const FavoriteMedia = (() => {
 									file: new File([Buffer.concat(bufs)], fileName),
 									hasSpoiler: spoiler,
 									fileName: fileName,
-									draftType: 0
+									draftType: 0,
+									message: ''
 								});
 								WebpackModules.getByProps("closeExpressionPicker").closeExpressionPicker();
 							} catch (e) { console.error(e) }
