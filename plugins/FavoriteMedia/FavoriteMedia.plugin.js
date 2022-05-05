@@ -4,17 +4,17 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.17
+ * @version 1.5.18
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
-const FavoriteMedia = (() => {
+module.exports = (() => {
 	const config = {
 		info: {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.17",
+			version: "1.5.18",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -143,10 +143,10 @@ const FavoriteMedia = (() => {
 		],
 		changelog: [
 			{
-				title: "Fixed",
-				type: "fixed",
+				title: "Added",
+				type: "added",
 				items: [
-					"Fixed media reply upload not working"
+					"Uploading media also attach the message text"
 				]
 			}
 		]
@@ -876,6 +876,7 @@ const FavoriteMedia = (() => {
 							res.on('end', () => {
 								if (!shiftPressed) WebpackModules.getByProps("closeExpressionPicker").closeExpressionPicker();
 								try {
+									const content = document.querySelector('[class*="textArea"] [data-slate-string]')?.innerText
 									const fileName = this.props.name + this.props.ext
 									WebpackModules.getByProps("instantBatchUpload").upload({
 										channelId: SelectedChannelStore.getChannelId(),
@@ -883,8 +884,9 @@ const FavoriteMedia = (() => {
 										hasSpoiler: false,
 										fileName: fileName,
 										draftType: 0,
-										message: ''
+										message: { content: content || '' }
 									});
+									ComponentDispatch.dispatchToLastSubscribed("CLEAR_TEXT");
 								} catch (e) { console.error(e.message) }
 							});
 							res.on('error', err => console.error(err));
@@ -1286,6 +1288,7 @@ const FavoriteMedia = (() => {
 						res.on('data', chunk => bufs.push(chunk));
 						res.on('end', () => {
 							try {
+								const content = document.querySelector('[class*="textArea"] [data-slate-string]')?.innerText
 								const fileName = (media.name || "unknown") + "." + (media.url.split(".").pop().split("?").shift() || "png")
 								WebpackModules.getByProps("instantBatchUpload").upload({
 									channelId: SelectedChannelStore.getChannelId(),
@@ -1293,8 +1296,9 @@ const FavoriteMedia = (() => {
 									hasSpoiler: spoiler,
 									fileName: fileName,
 									draftType: 0,
-									message: ''
+									message: { content: content || '' }
 								});
+								ComponentDispatch.dispatchToLastSubscribed("CLEAR_TEXT");
 								WebpackModules.getByProps("closeExpressionPicker").closeExpressionPicker();
 							} catch (e) { console.error(e) }
 						});
