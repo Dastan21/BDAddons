@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.6.1
+ * @version 1.6.2
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ module.exports = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.6.1",
+			version: "1.6.2",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -957,7 +957,7 @@ module.exports = (() => {
 							poster: this.props.poster,
 							fromPicker: true
 						}),
-						this.state.visible ? React.createElement(this.props.type === "audio" ? "audio" : this.state.showControls || this.props.type === "gif" ? "video" : "img", {
+						this.state.visible ? React.createElement(this.props.type === "audio" ? "audio" : this.state.showControls || this.props.type === "gif" && !((this.props.src || this.props.url).match(/(\.gif)|(\.gif\?.+)$/)) ? "video" : "img", {
 							className: classes.result.gif,
 							preload: "auto",
 							src: this.props.type === "video" && !this.state.showControls ? this.props.poster : (this.props.src || this.props.url),
@@ -1857,7 +1857,8 @@ module.exports = (() => {
 						const propsButton = propsDiv.children?.[1]?.props;
 						if (!propsButton) return;
 						const propsImg = propsButton.children?.props;
-						const type = propsDiv.className?.includes("embedVideo") ? "gif" : "image"
+						let type = "image"
+						if (propsDiv.className.includes("embedVideo") || propsImg.src?.match(/(\.gif)|(\.gif\?.+)$/)) type = "gif"
 						if (type === "gif" && !this.settings.useCustomGIFTab) return;
 						const src = type === "image" ? propsImg?.src : propsDiv.children?.[0]?.props?.href;
 						if (!src) return
