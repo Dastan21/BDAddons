@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.19
+ * @version 1.6.0
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ module.exports = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.19",
+			version: "1.6.0",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -45,6 +45,13 @@ module.exports = (() => {
 				id: "forceShowFavoritesGIFs",
 				name: "Show only favorites in GIFs tab",
 				note: "Force show favorites GIFs over trendings categories",
+				value: false
+			},
+			{
+				type: "switch",
+				id: "useCustomGIFTab",
+				name: "Replace GIF tab",
+				note: "Replace current GIF tab by a custom one, like other medias",
 				value: false
 			},
 			{
@@ -143,10 +150,10 @@ module.exports = (() => {
 		],
 		changelog: [
 			{
-				title: "Fixed",
-				type: "fixed",
+				title: "Added",
+				type: "added",
 				items: [
-					"Removed fav star and context menu on GIFs"
+					"Added option to replace GIF tab with a custom one (like image, video, audio)"
 				]
 			}
 		]
@@ -437,9 +444,11 @@ module.exports = (() => {
 					if (type_data.medias.find(m => m.url === this.props.url)) return;
 					let data = null;
 					switch (this.props.type) {
+						case "gif":
 						case "video":
 							data = {
 								url: this.props.url,
+								src: this.props.src || this.props.url,
 								poster: this.props.poster,
 								width: this.props.width,
 								height: this.props.height,
@@ -449,6 +458,7 @@ module.exports = (() => {
 						case "audio":
 							data = {
 								url: this.props.url,
+								src: this.props.src || this.props.url,
 								name: getUrlName(this.props.url),
 								ext: getUrlExt(this.props.url)
 							};
@@ -456,6 +466,7 @@ module.exports = (() => {
 						default: // image
 							data = {
 								url: this.props.url,
+								src: this.props.src || this.props.url,
 								width: this.props.width,
 								height: this.props.height,
 								name: getUrlName(this.props.url)
@@ -476,7 +487,7 @@ module.exports = (() => {
 
 				favButton() {
 					return React.createElement("div", {
-						className: `${this.props.fromPicker ? `${classes.result.favButton} ` : classes.gif.gifFavoriteButton1} ${classes.gif.size} ${classes.gif.gifFavoriteButton2}${this.state.favorited ? ` ${classes.gif.selected}` : ""}${this.state.pulse ? ` ${classes.gif.showPulse}` : ""}`,
+						className: `${this.props.fromPicker ? `${classes.result.favButton} ` : classes.gif.gifFavoriteButton1} ${classes.gif.size} ${classes.gif.gifFavoriteButton2}${this.state.favorited ? ` ${classes.gif.selected}` : ""}${this.state.pulse ? ` ${classes.gif.showPulse}` : ""} fm-gifFavoriteButton`,
 						tabindex: "-1",
 						role: "button",
 						ref: "tooltipFav",
@@ -825,7 +836,7 @@ module.exports = (() => {
 				}
 
 				componentDidMount() {
-					this.url = this.props.url;
+					this.url = this.props.src;
 					if (this.isPlayable) this.tooltipControls = Tooltip.create(this.refs.tooltipControls, this.state.showControls ? labels.media.controls.hide : labels.media.controls.show);
 					Dispatcher.subscribe("TOGGLE_CONTROLS", this.hideControls);
 					Dispatcher.subscribe("SCROLLING_MEDIAS", this.handleVisible);
@@ -837,9 +848,9 @@ module.exports = (() => {
 				}
 
 				componentDidUpdate() {
-					if (this.url !== this.props.url && this.state.showControls) this.changeControls(false);
+					if (this.url !== this.props.src && this.state.showControls) this.changeControls(false);
 					if (this.isPlayable && !this.tooltipControls) this.tooltipControls = Tooltip.create(this.refs.tooltipControls, this.state.showControls ? labels.media.controls.hide : labels.media.controls.show);
-					this.url = this.props.url;
+					this.url = this.props.src;
 					if (this.state.showControls) this.refs.media.volume = this.props.volume / 100 || 0.1;
 				}
 
@@ -946,16 +957,18 @@ module.exports = (() => {
 							poster: this.props.poster,
 							fromPicker: true
 						}),
-						this.state.visible ? React.createElement(this.props.type === "audio" ? "audio" : this.state.showControls ? "video" : "img", {
+						this.state.visible ? React.createElement(this.props.type === "audio" ? "audio" : this.state.showControls || this.props.type === "gif" ? "video" : "img", {
 							className: classes.result.gif,
 							preload: "auto",
-							src: this.props.type === "video" && !this.state.showControls ? this.props.poster : this.props.url,
+							src: this.props.type === "video" && !this.state.showControls ? this.props.poster : this.props.src,
 							poster: this.props.poster,
 							width: this.props.positions.width,
 							height: this.props.positions.height,
 							ref: "media",
 							controls: this.state.showControls,
 							style: this.props.type === "audio" ? { position: "absolute", bottom: "0", left: "0", "z-index": "2" } : null,
+							autoplay: (this.props.type === "gif" && "true") || undefined,
+							loop: (this.props.type === "gif" && "true") || undefined,
 							onDragStart: this.onDragStart
 						}) : null,
 						this.props.type === "audio" ? React.createElement("div", {
@@ -1283,13 +1296,15 @@ module.exports = (() => {
 				uploadMedia(media_id, spoiler) {
 					const media = this.state.medias[media_id];
 					if (!media) return;
-					require("https").get(media.url, res => {
+					const gifFromTenor = media.src?.includes("media.tenor.com") && this.props.type === "gif"
+					require("https").get(gifFromTenor ? media.src : media.url, res => {
 						const bufs = [];
 						res.on('data', chunk => bufs.push(chunk));
 						res.on('end', () => {
 							try {
 								const content = document.querySelector('[class*="textArea"] [data-slate-string]')?.innerText
-								const fileName = (media.name || "unknown") + "." + (media.url.split(".").pop().split("?").shift() || "png")
+								let fileName = (media.name || "unknown") + "." + (this.props.type === "gif" ? "gif" : (media.url.split(".").pop().split("?").shift() || "png"))
+								if (gifFromTenor) fileName = fileName.replace(/\.(.*)$/, ".mp4")
 								WebpackModules.getByProps("instantBatchUpload").upload({
 									channelId: SelectedChannelStore.getChannelId(),
 									file: new File([Buffer.concat(bufs)], fileName),
@@ -1731,6 +1746,9 @@ module.exports = (() => {
 							margin-right: 0.7em;
 							margin-left: 0;
 						}
+						.fm-gif .${classes.gif.gifFavoriteButton1}:not(.fm-gifFavoriteButton) {
+							display: none;
+						}
 					`);
 				}
 				onStop() {
@@ -1772,6 +1790,10 @@ module.exports = (() => {
 								if (this.settings.audio.enabled) head.push(this.MediaTab("audio", elementType));
 								const activeMediaPicker = WebpackModules.getByProps("useExpressionPickerStore").useExpressionPickerStore.getState().activeView;
 								if (["image", "video", "audio"].includes(activeMediaPicker)) body.push(React.createElement(MediaPicker, { type: activeMediaPicker, volume: this.settings.mediaVolume }));
+								if (this.settings.useCustomGIFTab && activeMediaPicker === "gif") {
+									const gifIndex = body.findIndex(b => b?.props?.onSelectGIF !== undefined)
+									if (gifIndex > -1) body[gifIndex] = React.createElement(MediaPicker, { type: "gif", volume: this.settings.mediaVolume });
+								}
 							} catch (err) {
 								console.error("[FavoriteMedia] Error in ExpressionPicker\n", err);
 							}
@@ -1835,17 +1857,23 @@ module.exports = (() => {
 						const propsButton = propsDiv.children?.[1]?.props;
 						if (!propsButton) return;
 						const propsImg = propsButton.children?.props;
-						if (!propsImg?.src || propsDiv.className?.includes("embedVideo")) return;
+						const type = propsDiv.className?.includes("embedVideo") ? "gif" : "image"
+						if (type === "gif" && !this.settings.useCustomGIFTab) return;
+						const src = type === "image" ? propsImg?.src : propsDiv.children?.[0]?.props?.href;
+						if (!src) return
 						const onclick = propsButton.onClick;
 						propsButton.onClick = e => {
 							if (e.target?.alt === undefined) e.preventDefault();
 							else onclick(e);
 						}
+						if (!returnValue.props.children.props.className.includes('fm-gif')) returnValue.props.children.props.className += ' fm-gif'
 						returnValue.props.children.props.children.push(React.createElement(MediaFavButton, {
-							type: "image",
-							url: propsImg.src.replace("media.discordapp.net", "cdn.discordapp.com").replace(/\?width=([\d]*)\&height=([\d]*)/, ""),
-							width: propsImg.style?.width,
-							height: propsImg.style?.height
+							type: type,
+							url: src.replace("media.discordapp.net", "cdn.discordapp.com").replace(/\?width=([\d]*)\&height=([\d]*)/, ""),
+							src: propsImg.src,
+							poster: type === "gif" ? propsImg.poster : undefined,
+							width: propsImg.width || propsImg.style?.width,
+							height: propsImg.height || propsImg.style?.height
 						}));
 					});
 				}
@@ -1870,7 +1898,7 @@ module.exports = (() => {
 						if (returnValue.props?.children?.find(e => e?.props?.id === "favoriteMedia")) return;
 						if (!this.settings.showContextMenuFavorite) return;
 						if (!(
-							((props.target.tagName === "A" && !props.target.parentElement.className?.includes("embedVideo")) || (props.target.tagName === "svg" && props.target.className && props.target.className.baseVal === classes.gif.icon) || props.target.tagName === "path") || // image
+							((props.target.tagName === "A" && props.target.parentElement.className?.includes("embedMedia")) || (props.target.tagName === "svg" && props.target.className && props.target.className.baseVal === classes.gif.icon) || props.target.tagName === "path") || // image & gif
 							(props.target.tagName === "VIDEO" && props.target.className && !props.target.className.includes("embedMedia")) || // video
 							(props.target.tagName === "A" && props.target.className && props.target.className.includes("metadataName")) // audio
 						)) return;
@@ -1891,6 +1919,13 @@ module.exports = (() => {
 							data.type = "video";
 							data.width = Number(target.parentElement.parentElement.style.width.replace("px", ""))
 							data.height = Number(target.parentElement.parentElement.style.height.replace("px", ""))
+						}
+						if (data.type === "image" && props.target.parentElement.className?.includes("embedVideo")) {
+							if (!this.settings.useCustomGIFTab) return;
+							const el = target.nextSibling.firstChild
+							data.type = "gif";
+							data.poster = el?.poster;
+							data.src = el?.src;
 						}
 						if (target.className.includes("metadataName")) data.type = "audio";
 						data.favorited = this.isFavorited(data.type, data.url);
@@ -1964,9 +1999,11 @@ module.exports = (() => {
 					if (type_data.medias.find(m => m.url === props.url)) return;
 					let data = null;
 					switch (props.type) {
+						case "gif":
 						case "video":
 							data = {
 								url: props.url,
+								src: props.src || props.url,
 								poster: props.poster,
 								width: props.width,
 								height: props.height,
@@ -1976,6 +2013,7 @@ module.exports = (() => {
 						case "audio":
 							data = {
 								url: props.url,
+								src: props.src || props.url,
 								name: getUrlName(props.url),
 								ext: getUrlExt(props.url)
 							};
@@ -1983,6 +2021,7 @@ module.exports = (() => {
 						default: // image
 							data = {
 								url: props.url,
+								src: props.src || props.url,
 								width: props.width,
 								height: props.height,
 								name: getUrlName(props.url)
@@ -2054,6 +2093,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Кликнете върху звездата в ъгъла на GIF, за да го добавите към любимите си",
 									"image": "Кликнете върху звездата в ъгъла на изображението, за да го поставите в любимите си",
 									"video": "Кликнете върху звездата в ъгъла на видеоклипа, за да го поставите в любимите си",
 									"audio": "Кликнете върху звездата в ъгъла на звука, за да го поставите в любимите си"
@@ -2068,16 +2108,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "GIF е преместен!",
 										"image": "Изображението е преместено!",
 										"video": "Видеото е преместено!",
 										"audio": "Аудиото е преместено!"
 									},
 									"remove": {
+										"gif": "GIF е премахнат от категориите!",
 										"image": "Изображението е премахнато от категориите!",
 										"video": "Видеото е премахнато от категориите!",
 										"audio": "Аудиото е премахнато от категориите!"
 									},
 									"download": {
+										"gif": "GIF е качен!",
 										"image": "Изображението е качено!",
 										"video": "Видеото е качено!",
 										"audio": "Аудиото е изтеглено!"
@@ -2085,6 +2128,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "Изтеглянето на GIF не бе успешно",
 										"image": "Качването на изображението не бе успешно",
 										"video": "Изтеглянето на видеоклипа не бе успешно",
 										"audio": "Изтеглянето на аудио не бе успешно"
@@ -2095,12 +2139,14 @@ module.exports = (() => {
 									"hide": "Скриване на поръчките"
 								},
 								"placeholder": {
+									"gif": "GIF име",
 									"image": "Име на изображението",
 									"video": "Име на видеоклипа",
 									"audio": "Име на звука"
 								}
 							},
 							"searchItem": {
+								"gif": "Търсете GIF файлове или категории",
 								"image": "Търсене на изображения или категории",
 								"video": "Търсете видеоклипове или категории",
 								"audio": "Търсене на аудио или категории"
@@ -2146,6 +2192,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Klik på stjernen i hjørnet af en GIF for at tilføje den til dine favoritter",
 									"image": "Klik på stjernen i hjørnet af et billede for at placere det i dine favoritter",
 									"video": "Klik på stjernen i hjørnet af en video for at placere den i dine favoritter",
 									"audio": "Klik på stjernen i hjørnet af en lyd for at placere den i dine favoritter"
@@ -2160,21 +2207,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "GIF'en er blevet flyttet!",
 										"image": "Billedet er flyttet!",
 										"video": "Videoen er flyttet!",
-										"audio": "Lyden er flyttet!",
-										"download": {
-											"image": "Billedet er uploadet!",
-											"video": "Videoen er blevet uploadet!",
-											"audio": "Lyden er downloadet!"
-										}
+										"audio": "Lyden er flyttet!"
 									},
 									"remove": {
+										"gif": "GIF'en er blevet fjernet fra kategorierne!",
 										"image": "Billedet er fjernet fra kategorierne!",
 										"video": "Videoen er fjernet fra kategorierne!",
 										"audio": "Lyd er fjernet fra kategorier!"
 									},
 									"download": {
+										"gif": "GIF'en er blevet uploadet!",
 										"image": "Billedet er uploadet!",
 										"video": "Videoen er blevet uploadet!",
 										"audio": "Lyden er downloadet!"
@@ -2182,6 +2227,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "Kunne ikke downloade GIF",
 										"image": "Billedet kunne ikke uploades",
 										"video": "Videoen kunne ikke downloades",
 										"audio": "Kunne ikke downloade lyd"
@@ -2192,12 +2238,14 @@ module.exports = (() => {
 									"hide": "Skjul ordrer"
 								},
 								"placeholder": {
+									"gif": "GIF navn",
 									"image": "Billednavn",
 									"video": "Video navn",
 									"audio": "Audio navn"
 								}
 							},
 							"searchItem": {
+								"gif": "Søg efter GIF'er eller kategorier",
 								"image": "Søg efter billeder eller kategorier",
 								"video": "Søg efter videoer eller kategorier",
 								"audio": "Søg efter lydbånd eller kategorier"
@@ -2243,6 +2291,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Klicken Sie auf den Stern in der Ecke eines GIFs, um es zu Ihren Favoriten hinzuzufügen",
 									"image": "Klicken Sie auf den Stern in der Ecke eines Bildes, um es in Ihre Favoriten aufzunehmen",
 									"video": "Klicke auf den Stern in der Ecke eines Videos, um es zu deinen Favoriten hinzuzufügen",
 									"audio": "Klicken Sie auf den Stern in der Ecke eines Audios, um es in Ihre Favoriten aufzunehmen"
@@ -2257,16 +2306,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "Das GIF wurde verschoben!",
 										"image": "Das Bild wurde verschoben!",
 										"video": "Das Video wurde verschoben!",
 										"audio": "Der Ton wurde verschoben!"
 									},
 									"remove": {
+										"gif": "Das GIF wurde aus den Kategorien entfernt!",
 										"image": "Das Bild wurde aus den Kategorien entfernt!",
 										"video": "Das Video wurde aus den Kategorien entfernt!",
 										"audio": "Audio wurde aus den Kategorien entfernt!"
 									},
 									"download": {
+										"gif": "Das GIF wurde hochgeladen!",
 										"image": "Das Bild wurde hochgeladen!",
 										"video": "Das Video wurde hochgeladen!",
 										"audio": "Die Audiodatei wurde heruntergeladen!"
@@ -2274,6 +2326,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "GIF konnte nicht heruntergeladen werden",
 										"image": "Fehler beim Hochladen des Bildes",
 										"video": "Video konnte nicht heruntergeladen werden",
 										"audio": "Audio konnte nicht heruntergeladen werden"
@@ -2284,12 +2337,14 @@ module.exports = (() => {
 									"hide": "Bestellungen ausblenden"
 								},
 								"placeholder": {
+									"gif": "GIF-Name",
 									"image": "Bildname",
 									"video": "Videoname",
 									"audio": "Audioname"
 								}
 							},
 							"searchItem": {
+								"gif": "Suchen Sie nach GIFs oder Kategorien",
 								"image": "Nach Bildern oder Kategorien suchen",
 								"video": "Nach Videos oder Kategorien suchen",
 								"audio": "Nach Audios oder Kategorien suchen"
@@ -2335,6 +2390,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Κάντε κλικ στο αστέρι στη γωνία ενός GIF για να το προσθέσετε στα αγαπημένα σας",
 									"image": "Κάντε κλικ στο αστέρι στη γωνία μιας εικόνας για να την βάλετε στα αγαπημένα σας",
 									"video": "Κάντε κλικ στο αστέρι στη γωνία ενός βίντεο για να το βάλετε στα αγαπημένα σας",
 									"audio": "Κάντε κλικ στο αστέρι στη γωνία ενός ήχου για να το βάλετε στα αγαπημένα σας"
@@ -2349,16 +2405,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "Το GIF έχει μετακινηθεί!",
 										"image": "Η εικόνα μετακινήθηκε!",
 										"video": "Το βίντεο μετακινήθηκε!",
 										"audio": "Ο ήχος μετακινήθηκε!"
 									},
 									"remove": {
+										"gif": "Το GIF έχει αφαιρεθεί από τις κατηγορίες!",
 										"image": "Η εικόνα έχει αφαιρεθεί από τις κατηγορίες!",
 										"video": "Το βίντεο καταργήθηκε από τις κατηγορίες!",
 										"audio": "Ο ήχος καταργήθηκε από κατηγορίες!"
 									},
 									"download": {
+										"gif": "Το GIF έχει ανέβει!",
 										"image": "Η εικόνα ανέβηκε!",
 										"video": "Το βίντεο ανέβηκε!",
 										"audio": "Ο ήχος έχει γίνει λήψη!"
@@ -2366,6 +2425,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "Αποτυχία λήψης GIF",
 										"image": "Αποτυχία μεταφόρτωσης εικόνας",
 										"video": "Αποτυχία λήψης βίντεο",
 										"audio": "Αποτυχία λήψης ήχου"
@@ -2376,12 +2436,14 @@ module.exports = (() => {
 									"hide": "Απόκρυψη παραγγελιών"
 								},
 								"placeholder": {
+									"gif": "Όνομα GIF",
 									"image": "Όνομα εικόνας",
 									"video": "Όνομα βίντεο",
 									"audio": "Όνομα ήχου"
 								}
 							},
 							"searchItem": {
+								"gif": "Αναζήτηση για GIF ή κατηγορίες",
 								"image": "Αναζήτηση εικόνων ή κατηγοριών",
 								"video": "Αναζήτηση βίντεο ή κατηγοριών",
 								"audio": "Αναζήτηση ήχων ή κατηγοριών"
@@ -2427,6 +2489,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Haga clic en la estrella en la esquina de un GIF para agregarlo a sus favoritos",
 									"image": "Haga clic en la estrella en la esquina de una imagen para ponerla en sus favoritos",
 									"video": "Haga clic en la estrella en la esquina de un video para ponerlo en sus favoritos",
 									"audio": "Haga clic en la estrella en la esquina de un audio para ponerlo en sus favoritos"
@@ -2441,16 +2504,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "¡El GIF ha sido movido!",
 										"image": "¡La imagen se ha movido!",
 										"video": "¡El video se ha movido!",
 										"audio": "¡El audio se ha movido!"
 									},
 									"remove": {
+										"gif": "¡El GIF ha sido eliminado de las categorías!",
 										"image": "¡La imagen ha sido eliminada de las categorías!",
 										"video": "¡El video ha sido eliminado de las categorías!",
 										"audio": "¡El audio ha sido eliminado de las categorías!"
 									},
 									"download": {
+										"gif": "¡El GIF ha sido subido!",
 										"image": "¡La imagen ha sido cargada!",
 										"video": "¡El video ha sido subido!",
 										"audio": "¡El audio se ha descargado!"
@@ -2458,7 +2524,8 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
-										"image": "No se pudo cargar la imagen.",
+										"gif": "Error al descargar GIF",
+										"image": "No se pudo cargar la imagen",
 										"video": "No se pudo descargar el video",
 										"audio": "No se pudo descargar el audio"
 									}
@@ -2468,12 +2535,14 @@ module.exports = (() => {
 									"hide": "Ocultar pedidos"
 								},
 								"placeholder": {
+									"gif": "Nombre GIF",
 									"image": "Nombre de la imágen",
 									"video": "Nombre del video",
 									"audio": "Nombre de audio"
 								}
 							},
 							"searchItem": {
+								"gif": "Buscar GIF o categorías",
 								"image": "Buscar imágenes o categorías",
 								"video": "Buscar videos o categorías",
 								"audio": "Busque audios o categorías"
@@ -2519,6 +2588,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Napsauta GIF-kuvan kulmassa olevaa tähteä lisätäksesi sen suosikkeihisi",
 									"image": "Napsauta kuvan kulmassa olevaa tähteä lisätäksesi sen suosikkeihisi",
 									"video": "Napsauta videon kulmassa olevaa tähteä lisätäksesi sen suosikkeihisi",
 									"audio": "Napsauta äänen kulmassa olevaa tähteä lisätäksesi sen suosikkeihisi"
@@ -2533,16 +2603,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "GIF on siirretty!",
 										"image": "Kuva on siirretty!",
 										"video": "Video on siirretty!",
 										"audio": "Ääni on siirretty!"
 									},
 									"remove": {
+										"gif": "GIF on poistettu luokista!",
 										"image": "Kuva on poistettu luokista!",
 										"video": "Video on poistettu luokista!",
 										"audio": "Ääni on poistettu luokista!"
 									},
 									"download": {
+										"gif": "GIF on ladattu!",
 										"image": "Kuva on ladattu!",
 										"video": "Video on ladattu!",
 										"audio": "Ääni on ladattu!"
@@ -2550,6 +2623,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "GIF:n lataaminen epäonnistui",
 										"image": "Kuvan lataaminen epäonnistui",
 										"video": "Videon lataaminen epäonnistui",
 										"audio": "Äänen lataaminen epäonnistui"
@@ -2560,12 +2634,14 @@ module.exports = (() => {
 									"hide": "Piilota tilaukset"
 								},
 								"placeholder": {
+									"gif": "GIF-nimi",
 									"image": "Kuvan nimi",
 									"video": "Videon nimi",
 									"audio": "Äänen nimi"
 								}
 							},
 							"searchItem": {
+								"gif": "Etsi GIF-tiedostoja tai luokkia",
 								"image": "Hae kuvia tai luokkia",
 								"video": "Hae videoita tai luokkia",
 								"audio": "Hae ääniä tai luokkia"
@@ -2611,6 +2687,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Clique sur l'étoile dans le coin d'un GIF pour le mettre dans tes favoris",
 									"image": "Clique sur l'étoile dans le coin d'une image pour la mettre dans tes favoris",
 									"video": "Clique sur l'étoile dans le coin d'une vidéo pour la mettre dans tes favoris",
 									"audio": "Clique sur l'étoile dans le coin d'un audio pour le mettre dans tes favoris",
@@ -2625,16 +2702,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "Le GIF a été déplacé !",
 										"image": "L'image a été déplacée !",
 										"video": "La vidéo a été déplacée !",
 										"audio": "L'audio a été déplacé !",
 									},
 									"remove": {
+										"gif": "Le GIF a été enlevé des catégories !",
 										"image": "L'image a été enlevée des catégories !",
 										"video": "La vidéo a été enlevée des catégories !",
 										"audio": "L'audio a été enlevé des catégories !",
 									},
 									"download": {
+										"gif": "Le GIF a été téléchargé !",
 										"image": "L'image a été téléchargée !",
 										"video": "La vidéo a été téléchargée !",
 										"audio": "L'audio a été téléchargée !",
@@ -2642,6 +2722,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "Échec lors du téléchargement du GIF",
 										"image": "Échec lors du téléchargement de l'image",
 										"video": "Échec lors du téléchargement de la vidéo",
 										"audio": "Échec lors du téléchargement de l'audio",
@@ -2652,12 +2733,14 @@ module.exports = (() => {
 									"hide": "Cacher les commandes",
 								},
 								"placeholder": {
+									"gif": "Nom du GIF",
 									"image": "Nom de l'image",
 									"video": "Nom de la vidéo",
 									"audio": "Nom de l'audio",
 								},
 							},
 							"searchItem": {
+								"gif": "Recherche des GIF ou des catégories",
 								"image": "Recherche des images ou des catégories",
 								"video": "Recherche des vidéos ou des catégories",
 								"audio": "Recherche des audios ou des catégories",
@@ -2703,6 +2786,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Kliknite zvjezdicu u kutu GIF-a da ga dodate u svoje favorite",
 									"image": "Kliknite zvjezdicu u kutu slike da biste je stavili među svoje favorite",
 									"video": "Kliknite zvjezdicu u kutu videozapisa da biste je stavili među svoje favorite",
 									"audio": "Kliknite zvjezdicu u kutu zvuka da biste je stavili među svoje favorite"
@@ -2717,16 +2801,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "GIF je premješten!",
 										"image": "Slika je premještena!",
 										"video": "Video je premješten!",
 										"audio": "Zvuk je premješten!"
 									},
 									"remove": {
+										"gif": "GIF je uklonjen iz kategorija!",
 										"image": "Slika je uklonjena iz kategorija!",
 										"video": "Videozapis je uklonjen iz kategorija!",
 										"audio": "Audio je uklonjen iz kategorija!"
 									},
 									"download": {
+										"gif": "GIF je prenesen!",
 										"image": "Slika je učitana!",
 										"video": "Video je postavljen!",
 										"audio": "Zvuk je preuzet!"
@@ -2734,6 +2821,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "Preuzimanje GIF-a nije uspjelo",
 										"image": "Učitavanje slike nije uspjelo",
 										"video": "Preuzimanje videozapisa nije uspjelo",
 										"audio": "Preuzimanje zvuka nije uspjelo"
@@ -2744,12 +2832,14 @@ module.exports = (() => {
 									"hide": "Sakrij narudžbe"
 								},
 								"placeholder": {
+									"gif": "Naziv GIF-a",
 									"image": "Naziv slike",
 									"video": "Naziv videozapisa",
 									"audio": "Naziv zvuka"
 								}
 							},
 							"searchItem": {
+								"gif": "Traži GIF-ove ili kategorije",
 								"image": "Potražite slike ili kategorije",
 								"video": "Potražite videozapise ili kategorije",
 								"audio": "Potražite audio ili kategorije"
@@ -2795,6 +2885,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Kattintson a csillagra a GIF sarkában, hogy hozzáadja a kedvenceihez",
 									"image": "Kattintson a kép sarkában lévő csillagra, hogy a kedvencek közé helyezze",
 									"video": "Kattintson a videó sarkában lévő csillagra, hogy a kedvencek közé tegye",
 									"audio": "Kattintson a csillagra egy hang sarkában, hogy a kedvencek közé helyezze"
@@ -2809,16 +2900,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "A GIF át lett helyezve!",
 										"image": "A kép áthelyezve!",
 										"video": "A videó áthelyezve!",
 										"audio": "A hang áthelyezve!"
 									},
 									"remove": {
+										"gif": "A GIF eltávolítva a kategóriákból!",
 										"image": "A képet eltávolítottuk a kategóriákból!",
 										"video": "A videót eltávolítottuk a kategóriákból!",
 										"audio": "A hangot eltávolítottuk a kategóriákból!"
 									},
 									"download": {
+										"gif": "A GIF feltöltve!",
 										"image": "A kép feltöltve!",
 										"video": "A videó feltöltve!",
 										"audio": "A hanganyag letöltve!"
@@ -2826,6 +2920,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "A GIF letöltése sikertelen",
 										"image": "Nem sikerült feltölteni a képet",
 										"video": "Nem sikerült letölteni a videót",
 										"audio": "Nem sikerült letölteni a hangot"
@@ -2836,12 +2931,14 @@ module.exports = (() => {
 									"hide": "Parancsok elrejtése"
 								},
 								"placeholder": {
+									"gif": "GIF név",
 									"image": "Kép neve",
 									"video": "Videó neve",
 									"audio": "Hang neve"
 								}
 							},
 							"searchItem": {
+								"gif": "Keressen GIF-eket vagy kategóriákat",
 								"image": "Képek vagy kategóriák keresése",
 								"video": "Videók vagy kategóriák keresése",
 								"audio": "Audió vagy kategória keresése"
@@ -2887,6 +2984,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Fai clic sulla stella nell'angolo di una GIF per aggiungerla ai preferiti",
 									"image": "Fai clic sulla stella nell'angolo di un'immagine per inserirla nei preferiti",
 									"video": "Fai clic sulla stella nell'angolo di un video per inserirlo nei preferiti",
 									"audio": "Fai clic sulla stella nell'angolo di un audio per inserirlo nei preferiti"
@@ -2901,16 +2999,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "La GIF è stata spostata!",
 										"image": "L'immagine è stata spostata!",
 										"video": "Il video è stato spostato!",
 										"audio": "L'audio è stato spostato!"
 									},
 									"remove": {
+										"gif": "La GIF è stata rimossa dalle categorie!",
 										"image": "L'immagine è stata rimossa dalle categorie!",
 										"video": "Il video è stato rimosso dalle categorie!",
 										"audio": "L'audio è stato rimosso dalle categorie!"
 									},
 									"download": {
+										"gif": "La GIF è stata caricata!",
 										"image": "L'immagine è stata caricata!",
 										"video": "Il video è stato caricato!",
 										"audio": "L'audio è stato scaricato!"
@@ -2918,6 +3019,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "Impossibile scaricare la GIF",
 										"image": "Impossibile caricare l'immagine",
 										"video": "Impossibile scaricare il video",
 										"audio": "Impossibile scaricare l'audio"
@@ -2928,12 +3030,14 @@ module.exports = (() => {
 									"hide": "Nascondi ordini"
 								},
 								"placeholder": {
+									"gif": "Nome GIF",
 									"image": "Nome immagine",
 									"video": "Nome del video",
 									"audio": "Nome dell'audio"
 								}
 							},
 							"searchItem": {
+								"gif": "Cerca GIF o categorie",
 								"image": "Cerca immagini o categorie",
 								"video": "Cerca video o categorie",
 								"audio": "Cerca audio o categorie"
@@ -2979,6 +3083,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "GIFの隅にある星をクリックして、お気に入りに追加します",
 									"image": "画像の隅にある星をクリックして、お気に入りに追加します",
 									"video": "動画の隅にある星をクリックして、お気に入りに追加します",
 									"audio": "オーディオの隅にある星をクリックして、お気に入りに入れます"
@@ -2993,16 +3098,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "GIFが移動しました！",
 										"image": "画像が移動しました！",
 										"video": "ビデオが移動しました！",
 										"audio": "音声が移動しました！"
 									},
 									"remove": {
+										"gif": "GIFはカテゴリから削除されました！",
 										"image": "画像はカテゴリから削除されました！",
 										"video": "動画はカテゴリから削除されました！",
 										"audio": "オーディオはカテゴリから削除されました！"
 									},
 									"download": {
+										"gif": "GIFがアップロードされました！",
 										"image": "画像をアップしました！",
 										"video": "動画がアップしました！",
 										"audio": "音声がダウンロードされました！"
@@ -3010,6 +3118,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "GIFのダウンロードに失敗しました",
 										"image": "画像のアップロードに失敗しました",
 										"video": "ビデオのダウンロードに失敗しました",
 										"audio": "オーディオのダウンロードに失敗しました"
@@ -3020,12 +3129,14 @@ module.exports = (() => {
 									"hide": "注文を非表示"
 								},
 								"placeholder": {
+									"gif": "GIF名",
 									"image": "画像名",
 									"video": "ビデオ名",
 									"audio": "音声名"
 								}
 							},
 							"searchItem": {
+								"gif": "GIFまたはカテゴリを検索する",
 								"image": "画像やカテゴリを検索する",
 								"video": "ビデオまたはカテゴリを検索する",
 								"audio": "オーディオまたはカテゴリを検索する"
@@ -3071,6 +3182,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "GIF 모서리에 있는 별표를 클릭하여 즐겨찾기에 추가하세요.",
 									"image": "이미지 모서리에있는 별을 클릭하여 즐겨 찾기에 추가하세요.",
 									"video": "동영상 모서리에있는 별표를 클릭하여 즐겨 찾기에 추가하세요.",
 									"audio": "오디오 모서리에있는 별표를 클릭하여 즐겨 찾기에 넣습니다."
@@ -3085,16 +3197,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "GIF가 이동되었습니다!",
 										"image": "이미지가 이동되었습니다!",
 										"video": "동영상이 이동되었습니다!",
 										"audio": "오디오가 이동되었습니다!"
 									},
 									"remove": {
+										"gif": "GIF가 카테고리에서 제거되었습니다!",
 										"image": "카테고리에서 이미지가 제거되었습니다!",
 										"video": "비디오가 카테고리에서 제거되었습니다!",
 										"audio": "카테고리에서 오디오가 제거되었습니다!"
 									},
 									"download": {
+										"gif": "GIF가 업로드되었습니다!",
 										"image": "이미지가 업로드되었습니다!",
 										"video": "영상이 업로드 되었습니다!",
 										"audio": "오디오가 다운로드되었습니다!"
@@ -3102,6 +3217,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "GIF 다운로드 실패",
 										"image": "이미지를 업로드하지 못했습니다.",
 										"video": "동영상 다운로드 실패",
 										"audio": "오디오 다운로드 실패"
@@ -3112,12 +3228,14 @@ module.exports = (() => {
 									"hide": "주문 숨기기"
 								},
 								"placeholder": {
+									"gif": "GIF 이름",
 									"image": "이미지 이름",
 									"video": "비디오 이름",
 									"audio": "오디오 이름"
 								}
 							},
 							"searchItem": {
+								"gif": "GIF 또는 카테고리 검색",
 								"image": "이미지 또는 카테고리 검색",
 								"video": "비디오 또는 카테고리 검색",
 								"audio": "오디오 또는 카테고리 검색"
@@ -3163,6 +3281,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Spustelėkite žvaigždutę GIF kampe, kad pridėtumėte jį prie mėgstamiausių",
 									"image": "Spustelėkite žvaigždutę atvaizdo kampe, kad ją įtrauktumėte į mėgstamiausius",
 									"video": "Spustelėkite žvaigždutę vaizdo įrašo kampe, kad įtrauktumėte ją į mėgstamiausius",
 									"audio": "Spustelėkite žvaigždutę garso kampe, kad įtrauktumėte ją į mėgstamiausius"
@@ -3177,16 +3296,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "GIF buvo perkeltas!",
 										"image": "Vaizdas perkeltas!",
 										"video": "Vaizdo įrašas perkeltas!",
 										"audio": "Garso įrašas perkeltas!"
 									},
 									"remove": {
+										"gif": "GIF buvo pašalintas iš kategorijų!",
 										"image": "Vaizdas pašalintas iš kategorijų!",
 										"video": "Vaizdo įrašas pašalintas iš kategorijų!",
 										"audio": "Garso įrašas pašalintas iš kategorijų!"
 									},
 									"download": {
+										"gif": "GIF failas įkeltas!",
 										"image": "Vaizdas įkeltas!",
 										"video": "Vaizdo įrašas įkeltas!",
 										"audio": "Garso įrašas atsisiųstas!"
@@ -3194,6 +3316,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "Nepavyko atsisiųsti GIF",
 										"image": "Nepavyko įkelti vaizdo",
 										"video": "Nepavyko atsisiųsti vaizdo įrašo",
 										"audio": "Nepavyko atsisiųsti garso įrašo"
@@ -3204,12 +3327,14 @@ module.exports = (() => {
 									"hide": "Slėpti užsakymus"
 								},
 								"placeholder": {
+									"gif": "GIF pavadinimas",
 									"image": "Paveikslėlio pavadinimas",
 									"video": "Vaizdo įrašo pavadinimas",
 									"audio": "Garso įrašo pavadinimas"
 								}
 							},
 							"searchItem": {
+								"gif": "Ieškokite GIF arba kategorijų",
 								"image": "Ieškokite vaizdų ar kategorijų",
 								"video": "Ieškokite vaizdo įrašų ar kategorijų",
 								"audio": "Ieškokite garso įrašų ar kategorijų"
@@ -3255,6 +3380,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Klik op de ster in de hoek van een GIF om deze aan je favorieten toe te voegen",
 									"image": "Klik op de ster in de hoek van een afbeelding om deze in je favorieten te plaatsen",
 									"video": "Klik op de ster in de hoek van een video om deze in je favorieten te plaatsen",
 									"audio": "Klik op de ster in de hoek van een audio om deze in je favorieten te plaatsen"
@@ -3269,16 +3395,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "De GIF is verplaatst!",
 										"image": "De afbeelding is verplaatst!",
 										"video": "De video is verplaatst!",
 										"audio": "Het geluid is verplaatst!"
 									},
 									"remove": {
+										"gif": "De GIF is verwijderd uit de categorieën!",
 										"image": "De afbeelding is verwijderd uit de categorieën!",
 										"video": "De video is verwijderd uit de categorieën!",
 										"audio": "Audio is verwijderd uit categorieën!"
 									},
 									"download": {
+										"gif": "De GIF is geüpload!",
 										"image": "De afbeelding is geüpload!",
 										"video": "De video is geüpload!",
 										"audio": "De audio is gedownload!"
@@ -3286,6 +3415,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "Kan GIF niet downloaden",
 										"image": "Kan afbeelding niet uploaden",
 										"video": "Kan video niet downloaden",
 										"audio": "Kan audio niet downloaden"
@@ -3296,12 +3426,14 @@ module.exports = (() => {
 									"hide": "Verberg bestellingen"
 								},
 								"placeholder": {
+									"gif": "GIF-naam",
 									"image": "Naam afbeelding",
 									"video": "Videonaam",
 									"audio": "Audionaam"
 								}
 							},
 							"searchItem": {
+								"gif": "Zoeken naar GIF's of categorieën",
 								"image": "Zoeken naar afbeeldingen of categorieën",
 								"video": "Zoeken naar video's of categorieën",
 								"audio": "Zoeken naar audio of categorieën"
@@ -3347,6 +3479,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Klikk på stjernen i hjørnet av en GIF for å legge den til i favorittene dine",
 									"image": "Klikk på stjernen i hjørnet av et bilde for å sette det i favorittene dine",
 									"video": "Klikk på stjernen i hjørnet av en video for å sette den i favorittene dine",
 									"audio": "Klikk på stjernen i hjørnet av en lyd for å sette den i favorittene dine"
@@ -3361,16 +3494,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "GIF-en er flyttet!",
 										"image": "Bildet er flyttet!",
 										"video": "Videoen er flyttet!",
 										"audio": "Lyden er flyttet!"
 									},
 									"remove": {
+										"gif": "GIF-en er fjernet fra kategoriene!",
 										"image": "Bildet er fjernet fra kategoriene!",
 										"video": "Videoen er fjernet fra kategoriene!",
 										"audio": "Lyd er fjernet fra kategorier!"
 									},
 									"download": {
+										"gif": "GIF-en er lastet opp!",
 										"image": "Bildet er lastet opp!",
 										"video": "Videoen er lastet opp!",
 										"audio": "Lyden er lastet ned!"
@@ -3378,6 +3514,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "Kunne ikke laste ned GIF",
 										"image": "Kunne ikke laste opp bildet",
 										"video": "Kunne ikke laste ned video",
 										"audio": "Kunne ikke laste ned lyd"
@@ -3388,12 +3525,14 @@ module.exports = (() => {
 									"hide": "Skjul ordrer"
 								},
 								"placeholder": {
+									"gif": "GIF-navn",
 									"image": "Bilde navn",
 									"video": "Video navn",
 									"audio": "Lydnavn"
 								}
 							},
 							"searchItem": {
+								"gif": "Søk etter GIF-er eller kategorier",
 								"image": "Søk etter bilder eller kategorier",
 								"video": "Søk etter videoer eller kategorier",
 								"audio": "Søk etter lyd eller kategorier"
@@ -3439,6 +3578,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Kliknij gwiazdkę w rogu GIF-a, aby dodać go do ulubionych",
 									"image": "Kliknij gwiazdkę w rogu obrazu, aby umieścić go w ulubionych",
 									"video": "Kliknij gwiazdkę w rogu filmu, aby umieścić go w ulubionych",
 									"audio": "Kliknij gwiazdkę w rogu nagrania, aby umieścić go w ulubionych your"
@@ -3453,16 +3593,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "GIF został przeniesiony!",
 										"image": "Obraz został przeniesiony!",
 										"video": "Film został przeniesiony!",
 										"audio": "Dźwięk został przeniesiony!"
 									},
 									"remove": {
+										"gif": "GIF został usunięty z kategorii!",
 										"image": "Obraz został usunięty z kategorii!",
 										"video": "Film został usunięty z kategorii!",
 										"audio": "Dźwięk został usunięty z kategorii!"
 									},
 									"download": {
+										"gif": "GIF został przesłany!",
 										"image": "Obraz został przesłany!",
 										"video": "Film został przesłany!",
 										"audio": "Dźwięk został pobrany!"
@@ -3470,6 +3613,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "Nie udało się pobrać GIF-a",
 										"image": "Nie udało się przesłać obrazu",
 										"video": "Nie udało się pobrać wideo",
 										"audio": "Nie udało się pobrać dźwięku"
@@ -3480,12 +3624,14 @@ module.exports = (() => {
 									"hide": "Ukryj zamówienia"
 								},
 								"placeholder": {
+									"gif": "Nazwa GIF",
 									"image": "Nazwa obrazu",
 									"video": "Nazwa wideo",
 									"audio": "Nazwa dźwięku"
 								}
 							},
 							"searchItem": {
+								"gif": "Wyszukaj GIF-y lub kategorie",
 								"image": "Wyszukaj obrazy lub kategorie",
 								"video": "Wyszukaj filmy lub kategorie",
 								"audio": "Wyszukaj audio lub kategorie"
@@ -3531,6 +3677,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Clique na estrela no canto de um GIF para adicioná-lo aos seus favoritos",
 									"image": "Clique na estrela no canto de uma imagem para colocá-la em seus favoritos",
 									"video": "Clique na estrela no canto de um vídeo para colocá-lo em seus favoritos",
 									"audio": "Clique na estrela no canto de um áudio para colocá-lo em seus favoritos"
@@ -3545,16 +3692,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "O GIF foi movido!",
 										"image": "A imagem foi movida!",
 										"video": "O vídeo foi movido!",
 										"audio": "O áudio foi movido!"
 									},
 									"remove": {
+										"gif": "O GIF foi removido das categorias!",
 										"image": "A imagem foi removida das categorias!",
 										"video": "O vídeo foi removido das categorias!",
 										"audio": "O áudio foi removido das categorias!"
 									},
 									"download": {
+										"gif": "O GIF foi carregado!",
 										"image": "A imagem foi carregada!",
 										"video": "O vídeo foi carregado!",
 										"audio": "O áudio foi baixado!"
@@ -3562,6 +3712,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "Falha ao baixar GIF",
 										"image": "Falha ao carregar imagem",
 										"video": "Falha ao baixar o vídeo",
 										"audio": "Falha ao baixar áudio"
@@ -3572,12 +3723,14 @@ module.exports = (() => {
 									"hide": "Ocultar pedidos"
 								},
 								"placeholder": {
+									"gif": "Nome GIF",
 									"image": "Nome da imagem",
 									"video": "Nome do vídeo",
 									"audio": "Nome de áudio"
 								}
 							},
 							"searchItem": {
+								"gif": "Pesquise GIFs ou categorias",
 								"image": "Pesquise imagens ou categorias",
 								"video": "Pesquise vídeos ou categorias",
 								"audio": "Pesquise áudios ou categorias"
@@ -3623,6 +3776,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Faceți clic pe steaua din colțul unui GIF pentru a-l adăuga la favorite",
 									"image": "Faceți clic pe steaua din colțul unei imagini pentru ao pune în preferatele dvs.",
 									"video": "Faceți clic pe steaua din colțul unui videoclip pentru a-l introduce în preferatele dvs.",
 									"audio": "Faceți clic pe steaua din colțul unui sunet pentru ao pune în preferatele dvs."
@@ -3637,16 +3791,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "GIF-ul a fost mutat!",
 										"image": "Imaginea a fost mutată!",
 										"video": "Videoclipul a fost mutat!",
 										"audio": "Sunetul a fost mutat!"
 									},
 									"remove": {
+										"gif": "GIF-ul a fost eliminat din categorii!",
 										"image": "Imaginea a fost eliminată din categorii!",
 										"video": "Videoclipul a fost eliminat din categorii!",
 										"audio": "Sunetul a fost eliminat din categorii!"
 									},
 									"download": {
+										"gif": "GIF-ul a fost încărcat!",
 										"image": "Imaginea a fost încărcată!",
 										"video": "Videoclipul a fost încărcat!",
 										"audio": "Sunetul a fost descărcat!"
@@ -3654,6 +3811,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "Nu s-a putut descărca GIF",
 										"image": "Nu s-a încărcat imaginea",
 										"video": "Descărcarea videoclipului nu a reușit",
 										"audio": "Descărcarea audio nu a reușit"
@@ -3664,12 +3822,14 @@ module.exports = (() => {
 									"hide": "Ascundeți comenzile"
 								},
 								"placeholder": {
+									"gif": "Nume GIF",
 									"image": "Numele imaginii",
 									"video": "Numele videoclipului",
 									"audio": "Numele audio"
 								}
 							},
 							"searchItem": {
+								"gif": "Căutați GIF-uri sau categorii",
 								"image": "Căutați imagini sau categorii",
 								"video": "Căutați videoclipuri sau categorii",
 								"audio": "Căutați audio sau categorii"
@@ -3715,6 +3875,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Нажмите на звездочку в углу GIF, чтобы добавить его в избранное.",
 									"image": "Нажмите на звезду в углу изображения, чтобы добавить его в избранное.",
 									"video": "Нажмите на звездочку в углу видео, чтобы добавить его в избранное.",
 									"audio": "Нажмите на звездочку в углу аудио, чтобы добавить его в избранное."
@@ -3729,16 +3890,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "Гифку перенесли!",
 										"image": "Изображение было перемещено!",
 										"video": "Видео перемещено!",
 										"audio": "Звук был перемещен!"
 									},
 									"remove": {
+										"gif": "Гифка удалена из категорий!",
 										"image": "Изображение удалено из категорий!",
 										"video": "Видео удалено из категорий!",
 										"audio": "Аудио удалено из категорий!"
 									},
 									"download": {
+										"gif": "Гифка загружена!",
 										"image": "Изображение загружено!",
 										"video": "Видео загружено!",
 										"audio": "Аудио скачано!"
@@ -3746,6 +3910,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "Не удалось скачать GIF",
 										"image": "Не удалось загрузить изображение",
 										"video": "Не удалось скачать видео",
 										"audio": "Не удалось скачать аудио"
@@ -3756,12 +3921,14 @@ module.exports = (() => {
 									"hide": "Скрыть заказы"
 								},
 								"placeholder": {
+									"gif": "Имя GIF",
 									"image": "Имя изображения",
 									"video": "Название видео",
 									"audio": "Название аудио"
 								}
 							},
 							"searchItem": {
+								"gif": "Поиск GIF-файлов или категорий",
 								"image": "Поиск изображений или категорий",
 								"video": "Поиск видео или категорий",
 								"audio": "Поиск аудио или категорий"
@@ -3807,6 +3974,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Klicka på stjärnan i hörnet av en GIF för att lägga till den i dina favoriter",
 									"image": "Klicka på stjärnan i hörnet av en bild för att lägga den till dina favoriter",
 									"video": "Klicka på stjärnan i hörnet av en video för att lägga den till dina favoriter",
 									"audio": "Klicka på stjärnan i hörnet av ett ljud för att placera den i dina favoriter"
@@ -3821,16 +3989,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "GIF:en har flyttats!",
 										"image": "Bilden har flyttats!",
 										"video": "Videon har flyttats!",
 										"audio": "Ljudet har flyttats!"
 									},
 									"remove": {
+										"gif": "GIF har tagits bort från kategorierna!",
 										"image": "Bilden har tagits bort från kategorierna!",
 										"video": "Videon har tagits bort från kategorierna!",
 										"audio": "Ljud har tagits bort från kategorier!"
 									},
 									"download": {
+										"gif": "GIF:en har laddats upp!",
 										"image": "Bilden har laddats upp!",
 										"video": "Videon har laddats upp!",
 										"audio": "Ljudet har laddats ner!"
@@ -3838,6 +4009,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "Det gick inte att ladda ner GIF",
 										"image": "Det gick inte att ladda upp bilden",
 										"video": "Det gick inte att ladda ner videon",
 										"audio": "Det gick inte att ladda ner ljudet"
@@ -3848,12 +4020,14 @@ module.exports = (() => {
 									"hide": "Dölj beställningar"
 								},
 								"placeholder": {
+									"gif": "GIF-namn",
 									"image": "Bildnamn",
 									"video": "Videonamn",
 									"audio": "Ljudnamn"
 								}
 							},
 							"searchItem": {
+								"gif": "Sök efter GIF-filer eller kategorier",
 								"image": "Sök efter bilder eller kategorier",
 								"video": "Sök efter videor eller kategorier",
 								"audio": "Sök efter ljud eller kategorier"
@@ -3899,6 +4073,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "คลิกที่ดาวตรงมุมของ GIF เพื่อเพิ่มไปยังรายการโปรดของคุณ",
 									"image": "คลิกที่ดาวที่มุมของภาพเพื่อใส่ในรายการโปรดของคุณ",
 									"video": "คลิกที่ดาวที่มุมของวิดีโอเพื่อใส่ในรายการโปรดของคุณ",
 									"audio": "คลิกที่ดาวตรงมุมของเสียงเพื่อใส่ในรายการโปรดของคุณ"
@@ -3913,16 +4088,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "GIF ถูกย้าย!!",
 										"image": "ย้ายภาพแล้ว!",
 										"video": "วีดีโอถูกย้าย!",
 										"audio": "ย้ายเสียงแล้ว!"
 									},
 									"remove": {
+										"gif": "GIF ถูกลบออกจากหมวดหมู่!",
 										"image": "รูปภาพถูกลบออกจากหมวดหมู่!",
 										"video": "วิดีโอถูกลบออกจากหมวดหมู่แล้ว!",
 										"audio": "เสียงถูกลบออกจากหมวดหมู่!"
 									},
 									"download": {
+										"gif": "อัปโหลด GIF แล้ว!",
 										"image": "อัปโหลดรูปภาพแล้ว!",
 										"video": "อัปโหลดวิดีโอแล้ว!",
 										"audio": "ดาวน์โหลดไฟล์เสียงแล้ว!"
@@ -3930,6 +4108,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "ไม่สามารถดาวน์โหลด GIF",
 										"image": "ไม่สามารถอัปโหลดภาพ",
 										"video": "ไม่สามารถดาวน์โหลดวิดีโอ",
 										"audio": "ไม่สามารถดาวน์โหลดเสียง"
@@ -3940,12 +4119,14 @@ module.exports = (() => {
 									"hide": "ซ่อนคำสั่งซื้อ"
 								},
 								"placeholder": {
+									"gif": "ชื่อ GIF",
 									"image": "ชื่อภาพ",
 									"video": "ชื่อวิดีโอ",
 									"audio": "ชื่อเสียง"
 								}
 							},
 							"searchItem": {
+								"gif": "ค้นหา GIF หรือหมวดหมู่",
 								"image": "ค้นหารูปภาพหรือหมวดหมู่",
 								"video": "ค้นหาวิดีโอหรือหมวดหมู่",
 								"audio": "ค้นหาไฟล์เสียงหรือหมวดหมู่"
@@ -3991,6 +4172,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Favorilerinize eklemek için bir GIF'in köşesindeki yıldıza tıklayın",
 									"image": "Favorilerinize eklemek için bir resmin köşesindeki yıldıza tıklayın",
 									"video": "Favorilerinize eklemek için bir videonun köşesindeki yıldıza tıklayın",
 									"audio": "Favorilerinize eklemek için bir sesin köşesindeki yıldıza tıklayın"
@@ -4005,16 +4187,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "GIF taşındı!",
 										"image": "Resim taşındı!",
 										"video": "Video taşındı!",
 										"audio": "Ses taşındı!"
 									},
 									"remove": {
+										"gif": "GIF kategorilerden kaldırıldı!",
 										"image": "Resim kategorilerden kaldırıldı!",
 										"video": "Video kategorilerden kaldırıldı!",
 										"audio": "Ses kategorilerden kaldırıldı!"
 									},
 									"download": {
+										"gif": "GIF yüklendi!",
 										"image": "Resim yüklendi!",
 										"video": "Video yüklendi!",
 										"audio": "Ses indirildi!"
@@ -4022,6 +4207,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "GIF indirilemedi",
 										"image": "Resim yüklenemedi",
 										"video": "Video indirilemedi",
 										"audio": "Ses indirilemedi"
@@ -4032,12 +4218,14 @@ module.exports = (() => {
 									"hide": "Siparişleri gizle"
 								},
 								"placeholder": {
+									"gif": "GIF Adı",
 									"image": "Resim adı",
 									"video": "video adı",
 									"audio": "Ses adı"
 								}
 							},
 							"searchItem": {
+								"gif": "GIF'leri veya kategorileri arayın",
 								"image": "Resim veya kategori arayın",
 								"video": "Videoları veya kategorileri arayın",
 								"audio": "Sesleri veya kategorileri arayın"
@@ -4083,6 +4271,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Натисніть зірочку в кутку GIF-файлу, щоб додати його до вибраного",
 									"image": "Клацніть на зірочку в кутку зображення, щоб помістити його у вибране",
 									"video": "Клацніть на зірочку в кутку відео, щоб поставити його у вибране",
 									"audio": "Клацніть на зірочку в кутку звукового супроводу, щоб помістити його у вибране"
@@ -4097,16 +4286,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "GIF переміщено!",
 										"image": "Зображення переміщено!",
 										"video": "Відео переміщено!",
 										"audio": "Аудіо переміщено!"
 									},
 									"remove": {
+										"gif": "GIF видалено з категорій!",
 										"image": "Зображення видалено з категорій!",
 										"video": "Відео видалено з категорій!",
 										"audio": "Аудіо вилучено з категорій!"
 									},
 									"download": {
+										"gif": "GIF завантажено!",
 										"image": "Зображення завантажено!",
 										"video": "Відео завантажено!",
 										"audio": "Аудіо завантажено!"
@@ -4114,6 +4306,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "Не вдалося завантажити GIF",
 										"image": "Не вдалося завантажити зображення",
 										"video": "Не вдалося завантажити відео",
 										"audio": "Не вдалося завантажити аудіо"
@@ -4124,12 +4317,14 @@ module.exports = (() => {
 									"hide": "Сховати замовлення"
 								},
 								"placeholder": {
+									"gif": "Ім'я GIF",
 									"image": "Назва зображення",
 									"video": "Назва відео",
 									"audio": "Назва аудіо"
 								}
 							},
 							"searchItem": {
+								"gif": "Пошук GIF-файлів або категорій",
 								"image": "Шукайте зображення або категорії",
 								"video": "Шукайте відео або категорії",
 								"audio": "Шукайте аудіо чи категорії"
@@ -4175,6 +4370,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Nhấp vào ngôi sao ở góc của GIF để thêm nó vào mục yêu thích của bạn",
 									"image": "Nhấp vào ngôi sao ở góc của hình ảnh để đưa nó vào mục yêu thích của bạn",
 									"video": "Nhấp vào ngôi sao ở góc video để đưa video đó vào mục yêu thích của bạn",
 									"audio": "Nhấp vào ngôi sao ở góc của âm thanh để đưa nó vào mục yêu thích của bạn"
@@ -4189,16 +4385,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "GIF đã được di chuyển!",
 										"image": "Hình ảnh đã được di chuyển!",
 										"video": "Video đã được chuyển đi!",
 										"audio": "Âm thanh đã được di chuyển!"
 									},
 									"remove": {
+										"gif": "GIF đã bị xóa khỏi danh mục!",
 										"image": "Hình ảnh đã bị xóa khỏi danh mục!",
 										"video": "Video đã bị xóa khỏi danh mục!",
 										"audio": "Âm thanh đã bị xóa khỏi danh mục!"
 									},
 									"download": {
+										"gif": "GIF đã được tải lên!",
 										"image": "Зображення завантажено!",
 										"video": "Відео завантажено!",
 										"audio": "Аудіо завантажено!"
@@ -4206,6 +4405,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "Không tải xuống được GIF",
 										"image": "Не вдалося завантажити зображення",
 										"video": "Не вдалося завантажити відео",
 										"audio": "Не вдалося завантажити аудіо"
@@ -4216,12 +4416,14 @@ module.exports = (() => {
 									"hide": "Ẩn đơn đặt hàng"
 								},
 								"placeholder": {
+									"gif": "Tên GIF",
 									"image": "Tên Hình ảnh",
 									"video": "Tên video",
 									"audio": "Tên âm thanh"
 								}
 							},
 							"searchItem": {
+								"gif": "Tìm kiếm GIF hoặc danh mục",
 								"image": "Tìm kiếm hình ảnh hoặc danh mục",
 								"video": "Tìm kiếm video hoặc danh mục",
 								"audio": "Tìm kiếm âm thanh hoặc danh mục"
@@ -4267,6 +4469,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "单击 GIF 一角的星号将其添加到您的收藏夹",
 									"image": "单击图像角落的星星将其放入您的收藏夹",
 									"video": "点击视频角落的星星，将其放入您的收藏夹",
 									"audio": "单击音频一角的星星将其放入您的收藏夹"
@@ -4281,16 +4484,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "GIF 已移动！",
 										"image": "图片已移动！",
 										"video": "视频已移！",
 										"audio": "音频已移动！"
 									},
 									"remove": {
+										"gif": "GIF 已从类别中删除！",
 										"image": "该图片已从类别中删除！",
 										"video": "该视频已从类别中删除！",
 										"audio": "音频已从类别中删除！"
 									},
 									"download": {
+										"gif": "GIF已上传！",
 										"image": "图片已上传！",
 										"video": "视频已上传！",
 										"audio": "音频已下载！"
@@ -4298,6 +4504,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "下载 GIF 失败",
 										"image": "上传图片失败",
 										"video": "下载视频失败",
 										"audio": "无法下载音频"
@@ -4308,12 +4515,14 @@ module.exports = (() => {
 									"hide": "隐藏订单"
 								},
 								"placeholder": {
+									"gif": "GIF 名称",
 									"image": "图片名称",
 									"video": "视频名称",
 									"audio": "音频名称"
 								}
 							},
 							"searchItem": {
+								"gif": "搜索 GIF 或类别",
 								"image": "搜索图像或类别",
 								"video": "搜索视频或类别",
 								"audio": "搜索音频或类别"
@@ -4359,6 +4568,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "單擊 GIF 一角的星號將其添加到您的收藏夾",
 									"image": "點擊圖像角落的星星將其放入您的收藏夾",
 									"video": "點擊影片角落的星星將其放入您的收藏夾",
 									"audio": "單擊音訊角落的星星將其放入您的收藏夾"
@@ -4373,22 +4583,26 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "GIF已被移動！",
 										"image": "圖片已移動！",
 										"video": "影片已移動！",
 										"audio": "音訊已移動！"
 									},
 									"remove": {
+										"gif": "GIF 已从类别中删除！",
 										"image": "該圖片已從分類中刪除！",
 										"video": "該影片已從分類中刪除！",
 										"audio": "該音訊已從分類中刪除！"
 									},
 									"download": {
+										"gif": "GIF已上傳！",
 										"image": "圖片已上傳！",
 										"video": "視頻已上傳！",
 										"audio": "音頻已下載！"
 									}
 								},
 								"download": {
+									"gif": "下載 GIF 失敗",
 									"image": "上傳圖片失敗",
 									"video": "下載視頻失敗",
 									"audio": "無法下載音頻"
@@ -4398,12 +4612,14 @@ module.exports = (() => {
 									"hide": "隱藏控制選單"
 								},
 								"placeholder": {
+									"gif": "GIF 名稱",
 									"image": "圖片名稱",
 									"video": "影片名稱",
 									"audio": "音訊名稱"
 								}
 							},
 							"searchItem": {
+								"gif": "搜索 GIF 或類別",
 								"image": "搜索圖片或分類",
 								"video": "搜索影片或分類",
 								"audio": "搜索音訊或分類"
@@ -4449,6 +4665,7 @@ module.exports = (() => {
 							},
 							"media": {
 								"emptyHint": {
+									"gif": "Click on the star in the corner of a GIF to bookmark it",
 									"image": "Click on the star in the corner of an image to bookmark it",
 									"video": "Click on the star in the corner of a video to bookmark it",
 									"audio": "Click on the star in the corner of an audio to bookmark it",
@@ -4463,16 +4680,19 @@ module.exports = (() => {
 								},
 								"success": {
 									"move": {
+										"gif": "GIF moved!",
 										"image": "Image moved!",
 										"video": "Video moved!",
 										"audio": "Audio moved!",
 									},
 									"remove": {
+										"gif": "GIF removed from categories!",
 										"image": "Image removed from categories!",
 										"video": "Video removed from categories!",
 										"audio": "Audio removed from categories!",
 									},
 									"download": {
+										"gif": "GIF downloaded!",
 										"image": "Image downloaded!",
 										"video": "Video downloaded!",
 										"audio": "Audio downloaded!",
@@ -4480,6 +4700,7 @@ module.exports = (() => {
 								},
 								"error": {
 									"download": {
+										"gif": "Failed to download GIF",
 										"image": "Failed to download image",
 										"video": "Failed to download video",
 										"audio": "Failed to download audio",
@@ -4490,12 +4711,14 @@ module.exports = (() => {
 									"hide": "Hide controls",
 								},
 								"placeholder": {
+									"gif": "GIF name",
 									"image": "Image name",
 									"video": "Video name",
 									"audio": "Audio name",
 								},
 							},
 							"searchItem": {
+								"gif": "Search for GIFs or categories",
 								"image": "Search for images or categories",
 								"video": "Search for videos or categories",
 								"audio": "Search for audios or categories",
