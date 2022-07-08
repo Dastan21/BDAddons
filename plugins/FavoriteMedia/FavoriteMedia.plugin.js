@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.19
+ * @version 1.5.20
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ module.exports = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.19",
+			version: "1.5.20",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -146,7 +146,7 @@ module.exports = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Removed fav star and context menu on GIFs"
+					"Fixed category dot module import"
 				]
 			}
 		]
@@ -182,7 +182,7 @@ module.exports = (() => {
 				menu: WebpackModules.getByProps("menu", "scroller", "styleFixed"),
 				result: WebpackModules.getByProps("desiredItemWidth", "results", "result"),
 				input: WebpackModules.getByProps("inputWrapper", "input", "focused"),
-				role: WebpackModules.getByProps("roleIcon", "roleName", "roleCircle"),
+				role: WebpackModules.getByProps("roleCircle"),
 				_gif: WebpackModules.getByProps("container", "gifFavoriteButton", "embedWrapper"),
 				gif: WebpackModules.getByProps("size", "gifFavoriteButton", "selected"),
 				image: WebpackModules.getByProps("flexCenter", "imageWrapper", "imageWrapperBackground"),
