@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.20
+ * @version 1.5.21
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,9 +14,9 @@ module.exports = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.20",
+			version: "1.5.21",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
-			github_raw: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
+			github_raw: "https://raw.githubusercontent.com/Dastan21/BDAddons/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
 		defaultConfig: [
 			{
@@ -146,7 +146,7 @@ module.exports = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Fixed category dot module import"
+					"Fixed images overlapping"
 				]
 			}
 		]
@@ -1844,8 +1844,8 @@ module.exports = (() => {
 						returnValue.props.children.props.children.push(React.createElement(MediaFavButton, {
 							type: "image",
 							url: propsImg.src.replace("media.discordapp.net", "cdn.discordapp.com").replace(/\?width=([\d]*)\&height=([\d]*)/, ""),
-							width: propsImg.style?.width,
-							height: propsImg.style?.height
+							width: propsImg.style?.maxWidth ?? propsImg.style?.width,
+							height: propsImg.style?.maxHeight ?? propsImg.style?.height
 						}));
 					});
 				}
