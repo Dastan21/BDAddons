@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.21
+ * @version 1.5.22
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ module.exports = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.21",
+			version: "1.5.22",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://raw.githubusercontent.com/Dastan21/BDAddons/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -146,7 +146,8 @@ module.exports = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Fixed images overlapping"
+					"Fixed images overlapping",
+					"Fixed GIFs being favorited as images"
 				]
 			}
 		]
@@ -1836,6 +1837,7 @@ module.exports = (() => {
 						if (!propsButton) return;
 						const propsImg = propsButton.children?.props;
 						if (!propsImg?.src || propsDiv.className?.includes("embedVideo")) return;
+						if (new URL(propsImg.src).pathname.endsWith('.gif')) return;
 						const onclick = propsButton.onClick;
 						propsButton.onClick = e => {
 							if (e.target?.alt === undefined) e.preventDefault();
@@ -1874,6 +1876,7 @@ module.exports = (() => {
 							(props.target.tagName === "VIDEO" && props.target.className && !props.target.className.includes("embedMedia")) || // video
 							(props.target.tagName === "A" && props.target.className && props.target.className.includes("metadataName")) // audio
 						)) return;
+						if (new URL(String(props.target.href)).pathname.endsWith('.gif')) return;
 						let target = props.target;
 						if (target.tagName === "svg") target = props.target.parentElement?.parentElement?.previousSibling;
 						if (target.tagName === "path") target = props.target.parentElement?.parentElement?.parentElement?.previousSibling;
