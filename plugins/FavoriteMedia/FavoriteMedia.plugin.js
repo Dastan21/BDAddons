@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.23
+ * @version 1.5.24
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ module.exports = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.23",
+			version: "1.5.24",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://raw.githubusercontent.com/Dastan21/BDAddons/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -146,6 +146,7 @@ module.exports = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
+					"Fixed context menu for non-latin languages",
 					"Fixed Discord locale language module import"
 				]
 			}
@@ -675,18 +676,21 @@ module.exports = (() => {
 					const moveItems = [];
 					if (this.props.index > 0) {
 						moveItems.push({
+							id: 'category-movePrevious',
 							label: labels.category.movePrevious,
 							action: () => moveCategory(this.props.type, this.props.index, this.props.index - 1)
 						});
 					}
 					if (this.props.index < this.props.length - 1) {
 						moveItems.push({
+							id: 'category-moveNext',
 							label: labels.category.moveNext,
 							action: () => moveCategory(this.props.type, this.props.index, this.props.index + 1)
 						});
 					}
 					const items = [
 						{
+							id: 'category-copyColor',
 							label: labels.category.copyColor,
 							action: () => {
 								ElectronModule.copy(this.props.color || DEFAULT_BACKGROUND_COLOR);
@@ -694,6 +698,7 @@ module.exports = (() => {
 							}
 						},
 						{
+							id: 'category-download',
 							label: labels.category.download,
 							action: () => BdApi.openDialog({ openDirectory: true }).then(({ filePaths }) => {
 								if (!filePaths) return;
@@ -717,10 +722,12 @@ module.exports = (() => {
 							})
 						},
 						{
+							id: 'category-edit',
 							label: labels.category.edit,
 							action: () => this.props.openCategoryModal("edit", { name: this.props.name, color: this.props.color, id: this.props.id })
 						},
 						{
+							id: 'category-delete',
 							label: labels.category.delete,
 							danger: true,
 							action: () => {
@@ -730,6 +737,7 @@ module.exports = (() => {
 						}
 					];
 					if (moveItems.length > 0) items.unshift({
+						id: 'category-move',
 						label: labels.category.move,
 						type: "submenu",
 						items: moveItems
@@ -1213,6 +1221,7 @@ module.exports = (() => {
 						ContextMenu.buildMenu([{
 							type: "group",
 							items: [{
+								id: 'category-create',
 								label: labels.category.create,
 								action: () => this.openCategoryModal("create")
 							}]
@@ -1244,6 +1253,7 @@ module.exports = (() => {
 				categoriesItems(media_id) {
 					return this.state.categories.map(c => {
 						return {
+							id: `category-menu-${c.id}`,
 							label: c.name,
 							key: c.id,
 							action: () => this.changeMediaCategory(media_id, c.id),
@@ -1308,21 +1318,24 @@ module.exports = (() => {
 
 				onMediaContextMenu(e, media_id) {
 					const items = [{
+						id: 'media-input',
 						label: "media-input",
 						render: () => React.createElement(MediaMenuItemInput, { id: media_id, type: this.props.type, loadMedias: this.loadMedias })
-					},
-					{
+					}, {
+						id: 'media-upload-title',
 						label: labels.media.upload.title,
 						type: "submenu",
 						items: [{
+							id: 'media-upload-normal',
 							label: labels.media.upload.normal,
 							action: () => this.uploadMedia(media_id)
 						}, {
+							id: 'media-upload-spoiler',
 							label: labels.media.upload.spoiler,
 							action: () => this.uploadMedia(media_id, true)
 						}]
-					},
-					{
+					}, {
+						id: 'media-download',
 						label: Strings.DOWNLOAD,
 						action: () => {
 							const media = PluginUtilities.loadData(config.info.name, this.props.type, { medias: [] }).medias[media_id];
@@ -1343,12 +1356,14 @@ module.exports = (() => {
 					const items_categories = this.categoriesItems(media_id);
 					if (items_categories.length > 0) {
 						items.splice(1, 0, {
+							id: 'media-moveAddTo',
 							label: this.state.category || this.isInCategory(media_id) !== undefined ? labels.media.moveTo : labels.media.addTo,
 							type: "submenu",
 							items: items_categories
 						});
 					}
 					if (this.isInCategory(media_id) !== undefined) items.push({
+						id: 'media-removeFrom',
 						label: labels.media.removeFrom,
 						danger: true,
 						action: () => this.removeMediaCategory(media_id)
@@ -1901,6 +1916,7 @@ module.exports = (() => {
 							const category_id = PluginUtilities.loadData(config.info.name, data.type, { medias: [] }).medias.find(m => m.url === data.url)?.category_id;
 							const categories = PluginUtilities.loadData(config.info.name, data.type, { categories: [] }).categories.filter(c => category_id !== undefined ? c.id !== category_id : true);
 							const buttonCategories = categories.map(c => ({
+								id: `category-edit-${c.id}`,
 								label: c.name,
 								key: c.id,
 								action: () => {
@@ -1909,6 +1925,7 @@ module.exports = (() => {
 								render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })
 							}));
 							menuItems.push({
+								id: 'unfavorite-gif',
 								label: Strings.GIF_TOOLTIP_REMOVE_FROM_FAVORITES,
 								icon: () => React.createElement(StarSVG, { filled: true }),
 								action: () => {
@@ -1917,6 +1934,7 @@ module.exports = (() => {
 								}
 							});
 							if (categories.length) menuItems.push({
+								id: 'category-edit',
 								label: category_id !== undefined ? labels.media.moveTo : labels.media.addTo,
 								type: "submenu",
 								items: buttonCategories
@@ -1924,6 +1942,7 @@ module.exports = (() => {
 						} else {
 							const categories = PluginUtilities.loadData(config.info.name, data.type, { categories: [] }).categories;
 							const buttonCategories = categories.map(c => ({
+								id: `category-name-${c.id}`,
 								label: c.name,
 								key: c.id,
 								action: () => {
@@ -1934,6 +1953,7 @@ module.exports = (() => {
 								render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })
 							}));
 							menuItems.push({
+								id: 'favorite-gif',
 								label: Strings.GIF_TOOLTIP_ADD_TO_FAVORITES,
 								icon: () => React.createElement(StarSVG, { filled: true }),
 								action: () => {
@@ -1942,6 +1962,7 @@ module.exports = (() => {
 								}
 							});
 							if (categories.length) menuItems.push({
+								id: 'media-addTo',
 								label: labels.media.addTo,
 								type: "submenu",
 								items: buttonCategories
