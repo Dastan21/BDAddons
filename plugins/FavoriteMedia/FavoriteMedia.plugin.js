@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.24
+ * @version 1.5.25
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ module.exports = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.24",
+			version: "1.5.25",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://raw.githubusercontent.com/Dastan21/BDAddons/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -146,8 +146,7 @@ module.exports = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Fixed context menu for non-latin languages",
-					"Fixed Discord locale language module import"
+					"Fixed message context menu for videos"
 				]
 			}
 		]
@@ -1887,10 +1886,10 @@ module.exports = (() => {
 						if (!this.settings.showContextMenuFavorite) return;
 						if (!(
 							((props.target.tagName === "A" && !props.target.parentElement.className?.includes("embedVideo")) || (props.target.tagName === "svg" && props.target.className && props.target.className.baseVal === classes.gif.icon) || props.target.tagName === "path") || // image
-							(props.target.tagName === "VIDEO" && props.target.className && !props.target.className.includes("embedMedia")) || // video
+							(props.target.tagName === "VIDEO" && props.target.className?.includes("video")) || // video
 							(props.target.tagName === "A" && props.target.className && props.target.className.includes("metadataName")) // audio
 						)) return;
-						if (new URL(String(props.target.href)).pathname.endsWith('.gif')) return;
+						if (new URL(String(props.target.href ?? props.target.src)).pathname.endsWith('.gif')) return;
 						let target = props.target;
 						if (target.tagName === "svg") target = props.target.parentElement?.parentElement?.previousSibling;
 						if (target.tagName === "path") target = props.target.parentElement?.parentElement?.parentElement?.previousSibling;
@@ -1904,11 +1903,7 @@ module.exports = (() => {
 							favorited: undefined
 						};
 						data.url = data.url.replace("media.discordapp.net", "cdn.discordapp.com");
-						if (props.target.tagName === "VIDEO") {
-							data.type = "video";
-							data.width = Number(target.parentElement.parentElement.style.width.replace("px", ""))
-							data.height = Number(target.parentElement.parentElement.style.height.replace("px", ""))
-						}
+						if (props.target.tagName === "VIDEO") data.type = "video";
 						if (target.className.includes("metadataName")) data.type = "audio";
 						data.favorited = this.isFavorited(data.type, data.url);
 						const menuItems = [];
