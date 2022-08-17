@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.25
+ * @version 1.5.26
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ module.exports = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.25",
+			version: "1.5.26",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://raw.githubusercontent.com/Dastan21/BDAddons/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -146,6 +146,7 @@ module.exports = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
+					"Fixed GIFs being saved as images",
 					"Fixed message context menu for videos"
 				]
 			}
@@ -1849,7 +1850,7 @@ module.exports = (() => {
 						const propsButton = propsDiv.children?.[1]?.props;
 						if (!propsButton) return;
 						const propsImg = propsButton.children?.props;
-						if (!propsImg?.src || propsDiv.className?.includes("embedVideo")) return;
+						if (!propsImg?.src || propsImg.className?.includes("embedVideo")) return;
 						if (new URL(propsImg.src).pathname.endsWith('.gif')) return;
 						const onclick = propsButton.onClick;
 						propsButton.onClick = e => {
@@ -1885,7 +1886,7 @@ module.exports = (() => {
 						if (returnValue.props?.children?.find(e => e?.props?.id === "favoriteMedia")) return;
 						if (!this.settings.showContextMenuFavorite) return;
 						if (!(
-							((props.target.tagName === "A" && !props.target.parentElement.className?.includes("embedVideo")) || (props.target.tagName === "svg" && props.target.className && props.target.className.baseVal === classes.gif.icon) || props.target.tagName === "path") || // image
+							((props.target.tagName === "A" && props.target.nextSibling?.firstChild?.tagName !== "VIDEO") || (props.target.tagName === "svg" && props.target.className && props.target.className.baseVal === classes.gif.icon) || props.target.tagName === "path") || // image
 							(props.target.tagName === "VIDEO" && props.target.className?.includes("video")) || // video
 							(props.target.tagName === "A" && props.target.className && props.target.className.includes("metadataName")) // audio
 						)) return;
