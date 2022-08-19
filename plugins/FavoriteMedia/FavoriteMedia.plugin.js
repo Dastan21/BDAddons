@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.26
+ * @version 1.5.27
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -14,7 +14,7 @@ module.exports = (() => {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
 			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.26",
+			version: "1.5.27",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://raw.githubusercontent.com/Dastan21/BDAddons/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -146,8 +146,8 @@ module.exports = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Fixed GIFs being saved as images",
-					"Fixed message context menu for videos"
+					"Fixed hovering embed no longer show every images stars",
+					"Fixed some Russian translation"
 				]
 			}
 		]
@@ -242,6 +242,8 @@ module.exports = (() => {
 				image: {
 					imageAccessory: class_modules.image.imageAccessory,
 					clickable: class_modules.image.clickable,
+					embedWrapper: class_modules._gif.embedWrapper,
+					imageWrapper: class_modules.image.imageWrapper,
 				},
 				control: class_modules.control.control,
 				category: {
@@ -1746,6 +1748,17 @@ module.exports = (() => {
 							margin-right: 0.7em;
 							margin-left: 0;
 						}
+						/* Embed fix */
+						.${classes.image.embedWrapper}:focus-within .${classes.gif.gifFavoriteButton1}, .${classes.image.embedWrapper}:hover .${classes.gif.gifFavoriteButton1} {
+							opacity: 0;
+							-webkit-transform: unset;
+							transform: unset;
+						}
+						.${classes.image.imageWrapper}:focus-within .${classes.gif.gifFavoriteButton1}, .${classes.image.imageWrapper}:hover .${classes.gif.gifFavoriteButton1} {
+							opacity: 1;
+							-webkit-transform: translateY(0);
+							transform: translateY(0);
+						}
 					`);
 				}
 				onStop() {
@@ -2035,7 +2048,7 @@ module.exports = (() => {
 					case "bg":		// Bulgarian
 						return {
 							"tabName": {
-								"image": "Картина",
+								"image": "Изображения",
 								"video": "Видео",
 								"audio": "Аудио"
 							},
@@ -3698,7 +3711,7 @@ module.exports = (() => {
 						return {
 							"tabName": {
 								"image": "Картина",
-								"video": "видео",
+								"video": "Видео",
 								"audio": "Аудио"
 							},
 							"create": "Создавать",
