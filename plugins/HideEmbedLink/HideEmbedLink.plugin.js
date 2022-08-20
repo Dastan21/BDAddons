@@ -111,7 +111,7 @@ module.exports = class HideEmbedLink {
 			ret.props['aria-hel-id'] = message_id
 			ret.props['aria-hel-url'] = url
 			if (message_id == null || url == null) return
-			ret.props.children.props?.children?.props?.children?.unshift(BdApi.React.createElement(Icon, { message_id, url }))
+			ret.props.children?.props?.children?.props?.children?.unshift(BdApi.React.createElement(Icon, { message_id, url }))
 		})
 	}
 
@@ -121,6 +121,7 @@ module.exports = class HideEmbedLink {
 			const embeds = ret.props?.children?.find(c => Array.isArray(c))
 			if (embeds == null || embeds?.length < 1) return
 			embeds.forEach((e, i) => {
+				if (e.props.children?.props == null) return
 				e.props.children.props['aria-hel-id'] = t.props.message.id
 				e.props.children.props['aria-hel-url'] = Array.from(document.querySelectorAll(`div[id='message-content-${t.props.message.id}'] a.embedLink`)).find(link => isValid(link.getAttribute('title'), [t.props.message.embeds[i].url]))?.getAttribute('title')
 			})
