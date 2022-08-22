@@ -1,0 +1,17 @@
+name: FavoriteMedia Feature Request
+description: Request a feature for FavoriteMedia plugin
+title: "[FavoriteMedia]: "
+labels: ["feature"]
+body:
+  - type: textarea
+    id: solution
+    attributes:
+      label: Describe the solution you'd like
+      description: A  clear and concise description of what you want to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help understand your request.

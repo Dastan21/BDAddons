@@ -1,0 +1,56 @@
+name: HideEmbedLink Bug Report
+description: Report a bug for HideEmbedLink plugin
+title: "[HideEmbedLink]: "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: discord-release
+    attributes:
+      label: Discord Build
+      description: What Discord Build do you use?
+      options:
+        - Stable
+        - PTB
+        - Canary
+    validations:
+      required: true
+  - type: input
+    id: discord-version
+    attributes:
+      label: Discord Version
+      description: What is your Discord version?
+      placeholder: ex. Stable 142995 (adcce46)
+    validations:
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin Version
+      description: What is the plugin version?
+      placeholder: ex. 1.3.6
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps To Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. In this environment...
+        2. With this config...
+        3. Run '...'
+        4. See error...
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem.
