@@ -52,6 +52,9 @@
 				id: "mediaVolume",
 				name: "Preview Media Volume",
 				note: "Volume of the previews medias on the picker tab",
+				min: 0,
+				max: 100,
+				markers: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
 				value: 10
 			},
 			{
@@ -217,7 +220,6 @@
 				},
 				result: {
 					result: class_modules.result.result,
-					gif: class_modules.result.result,
 					favButton: class_modules.result.favButton,
 					emptyHints: class_modules.result.emptyHints,
 					emptyHint: class_modules.result.emptyHint,
@@ -889,7 +891,7 @@
 							const bufs = [];
 							res.on('data', chunk => bufs.push(chunk));
 							res.on('end', () => {
-								if (!shiftPressed) WebpackModules.getByProps("closeExpressionPicker").closeExpressionPicker();
+								if (!shiftPressed) EPS.closeExpressionPicker();
 								try {
 									const content = document.querySelector('[class*="textArea"] [data-slate-string]')?.innerText
 									const fileName = this.props.name + this.props.ext
@@ -913,7 +915,7 @@
 							const input = textarea?.querySelector('[role="textbox"]')
 							const enterEvent = new KeyboardEvent('keydown', { charCode: 13, keyCode: 13, bubbles: true });
 							if (input) setTimeout(() => input?.dispatchEvent(enterEvent), 0);
-							else EPS.toggleExpressionPicker(this.props.type, EPSConstants)
+							else EPS.toggleExpressionPicker(this.props.type, EPSConstants);
 						} else {
 							WebpackModules.getByProps("sendMessage").sendMessage(SelectedChannelStore.getChannelId(), { content: this.props.url, validNonShortcutEmojis: [] });
 						}
@@ -1316,7 +1318,7 @@
 									message: { content: content || '' }
 								});
 								ComponentDispatch.dispatchToLastSubscribed("CLEAR_TEXT");
-								WebpackModules.getByProps("closeExpressionPicker").closeExpressionPicker();
+								EPS.closeExpressionPicker();
 							} catch (e) { console.error(e) }
 						});
 						res.on('error', err => console.error(err));
@@ -1588,7 +1590,7 @@
 				}
 
 				checkPicker() {
-					canClosePicker = this.props.type !== WebpackModules.getByProps("useExpressionPickerStore").useExpressionPickerStore.getState().activeView;
+					canClosePicker = this.props.type !== EPS.useExpressionPickerStore.getState().activeView;
 				}
 
 				componentDidMount() {
@@ -1778,7 +1780,7 @@
 				}
 
 				MediaTab(mediaType, elementType) {
-					const selected = mediaType === WebpackModules.getByProps("useExpressionPickerStore").useExpressionPickerStore.getState().activeView;
+					const selected = mediaType === EPS.useExpressionPickerStore.getState().activeView;
 					return React.createElement(elementType, {
 						id: `${mediaType}-picker-tab`,
 						"aria-controls": `${mediaType}-picker-tab-panel`,
@@ -1805,7 +1807,7 @@
 								if (this.settings.image.enabled) head.push(this.MediaTab("image", elementType));
 								if (this.settings.video.enabled) head.push(this.MediaTab("video", elementType));
 								if (this.settings.audio.enabled) head.push(this.MediaTab("audio", elementType));
-								const activeMediaPicker = WebpackModules.getByProps("useExpressionPickerStore").useExpressionPickerStore.getState().activeView;
+								const activeMediaPicker = EPS.useExpressionPickerStore.getState().activeView;
 								if (["image", "video", "audio"].includes(activeMediaPicker)) body.push(React.createElement(MediaPicker, { type: activeMediaPicker, volume: this.settings.mediaVolume }));
 							} catch (err) {
 								console.error("[FavoriteMedia] Error in ExpressionPicker\n", err);
@@ -1888,7 +1890,7 @@
 				}
 
 				patchClosePicker() {
-					Patcher.instead(WebpackModules.getByProps("closeExpressionPicker"), "closeExpressionPicker", (_, __, originalFunction) => {
+					Patcher.instead(EPS, "closeExpressionPicker", (_, __, originalFunction) => {
 						if (canClosePicker) originalFunction();
 					});
 				}
