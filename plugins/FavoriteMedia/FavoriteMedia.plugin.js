@@ -1,20 +1,20 @@
 /**
  * @name FavoriteMedia
- * @description Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.
+ * @description Allows to favorite images, videos and audios.
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.5.27
+ * @version 1.5.28
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
-module.exports = (() => {
+ module.exports = (() => {
 	const config = {
 		info: {
 			name: "FavoriteMedia",
 			authors: [{ name: "Dastan", github_username: "Dastan21", discord_id: "310450863845933057" }],
-			description: "Allows to favorite images, videos and audios. Adds tabs to the emojis menu to see your favorited medias.",
-			version: "1.5.27",
+			description: "Allows to favorite images, videos and audios.",
+			version: "1.5.28",
 			github: "https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia",
 			github_raw: "https://raw.githubusercontent.com/Dastan21/BDAddons/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js"
 		},
@@ -146,8 +146,8 @@ module.exports = (() => {
 				title: "Fixed",
 				type: "fixed",
 				items: [
-					"Fixed hovering embed no longer show every images stars",
-					"Fixed some Russian translation"
+					"Changed star position for videos",
+					"Fixed audios star not showing"
 				]
 			}
 		]
@@ -199,6 +199,7 @@ module.exports = (() => {
 				container: WebpackModules.getByProps("container", "inner", "pointer"),
 				scroller: WebpackModules.getByProps("scrollerBase", "thin", "fade"),
 				look: WebpackModules.getByProps("lowSaturationUnderline", "button", "lookFilled"),
+				audio: WebpackModules.getByProps("wrapper", "wrapperAudio", "wrapperPaused"),
 			};
 			const classes = {
 				icon: {
@@ -244,6 +245,7 @@ module.exports = (() => {
 					clickable: class_modules.image.clickable,
 					embedWrapper: class_modules._gif.embedWrapper,
 					imageWrapper: class_modules.image.imageWrapper,
+					messageAttachment: class_modules.image.messageAttachment,
 				},
 				control: class_modules.control.control,
 				category: {
@@ -299,6 +301,9 @@ module.exports = (() => {
 					colorBrand: class_modules.look.colorBrand,
 					grow: class_modules.look.grow,
 					contents: class_modules.look.contents,
+				},
+				audio: {
+					wrapperAudio: class_modules.audio.wrapperAudio,
 				}
 			};
 			const DEFAULT_BACKGROUND_COLOR = "#202225";
@@ -494,7 +499,7 @@ module.exports = (() => {
 				render() {
 					return this.props.fromPicker ? this.favButton() :
 						React.createElement("div", {
-							className: `${classes.image.imageAccessory} ${classes.image.clickable} ${this.props.type}-favbtn`
+							className: `${classes.image.imageAccessory} ${classes.image.clickable} ${this.props.type}-favbtn ${!this.props.uploaded ? 'fm-uploaded' : ''}`
 						}, this.favButton())
 				}
 			}
@@ -1700,7 +1705,7 @@ module.exports = (() => {
 						.category-input-color:hover {
 							transform: scale(1.1);
 						}
-						.video-favbtn {
+						.video-favbtn:not(.fm-uploaded) {
 							top: calc(50% - 1em);
 						}
 						.audio-favbtn {
@@ -1749,12 +1754,14 @@ module.exports = (() => {
 							margin-left: 0;
 						}
 						/* Embed fix */
-						.${classes.image.embedWrapper}:focus-within .${classes.gif.gifFavoriteButton1}, .${classes.image.embedWrapper}:hover .${classes.gif.gifFavoriteButton1} {
+						.${classes.image.embedWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):focus-within .${classes.gif.gifFavoriteButton1},
+						.${classes.image.embedWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):hover .${classes.gif.gifFavoriteButton1} {
 							opacity: 0;
 							-webkit-transform: unset;
 							transform: unset;
 						}
-						.${classes.image.imageWrapper}:focus-within .${classes.gif.gifFavoriteButton1}, .${classes.image.imageWrapper}:hover .${classes.gif.gifFavoriteButton1} {
+						.${classes.image.imageWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):focus-within .${classes.gif.gifFavoriteButton1},
+						.${classes.image.imageWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):hover .${classes.gif.gifFavoriteButton1} {
 							opacity: 1;
 							-webkit-transform: translateY(0);
 							transform: translateY(0);
@@ -1853,7 +1860,8 @@ module.exports = (() => {
 							url: url,
 							poster: props.poster,
 							width: props.width,
-							height: props.height
+							height: props.height,
+							uploaded: returnValue.props.children[0] != null
 						}));
 					});
 					Patcher.after(Image.prototype, "render", (_, __, returnValue) => {
