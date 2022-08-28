@@ -8,7 +8,7 @@
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink
  */
 
-const FIX_LIST = [
+ const FIX_LIST = [
 	{
 		match: new RegExp('^https://(.*)youtu.be/(.*)'),
 		include: href => 'https://www.youtube.com/watch?v=' + String(href).split('/')?.pop()
@@ -61,7 +61,7 @@ module.exports = class HideEmbedLink {
 	}
 	start() {
 		BdApi.injectCSS(this.meta.name, `
-			a.embedLink.hideLink {
+			div[id^="message-content-"]:not([class*="repliedTextContent"]) a.embedLink.hideLink {
 				display: none;
 			}
 			.hel-eye, .hel-eye ~ .${embedSuppressButton} {
@@ -121,7 +121,7 @@ module.exports = class HideEmbedLink {
 			const embeds = ret.props?.children?.find(c => Array.isArray(c))
 			if (embeds == null || embeds?.length < 1) return
 			embeds.forEach((e, i) => {
-				if (e.props.children?.props == null) return
+				if (e.props?.children?.props == null) return
 				e.props.children.props['aria-hel-id'] = t.props.message.id
 				e.props.children.props['aria-hel-url'] = Array.from(document.querySelectorAll(`div[id='message-content-${t.props.message.id}'] a.embedLink`)).find(link => isValid(link.getAttribute('title'), [t.props.message.embeds[i].url]))?.getAttribute('title')
 			})
