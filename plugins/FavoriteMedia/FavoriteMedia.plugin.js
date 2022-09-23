@@ -4,16 +4,16 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.6.0
+ * @version 1.6.1
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
- const config = {
+const config = {
 	info: {
 		name: 'FavoriteMedia',
 		authors: [{ name: 'Dastan', github_username: 'Dastan21', discord_id: '310450863845933057' }],
 		description: 'Allows to favorite images, videos and audios.',
-		version: '1.6.0',
+		version: '1.6.1',
 		github: 'https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia',
 		github_raw: 'https://raw.githubusercontent.com/Dastan21/BDAddons/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js'
 	},
@@ -93,6 +93,13 @@
 					name: 'Button',
 					note: 'Show image button on chat',
 					value: true
+				},
+				{
+					type: 'switch',
+					id: 'showStar',
+					name: 'Star',
+					note: 'Show favorite star on image medias',
+					value: true
 				}
 			]
 		},
@@ -115,6 +122,13 @@
 					id: 'showBtn',
 					name: 'Button',
 					note: 'Show video button on chat',
+					value: true
+				},
+				{
+					type: 'switch',
+					id: 'showStar',
+					name: 'Star',
+					note: 'Show favorite star on video medias',
 					value: true
 				}
 			]
@@ -139,6 +153,13 @@
 					name: 'Button',
 					note: 'Show audio button on chat',
 					value: true
+				},
+				{
+					type: 'switch',
+					id: 'showStar',
+					name: 'Star',
+					note: 'Show favorite star on audio medias',
+					value: true
 				}
 			]
 		}
@@ -148,7 +169,7 @@
 			title: 'Fixed',
 			type: 'fixed',
 			items: [
-				'Prepare for the new BdApi'
+				'Added options to hide star on medias (if favoriting only by context menu)'
 			]
 		}
 	]
@@ -156,8 +177,8 @@
 
 class Dummy {
 	constructor() { this._config = config }
-	start() {}
-	stop() {}
+	start() { }
+	stop() { }
 }
 
 if (!global.ZeresPluginLibrary) {
@@ -175,7 +196,7 @@ if (!global.ZeresPluginLibrary) {
 
 module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 	return ((Plugin, Api) => {
-		const { WebpackModules, ReactComponents, PluginUpdater, ContextMenu, PluginUtilities, Utilities, ColorConverter, Toasts, Modals, Tooltip, DiscordModules: { React, ElectronModule, Dispatcher, LocaleManager, SelectedChannelStore, ChannelStore, UserStore, Permissions }, Patcher } = Api
+		const { WebpackModules, ReactComponents, PluginUpdater, ContextMenu, PluginUtilities, Utilities, ColorConverter, Toasts, Modals, Tooltip, DiscordModules: { React, ElectronModule, Dispatcher, LocaleManager, SelectedChannelStore, ChannelStore, UserStore, Permissions, Strings }, Patcher } = Api
 		const { mkdir, access, writeFile, constants } = require('fs')
 
 		const class_modules = {
@@ -310,14 +331,12 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 		const labels = setLabelsByLanguage()
 		const ExpressionPicker = WebpackModules.getModule(e => e.type?.displayName === 'ExpressionPicker')
 		const ChannelTextAreaButtons = WebpackModules.getModule(m => m.type?.displayName === 'ChannelTextAreaButtons')
-		const ConnectedGIFPickerSearchResults = WebpackModules.getModule(m => m.default?.displayName === 'ConnectedGIFPickerSearchResults')
 		const ComponentDispatch = WebpackModules.getByProps('ComponentDispatch').ComponentDispatch
 		const EPS = WebpackModules.getByProps('toggleExpressionPicker')
 		const EPSConstants = WebpackModules.getByProps('ChatInputTypes').ChatInputTypes.NORMAL
 		const PermissionsConstants = WebpackModules.getByProps('Permissions', 'ActivityTypes').Permissions
 		const MediaPlayer = WebpackModules.getByDisplayName('MediaPlayer')
 		const Image = WebpackModules.getByDisplayName('Image')
-		const Strings = BdApi.findModule(m => m.Messages && m.getLocale && m.Messages.CLOSE).Messages
 		const ImageSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 384 384', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M341.333,0H42.667C19.093,0,0,19.093,0,42.667v298.667C0,364.907,19.093,384,42.667,384h298.667 C364.907,384,384,364.907,384,341.333V42.667C384,19.093,364.907,0,341.333,0z M42.667,320l74.667-96l53.333,64.107L245.333,192l96,128H42.667z' }))
 		const VideoSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 298 298', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M298,33c0-13.255-10.745-24-24-24H24C10.745,9,0,19.745,0,33v232c0,13.255,10.745,24,24,24h250c13.255,0,24-10.745,24-24V33zM91,39h43v34H91V39z M61,259H30v-34h31V259z M61,73H30V39h31V73z M134,259H91v-34h43V259z M123,176.708v-55.417c0-8.25,5.868-11.302,12.77-6.783l40.237,26.272c6.902,4.519,6.958,11.914,0.056,16.434l-40.321,26.277C128.84,188.011,123,184.958,123,176.708z M207,259h-43v-34h43V259z M207,73h-43V39h43V73z M268,259h-31v-34h31V259z M268,73h-31V39h31V73z' }))
 		const AudioSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 115.3 115.3', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M47.9,14.306L26,30.706H6c-3.3,0-6,2.7-6,6v41.8c0,3.301,2.7,6,6,6h20l21.9,16.4c4,3,9.6,0.2,9.6-4.8v-77C57.5,14.106,51.8,11.306,47.9,14.306z' }), React.createElement('path', { fill: 'currentColor', d: 'M77.3,24.106c-2.7-2.7-7.2-2.7-9.899,0c-2.7,2.7-2.7,7.2,0,9.9c13,13,13,34.101,0,47.101c-2.7,2.7-2.7,7.2,0,9.899c1.399,1.4,3.199,2,4.899,2s3.601-0.699,4.9-2.1C95.8,72.606,95.8,42.606,77.3,24.106z' }), React.createElement('path', { fill: 'currentColor', d: 'M85.1,8.406c-2.699,2.7-2.699,7.2,0,9.9c10.5,10.5,16.301,24.4,16.301,39.3s-5.801,28.8-16.301,39.3c-2.699,2.7-2.699,7.2,0,9.9c1.4,1.399,3.2,2.1,4.9,2.1c1.8,0,3.6-0.7,4.9-2c13.1-13.1,20.399-30.6,20.399-49.2c0-18.6-7.2-36-20.399-49.2C92.3,5.706,87.9,5.706,85.1,8.406z' }))
@@ -405,7 +424,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 			}
 
 			componentDidMount() {
-				this.tooltipFav = Tooltip.create(this.refs.tooltipFav, this.isFavorited ? Strings.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.GIF_TOOLTIP_ADD_TO_FAVORITES)
+				this.tooltipFav = Tooltip.create(this.refs.tooltipFav, this.isFavorited ? Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES)
 				Dispatcher.subscribe('FAVORITE_MEDIA', this.updateFavorite)
 			}
 
@@ -422,7 +441,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 				if (data.url !== this.props.url) return
 				const fav = this.isFavorited
 				this.setState({ favorited: fav })
-				this.tooltipFav.label = fav ? Strings.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.GIF_TOOLTIP_ADD_TO_FAVORITES
+				this.tooltipFav.label = fav ? Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES
 			}
 
 			changeFavorite() {
@@ -431,7 +450,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 				if (!this.props.fromPicker) this.setState({ favorited: this.isFavorited })
 				Dispatcher.dispatch({ type: 'FAVORITE_MEDIA', url: this.props.url })
 				if (this.props.fromPicker) return
-				this.tooltipFav.label = this.state.favorited ? Strings.GIF_TOOLTIP_ADD_TO_FAVORITES : Strings.GIF_TOOLTIP_REMOVE_FROM_FAVORITES
+				this.tooltipFav.label = this.state.favorited ? Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES : Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES
 				this.tooltipFav.hide()
 				this.tooltipFav.show()
 				this.setState({ pulse: true })
@@ -1209,8 +1228,8 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 					}),
 					{
 						danger: false,
-						confirmText: op === 'create' ? labels.create : Strings.EDIT,
-						cancelText: Strings.CANCEL,
+						confirmText: op === 'create' ? labels.create : Strings.Messages.EDIT,
+						cancelText: Strings.Messages.CANCEL,
 						onConfirm: () => {
 							let res = false
 							if (op === 'create') res = createCategory(this.props.type, this.modal.getValues())
@@ -1343,7 +1362,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 					}]
 				}, {
 					id: 'media-download',
-					label: Strings.DOWNLOAD,
+					label: Strings.Messages.DOWNLOAD,
 					action: () => {
 						const media = PluginUtilities.loadData(config.info.name, this.props.type, { medias: [] }).medias[media_id]
 						const ext = getUrlExt(media.url)
@@ -1841,7 +1860,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 			patchMedias() {
 				Patcher.after(MediaPlayer.prototype, 'render', ({ props }, __, returnValue) => {
 					const type = returnValue.props.children[1].type === 'audio' ? 'audio' : 'video'
-					if (!this.settings[type].enabled) return
+					if (!this.settings[type].enabled || !this.settings[type].showStar) return
 					let url = props.src
 					if (!url) return
 					url = url.split('https/')[1]
@@ -1859,7 +1878,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 					}))
 				})
 				Patcher.after(Image.prototype, 'render', (_, __, returnValue) => {
-					if (!this.settings.image.enabled) return
+					if (!this.settings.image.enabled || !this.settings.image.showStar) return
 					const propsDiv = returnValue.props?.children?.props
 					if (!propsDiv) return
 					const propsButton = propsDiv.children?.[1]?.props
@@ -1937,7 +1956,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 						}))
 						menuItems.push({
 							id: 'unfavorite-gif',
-							label: Strings.GIF_TOOLTIP_REMOVE_FROM_FAVORITES,
+							label: Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES,
 							icon: () => React.createElement(StarSVG, { filled: true }),
 							action: () => {
 								this.unfavoriteMedia(data)
@@ -1965,7 +1984,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 						}))
 						menuItems.push({
 							id: 'favorite-gif',
-							label: Strings.GIF_TOOLTIP_ADD_TO_FAVORITES,
+							label: Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES,
 							icon: () => React.createElement(StarSVG, { filled: true }),
 							action: () => {
 								this.favoriteMedia(data)
