@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.6.1
+ * @version 1.6.2
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -13,7 +13,7 @@ const config = {
 		name: 'FavoriteMedia',
 		authors: [{ name: 'Dastan', github_username: 'Dastan21', discord_id: '310450863845933057' }],
 		description: 'Allows to favorite images, videos and audios.',
-		version: '1.6.1',
+		version: '1.6.2',
 		github: 'https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia',
 		github_raw: 'https://raw.githubusercontent.com/Dastan21/BDAddons/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js'
 	},
@@ -44,6 +44,13 @@ const config = {
 			id: 'forceShowFavoritesGIFs',
 			name: 'Show only favorites in GIFs tab',
 			note: 'Force show favorites GIFs over trendings categories',
+			value: false
+		},
+		{
+			type: 'switch',
+			id: 'alwaysUploadFile',
+			name: 'Always upload as file',
+			note: 'Uploads media as file instead of sending a link',
 			value: false
 		},
 		{
@@ -166,10 +173,10 @@ const config = {
 	],
 	changelog: [
 		{
-			title: 'Fixed',
-			type: 'fixed',
+			title: 'Added',
+			type: 'added',
 			items: [
-				'Added options to hide star on medias (if favoriting only by context menu)'
+				'Added option allow upload medias as file instead of a link'
 			]
 		}
 	]
@@ -335,6 +342,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 		const EPS = WebpackModules.getByProps('toggleExpressionPicker')
 		const EPSConstants = WebpackModules.getByProps('ChatInputTypes').ChatInputTypes.NORMAL
 		const PermissionsConstants = WebpackModules.getByProps('Permissions', 'ActivityTypes').Permissions
+		const uploadFile = WebpackModules.getByProps('instantBatchUpload').upload
 		const MediaPlayer = WebpackModules.getByDisplayName('MediaPlayer')
 		const Image = WebpackModules.getByDisplayName('Image')
 		const ImageSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 384 384', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M341.333,0H42.667C19.093,0,0,19.093,0,42.667v298.667C0,364.907,19.093,384,42.667,384h298.667 C364.907,384,384,364.907,384,341.333V42.667C384,19.093,364.907,0,341.333,0z M42.667,320l74.667-96l53.333,64.107L245.333,192l96,128H42.667z' }))
@@ -863,11 +871,13 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 				if (this.isPlayable) this.tooltipControls = Tooltip.create(this.refs.tooltipControls, this.state.showControls ? labels.media.controls.hide : labels.media.controls.show)
 				Dispatcher.subscribe('TOGGLE_CONTROLS', this.hideControls)
 				Dispatcher.subscribe('SCROLLING_MEDIAS', this.handleVisible)
+				Dispatcher.subscribe('SEND_MEDIA', this.sendMedia)
 			}
 
 			componentWillUnmount() {
 				Dispatcher.unsubscribe('TOGGLE_CONTROLS', this.hideControls)
 				Dispatcher.unsubscribe('SCROLLING_MEDIAS', this.handleVisible)
+				Dispatcher.unsubscribe('SEND_MEDIA', this.sendMedia)
 			}
 
 			componentDidUpdate() {
@@ -901,9 +911,14 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 			}
 
 			sendMedia(e) {
+				const sendMedia = e.type === 'SEND_MEDIA'
+				if (sendMedia) {
+					if (e.media_id !== this.props.id) return
+					e = e.e
+				}
 				if (['path', 'svg'].includes(e.target.tagName)) return
 				const shiftPressed = e.shiftKey
-				if (this.props.type === 'audio') {
+				if (!sendMedia && (this.props.alwaysUploadFile || this.props.type === 'audio')) {
 					require('https').get(this.props.url, res => {
 						const bufs = []
 						res.on('data', chunk => bufs.push(chunk))
@@ -911,8 +926,8 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 							if (!shiftPressed) EPS.closeExpressionPicker()
 							try {
 								const content = document.querySelector('[class*="textArea"] [data-slate-string]')?.innerText
-								const fileName = this.props.name + this.props.ext
-								WebpackModules.getByProps('instantBatchUpload').upload({
+								const fileName = this.props.name + (this.props.ext ?? getUrlExt(this.props.url))
+								uploadFile({
 									channelId: SelectedChannelStore.getChannelId(),
 									file: new File([Buffer.concat(bufs)], fileName),
 									hasSpoiler: false,
@@ -1059,6 +1074,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 				this.loadCategories = this.loadCategories.bind(this)
 				this.uploadMedia = this.uploadMedia.bind(this)
 				this.setContentHeight = this.setContentHeight.bind(this)
+				this.sendMedia = this.sendMedia.bind(this)
 			}
 
 			componentDidMount() {
@@ -1326,9 +1342,10 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 						try {
 							const content = document.querySelector('[class*="textArea"] [data-slate-string]')?.innerText
 							const fileName = (media.name || 'unknown') + '.' + (media.url.split('.').pop().split('?').shift() || 'png')
-							WebpackModules.getByProps('instantBatchUpload').upload({
+							const file = new File([Buffer.concat(bufs)], fileName)
+							uploadFile({
 								channelId: SelectedChannelStore.getChannelId(),
-								file: new File([Buffer.concat(bufs)], fileName),
+								file: file,
 								hasSpoiler: spoiler,
 								fileName: fileName,
 								draftType: 0,
@@ -1342,11 +1359,19 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 				})
 			}
 
+			sendMedia(e, media_id) {
+				Dispatcher.dispatch({ type: 'SEND_MEDIA', e, media_id })
+			}
+
 			onMediaContextMenu(e, media_id) {
 				const items = [{
 					id: 'media-input',
 					label: 'media-input',
 					render: () => React.createElement(MediaMenuItemInput, { id: media_id, type: this.props.type, loadMedias: this.loadMedias })
+				}, {
+					id: 'media-send-title',
+					label: Strings.Messages.USER_POPOUT_MESSAGE,
+					action: (e) => this.sendMedia(e, media_id)
 				}, {
 					id: 'media-upload-title',
 					label: labels.media.upload.title,
@@ -1556,7 +1581,8 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 											componentProps: {
 												type: this.props.type,
 												volume: this.props.volume,
-												onMediaContextMenu: this.onMediaContextMenu
+												onMediaContextMenu: this.onMediaContextMenu,
+												alwaysUploadFile: this.props.alwaysUploadFile
 											}
 										})
 										: null
@@ -1824,7 +1850,12 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 							if (this.settings.video.enabled) head.push(this.MediaTab('video', elementType))
 							if (this.settings.audio.enabled) head.push(this.MediaTab('audio', elementType))
 							const activeMediaPicker = EPS.useExpressionPickerStore.getState().activeView
-							if (['image', 'video', 'audio'].includes(activeMediaPicker)) body.push(React.createElement(MediaPicker, { type: activeMediaPicker, volume: this.settings.mediaVolume }))
+							if (['image', 'video', 'audio'].includes(activeMediaPicker))
+								body.push(React.createElement(MediaPicker, {
+									type: activeMediaPicker,
+									volume: this.settings.mediaVolume,
+									alwaysUploadFile: this.settings.alwaysUploadFile
+								}))
 						} catch (err) {
 							console.error('[FavoriteMedia] Error in ExpressionPicker\n', err)
 						}
