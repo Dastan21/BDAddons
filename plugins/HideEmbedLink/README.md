@@ -1,7 +1,7 @@
 # HideEmbedLink
 
-Removes links for embed messages. Adds a button to force show a link.
+Hides embed messages link.
 
 ## Preview
 
-![example](https://i.imgur.com/ff0j6rN.gif)
+![example](https://i.imgur.com/Ivhdbj6.gif)

@@ -1,0 +1,25 @@
+{
+  "main": "index.js",
+  "id": "",
+  "name": "HideEmbedLink",
+  "author": "Dastan",
+  "authorId": "310450863845933057",
+  "authorLink": "",
+  "version": "2.1.0",
+  "description": "Hides embed messages link.",
+  "website": "",
+  "source": "https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink",
+  "patreon": "",
+  "donate": "",
+  "invite": "",
+  "changelog": [
+    {
+      "title": "v2.1.0",
+      "type": "fixed",
+      "items": [
+        "Fixed the plugin."
+      ]
+    }
+  ],
+  "defaultConfig": []
+}

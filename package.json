@@ -1,0 +1,16 @@
+{
+  "name": "bdaddons",
+  "version": "0.0.1",
+  "author": "Dastan21",
+  "license": "Apache-2.0",
+  "zplConfig": {
+    "base": "./src/plugins",
+    "out": "./plugins",
+    "copyToBD": true,
+    "addInstallScript": true
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.20",
+    "zerespluginlibrary": "^2.0.6"
+  }
+}
