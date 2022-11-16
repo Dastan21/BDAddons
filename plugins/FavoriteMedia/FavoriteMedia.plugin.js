@@ -13,7 +13,7 @@ const config = {
 		name: 'FavoriteMedia',
 		authors: [{ name: 'Dastan', github_username: 'Dastan21', discord_id: '310450863845933057' }],
 		description: 'Allows to favorite images, videos and audios.',
-		version: '1.6.2',
+		version: '1.6.3',
 		github: 'https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia',
 		github_raw: 'https://raw.githubusercontent.com/Dastan21/BDAddons/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js'
 	},
