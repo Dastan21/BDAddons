@@ -339,15 +339,24 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 		const labels = setLabelsByLanguage()
 		const ExpressionPicker = getModule(m => m.prototype.render.toString().includes('onUnmount'),{searchExports:true});
 		const ChannelTextAreaButtons = {}; // WebpackModules.getModule(m => m.type?.displayName === 'ChannelTextAreaButtons')
-		const ComponentDispatch = getModule(m => m.dispatchToLastSubscribed && m.emitter.listeners('CLEAR_TEXT').length, { searchExports: true });
+		const ComponentDispatch = {
+			dispatchToLastSubscribed:(()=>{
+				let ComponentDispatch;
+				return (type,obj) => {
+					if (!ComponentDispatch) ComponentDispatch = getModule(m => m.dispatchToLastSubscribed && m.emitter.listeners('CLEAR_TEXT').length && m.emitter.listeners('INSERT_TEXT').length, { searchExports: true });
+					ComponentDispatch.dispatchToLastSubscribed(type, obj);
+				}
+			})()
+		};
 		const EPS = {};
 		Object.values(getModule(m => Object.keys(m).some(key => m[key].toString().includes('isSearchSuggestion')))).forEach(func => {
 			const code = func.toString();
 			if(code.includes('useDebugValue') && func.getState){
-				EPS["closeExpressionPicker"] = func;
 				EPS["useExpressionPickerStore"] = func;
 			} else if(code.includes('===')){
 				EPS["toggleExpressionPicker"] = func;
+			}else if(code.includes('activeView:null,activeViewType:null')){
+				EPS["closeExpressionPicker"] = func;
 			}
 		});
 		const EPSConstants = getModule(Filters.byProps('FORUM_CHANNEL_GUIDELINES','CREATE_FORUM_POST'), { searchExports: true}).NORMAL;
