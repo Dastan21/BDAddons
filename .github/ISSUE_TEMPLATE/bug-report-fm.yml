@@ -1,7 +1,7 @@
 name: FavoriteMedia Bug Report
 description: Report a bug for FavoriteMedia plugin
 title: "[FavoriteMedia]: "
-labels: ["bug"]
+labels: ["TBD"]
 body:
   - type: dropdown
     id: discord-release
@@ -46,7 +46,7 @@ body:
     id: what-happened
     attributes:
       label: Describe the bug
-      description: A clear and concise description of what the bug is.
+      description: A clear and concise description of what the bug is. If there is any console error, don't hesitate to share.
     validations:
       required: true
   - type: textarea
