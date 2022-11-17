@@ -33,6 +33,25 @@ module.exports = (Plugin, Library) => {
   const BdApi = new window.BdApi('FavoriteMedia')
   const { Webpack } = BdApi
 
+  function getUrlName (url) {
+    return url.replace(/\.([^.]*)$/gm, '').split('/').pop()
+  }
+
+  function getUrlExt (url) {
+    return url.match(/\.([0-9a-z]+)(?=[?#])|(\.)(?:[\w]+)$/gmi)[0]
+  }
+
+  // https://stackoverflow.com/a/5306832/13314290
+  function arrayMove (arr, oldIndex, newIndex) {
+    while (oldIndex < 0) oldIndex += arr.length
+    while (newIndex < 0) newIndex += arr.length
+    if (newIndex >= arr.length) {
+      let k = newIndex - arr.length + 1
+      while (k--) arr.push(undefined)
+    }
+    arr.splice(newIndex, 0, arr.splice(oldIndex, 1)[0])
+  }
+
   const classModules = {
     icon: WebpackModules.getByProps('hoverScale', 'buttonWrapper', 'button'),
     menu: WebpackModules.getByProps('menu', 'scroller', 'styleFixed'),
@@ -4461,23 +4480,4 @@ module.exports = (Plugin, Library) => {
         }
     }
   }
-}
-
-function getUrlName (url) {
-  return url.replace(/\.([^.]*)$/gm, '').split('/').pop()
-}
-
-function getUrlExt (url) {
-  return url.match(/\.([0-9a-z]+)(?=[?#])|(\.)(?:[\w]+)$/gmi)[0]
-}
-
-// https://stackoverflow.com/a/5306832/13314290
-function arrayMove (arr, oldIndex, newIndex) {
-  while (oldIndex < 0) oldIndex += arr.length
-  while (newIndex < 0) newIndex += arr.length
-  if (newIndex >= arr.length) {
-    let k = newIndex - arr.length + 1
-    while (k--) arr.push(undefined)
-  }
-  arr.splice(newIndex, 0, arr.splice(oldIndex, 1)[0])
 }
