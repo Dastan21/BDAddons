@@ -1,0 +1,178 @@
+{
+  "main": "index.js",
+  "id": "",
+  "name": "FavoriteMedia",
+  "author": "Dastan",
+  "authorId": "310450863845933057",
+  "authorLink": "",
+  "version": "1.6.3",
+  "description": "Allows to favorite images, videos and audios.",
+  "website": "",
+  "source": "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
+  "patreon": "",
+  "donate": "",
+  "invite": "",
+  "defaultConfig": [
+    {
+      "type": "switch",
+      "id": "hideUnsortedMedias",
+      "name": "Hide Medias",
+      "note": "Hide unsorted medias from the picker tab",
+      "value": true
+    },
+    {
+      "type": "switch",
+      "id": "hideThumbnail",
+      "name": "Hide Thumbnail",
+      "note": "Show the category color instead of a random media thumbnail",
+      "value": false
+    },
+    {
+      "type": "switch",
+      "id": "showContextMenuFavorite",
+      "name": "Show ContextMenu Favorite Button",
+      "note": "Show the button in the message context menu to favorite a media",
+      "value": true
+    },
+    {
+      "type": "switch",
+      "id": "forceShowFavoritesGIFs",
+      "name": "Show only favorites in GIFs tab",
+      "note": "Force show favorites GIFs over trendings categories",
+      "value": false
+    },
+    {
+      "type": "switch",
+      "id": "alwaysUploadFile",
+      "name": "Always upload as file",
+      "note": "Uploads media as file instead of sending a link",
+      "value": false
+    },
+    {
+      "type": "slider",
+      "id": "mediaVolume",
+      "name": "Preview Media Volume",
+      "note": "Volume of the previews medias on the picker tab",
+      "min": 0,
+      "max": 100,
+      "markers": [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+      "value": 10
+    },
+    {
+      "type": "dropdown",
+      "id": "btnsPosition",
+      "name": "Buttons Position",
+      "note": "Position of the buttons on the chat",
+      "value": "right",
+      "options": [
+        {
+          "label": "Right",
+          "value": "right"
+        },
+        {
+          "label": "Left",
+          "value": "left"
+        }
+      ]
+    },
+    {
+      "type": "category",
+      "id": "image",
+      "name": "Image Settings",
+      "collapsible": true,
+      "shown": false,
+      "settings": [
+        {
+          "type": "switch",
+          "id": "enabled",
+          "name": "General",
+          "note": "Enable images",
+          "value": true
+        },
+        {
+          "type": "switch",
+          "id": "showBtn",
+          "name": "Button",
+          "note": "Show image button on chat",
+          "value": true
+        },
+        {
+          "type": "switch",
+          "id": "showStar",
+          "name": "Star",
+          "note": "Show favorite star on image medias",
+          "value": true
+        }
+      ]
+    },
+    {
+      "type": "category",
+      "id": "video",
+      "name": "Video Settings",
+      "collapsible": true,
+      "shown": false,
+      "settings": [
+        {
+          "type": "switch",
+          "id": "enabled",
+          "name": "General",
+          "note": "Enable videos",
+          "value": true
+        },
+        {
+          "type": "switch",
+          "id": "showBtn",
+          "name": "Button",
+          "note": "Show video button on chat",
+          "value": true
+        },
+        {
+          "type": "switch",
+          "id": "showStar",
+          "name": "Star",
+          "note": "Show favorite star on video medias",
+          "value": true
+        }
+      ]
+    },
+    {
+      "type": "category",
+      "id": "audio",
+      "name": "Audio Settings",
+      "collapsible": true,
+      "shown": false,
+      "settings": [
+        {
+          "type": "switch",
+          "id": "enabled",
+          "name": "General",
+          "note": "Enable audios",
+          "value": true
+        },
+        {
+          "type": "switch",
+          "id": "showBtn",
+          "name": "Button",
+          "note": "Show audio button on chat",
+          "value": true
+        },
+        {
+          "type": "switch",
+          "id": "showStar",
+          "name": "Star",
+          "note": "Show favorite star on audio medias",
+          "value": true
+        }
+      ]
+    }
+  ],
+  "changelog": [
+    {
+      "title": "Fixed",
+      "type": "fixed",
+      "items": [
+        "Plugin works again thanks to Skamt!"
+      ]
+    }
+  ]
+}
