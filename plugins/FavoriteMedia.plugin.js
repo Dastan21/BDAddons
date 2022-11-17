@@ -1,9 +1,277 @@
 /**
- * @param {import("zerespluginlibrary").Plugin} Plugin
- * @param {import("zerespluginlibrary").BoundAPI} Library
+ * @name FavoriteMedia
+ * @description Allows to favorite images, videos and audios.
+ * @version 1.6.3
+ * @author Dastan
+ * @authorId 310450863845933057
+ * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
-module.exports = (Plugin, Library) => {
-  const { WebpackModules, ReactComponents, PluginUpdater, ContextMenu, Utilities, ColorConverter, Toasts, Modals, Tooltip, DOMTools, ReactTools, DiscordModules: { React, ElectronModule, Dispatcher, LocaleManager, SelectedChannelStore, ChannelStore, UserStore, Permissions, Strings }, Patcher } = Library
+/*@cc_on
+@if (@_jscript)
+    
+    // Offer to self-install for clueless users that try to run this directly.
+    var shell = WScript.CreateObject("WScript.Shell");
+    var fs = new ActiveXObject("Scripting.FileSystemObject");
+    var pathPlugins = shell.ExpandEnvironmentStrings("%APPDATA%\\BetterDiscord\\plugins");
+    var pathSelf = WScript.ScriptFullName;
+    // Put the user at ease by addressing them in the first person
+    shell.Popup("It looks like you've mistakenly tried to run me directly. \n(Don't do that!)", 0, "I'm a plugin for BetterDiscord", 0x30);
+    if (fs.GetParentFolderName(pathSelf) === fs.GetAbsolutePathName(pathPlugins)) {
+        shell.Popup("I'm in the correct folder already.", 0, "I'm already installed", 0x40);
+    } else if (!fs.FolderExists(pathPlugins)) {
+        shell.Popup("I can't find the BetterDiscord plugins folder.\nAre you sure it's even installed?", 0, "Can't install myself", 0x10);
+    } else if (shell.Popup("Should I copy myself to BetterDiscord's plugins folder for you?", 0, "Do you need some help?", 0x34) === 6) {
+        fs.CopyFile(pathSelf, fs.BuildPath(pathPlugins, fs.GetFileName(pathSelf)), true);
+        // Show the user where to put plugins in the future
+        shell.Exec("explorer " + pathPlugins);
+        shell.Popup("I'm installed!", 0, "Successfully installed", 0x40);
+    }
+    WScript.Quit();
+
+@else@*/
+const config = {
+    main: "index.js",
+    id: "",
+    name: "FavoriteMedia",
+    author: "Dastan",
+    authorId: "310450863845933057",
+    authorLink: "",
+    version: "1.6.3",
+    description: "Allows to favorite images, videos and audios.",
+    website: "",
+    source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
+    patreon: "",
+    donate: "",
+    invite: "",
+    defaultConfig: [
+        {
+            type: "switch",
+            id: "hideUnsortedMedias",
+            name: "Hide Medias",
+            note: "Hide unsorted medias from the picker tab",
+            value: true
+        },
+        {
+            type: "switch",
+            id: "hideThumbnail",
+            name: "Hide Thumbnail",
+            note: "Show the category color instead of a random media thumbnail",
+            value: false
+        },
+        {
+            type: "switch",
+            id: "showContextMenuFavorite",
+            name: "Show ContextMenu Favorite Button",
+            note: "Show the button in the message context menu to favorite a media",
+            value: true
+        },
+        {
+            type: "switch",
+            id: "forceShowFavoritesGIFs",
+            name: "Show only favorites in GIFs tab",
+            note: "Force show favorites GIFs over trendings categories",
+            value: false
+        },
+        {
+            type: "switch",
+            id: "alwaysUploadFile",
+            name: "Always upload as file",
+            note: "Uploads media as file instead of sending a link",
+            value: false
+        },
+        {
+            type: "slider",
+            id: "mediaVolume",
+            name: "Preview Media Volume",
+            note: "Volume of the previews medias on the picker tab",
+            min: 0,
+            max: 100,
+            markers: [
+                0,
+                10,
+                20,
+                30,
+                40,
+                50,
+                60,
+                70,
+                80,
+                90,
+                100
+            ],
+            value: 10
+        },
+        {
+            type: "dropdown",
+            id: "btnsPosition",
+            name: "Buttons Position",
+            note: "Position of the buttons on the chat",
+            value: "right",
+            options: [
+                {
+                    label: "Right",
+                    value: "right"
+                },
+                {
+                    label: "Left",
+                    value: "left"
+                }
+            ]
+        },
+        {
+            type: "category",
+            id: "image",
+            name: "Image Settings",
+            collapsible: true,
+            shown: false,
+            settings: [
+                {
+                    type: "switch",
+                    id: "enabled",
+                    name: "General",
+                    note: "Enable images",
+                    value: true
+                },
+                {
+                    type: "switch",
+                    id: "showBtn",
+                    name: "Button",
+                    note: "Show image button on chat",
+                    value: true
+                },
+                {
+                    type: "switch",
+                    id: "showStar",
+                    name: "Star",
+                    note: "Show favorite star on image medias",
+                    value: true
+                }
+            ]
+        },
+        {
+            type: "category",
+            id: "video",
+            name: "Video Settings",
+            collapsible: true,
+            shown: false,
+            settings: [
+                {
+                    type: "switch",
+                    id: "enabled",
+                    name: "General",
+                    note: "Enable videos",
+                    value: true
+                },
+                {
+                    type: "switch",
+                    id: "showBtn",
+                    name: "Button",
+                    note: "Show video button on chat",
+                    value: true
+                },
+                {
+                    type: "switch",
+                    id: "showStar",
+                    name: "Star",
+                    note: "Show favorite star on video medias",
+                    value: true
+                }
+            ]
+        },
+        {
+            type: "category",
+            id: "audio",
+            name: "Audio Settings",
+            collapsible: true,
+            shown: false,
+            settings: [
+                {
+                    type: "switch",
+                    id: "enabled",
+                    name: "General",
+                    note: "Enable audios",
+                    value: true
+                },
+                {
+                    type: "switch",
+                    id: "showBtn",
+                    name: "Button",
+                    note: "Show audio button on chat",
+                    value: true
+                },
+                {
+                    type: "switch",
+                    id: "showStar",
+                    name: "Star",
+                    note: "Show favorite star on audio medias",
+                    value: true
+                }
+            ]
+        }
+    ],
+    changelog: [
+        {
+            title: "Fixed",
+            type: "fixed",
+            items: [
+                "Plugin works again thanks to Skamt!"
+            ]
+        }
+    ]
+};
+class Dummy {
+    constructor() {this._config = config;}
+    start() {}
+    stop() {}
+}
+ 
+if (!global.ZeresPluginLibrary) {
+    BdApi.showConfirmationModal("Library Missing", `The library plugin needed for ${config.name ?? config.info.name} is missing. Please click Download Now to install it.`, {
+        confirmText: "Download Now",
+        cancelText: "Cancel",
+        onConfirm: () => {
+            require("request").get("https://betterdiscord.app/gh-redirect?id=9", async (err, resp, body) => {
+                if (err) return require("electron").shell.openExternal("https://betterdiscord.app/Download?id=9");
+                if (resp.statusCode === 302) {
+                    require("request").get(resp.headers.location, async (error, response, content) => {
+                        if (error) return require("electron").shell.openExternal("https://betterdiscord.app/Download?id=9");
+                        await new Promise(r => require("fs").writeFile(require("path").join(BdApi.Plugins.folder, "0PluginLibrary.plugin.js"), content, r));
+                    });
+                }
+                else {
+                    await new Promise(r => require("fs").writeFile(require("path").join(BdApi.Plugins.folder, "0PluginLibrary.plugin.js"), body, r));
+                }
+            });
+        }
+    });
+}
+ 
+module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
+     const plugin = (Plugin, Library) => {
+  const {
+    WebpackModules,
+    ReactComponents,
+    PluginUpdater,
+    ContextMenu,
+    Utilities,
+    ColorConverter,
+    Toasts,
+    Modals,
+    Tooltip,
+    DOMTools,
+    ReactTools,
+    DiscordModules: {
+      React,
+      ElectronModule,
+      Dispatcher,
+      LocaleManager,
+      SelectedChannelStore,
+      ChannelStore,
+      UserStore,
+      Permissions,
+      Strings
+    }, Patcher
+  } = Library
   const { mkdir, lstat, writeFile } = require('fs')
   const BdApi = new window.BdApi('FavoriteMedia')
   const { Webpack } = BdApi
@@ -165,18 +433,18 @@ module.exports = (Plugin, Library) => {
 
   const MediaMenuItemInput = class extends React.Component {
     componentDidMount () {
-      const media = Utilities.loadData(config.info.name, this.props.type, { medias: [] }).medias[this.props.id]
+      const media = Utilities.loadData(config.name, this.props.type, { medias: [] }).medias[this.props.id]
       this.refs.inputName.value = media.name || ''
     }
 
     componentWillUnmount () {
       const name = this.refs.inputName.value
       if (!name || name === '') return
-      const typeData = Utilities.loadData(config.info.name, this.props.type, { medias: [] })
+      const typeData = Utilities.loadData(config.name, this.props.type, { medias: [] })
       if (!typeData.medias.length) return
       if (!typeData.medias[this.props.id]) return
       typeData.medias[this.props.id].name = name
-      Utilities.saveData(config.info.name, this.props.type, typeData)
+      Utilities.saveData(config.name, this.props.type, typeData)
       this.props.loadMedias()
     }
 
@@ -250,7 +518,7 @@ module.exports = (Plugin, Library) => {
     }
 
     get isFavorited () {
-      return Utilities.loadData(config.info.name, this.props.type, { medias: [] }).medias.find(e => e.url === this.props.url) !== undefined
+      return Utilities.loadData(config.name, this.props.type, { medias: [] }).medias.find(e => e.url === this.props.url) !== undefined
     }
 
     updateFavorite (data) {
@@ -277,7 +545,7 @@ module.exports = (Plugin, Library) => {
     }
 
     favoriteMedia () {
-      const typeData = Utilities.loadData(config.info.name, this.props.type, { medias: [] })
+      const typeData = Utilities.loadData(config.name, this.props.type, { medias: [] })
       if (typeData.medias.find(m => m.url === this.props.url)) return
       let data = null
       switch (this.props.type) {
@@ -307,14 +575,14 @@ module.exports = (Plugin, Library) => {
       }
       if (!data) return
       typeData.medias.push(data)
-      Utilities.saveData(config.info.name, this.props.type, typeData)
+      Utilities.saveData(config.name, this.props.type, typeData)
     }
 
     unfavoriteMedia () {
-      const typeData = Utilities.loadData(config.info.name, this.props.type, { medias: [] })
+      const typeData = Utilities.loadData(config.name, this.props.type, { medias: [] })
       if (!typeData.medias.length) return
       typeData.medias = typeData.medias.filter(e => e.url !== this.props.url)
-      Utilities.saveData(config.info.name, this.props.type, typeData)
+      Utilities.saveData(config.name, this.props.type, typeData)
       if (this.props.fromPicker) Dispatcher.dispatch({ type: 'UPDATE_MEDIAS' })
     }
 
@@ -500,7 +768,7 @@ module.exports = (Plugin, Library) => {
     }
 
     get showColor () {
-      return Utilities.loadSettings(config.info.name).hideThumbnail || !this.props.thumbnail
+      return Utilities.loadSettings(config.name).hideThumbnail || !this.props.thumbnail
     }
 
     onContextMenu (e) {
@@ -538,7 +806,7 @@ module.exports = (Plugin, Library) => {
             if (!path) return
             const categoryFolder = path + `\\${this.props.name}`
             mkdir(categoryFolder, {}, () => {
-              const medias = Utilities.loadData(config.info.name, this.props.type, { medias: [] }).medias.filter(m => m.categoryId === this.props.id).map(m => { return this.props.type === 'audio' ? m : { ...m, ext: getUrlExt(m.url) } })
+              const medias = Utilities.loadData(config.name, this.props.type, { medias: [] }).medias.filter(m => m.category_id === this.props.id).map(m => { return this.props.type === 'audio' ? m : { ...m, ext: getUrlExt(m.url) } })
               Promise.all(medias.map(m => new Promise((resolve, reject) => {
                 lstat(categoryFolder + `\\${m.name}${m.ext}`, {}, e => {
                   if (!e) return resolve()
@@ -585,7 +853,7 @@ module.exports = (Plugin, Library) => {
           items
         }
       ]), {
-        onClose: () => canClosePicker = true
+        onClose: () => { canClosePicker = true }
       })
     }
 
@@ -632,7 +900,7 @@ module.exports = (Plugin, Library) => {
           style: this.showColor ? { color: this.nameColor, 'text-shadow': 'none' } : {}
         }, this.props.name)
       ),
-      this.props.thumbnail && !Utilities.loadSettings(config.info.name).hideThumbnail
+      this.props.thumbnail && !Utilities.loadSettings(config.name).hideThumbnail
         ? React.createElement('img', {
           className: classes.result.gif,
           preload: 'auto',
@@ -859,9 +1127,9 @@ module.exports = (Plugin, Library) => {
 
       this.state = {
         textFilter: '',
-        categories: Utilities.loadData(config.info.name, this.props.type, { categories: [] }).categories,
+        categories: Utilities.loadData(config.name, this.props.type, { categories: [] }).categories,
         category: null,
-        medias: Utilities.loadData(config.info.name, this.props.type, { medias: [] }).medias,
+        medias: Utilities.loadData(config.name, this.props.type, { medias: [] }).medias,
         contentWidth: null
       }
 
@@ -1035,10 +1303,10 @@ module.exports = (Plugin, Library) => {
 
     mediasInCategory () {
       if (!this.state.category) {
-        if (!Utilities.loadSettings(config.info.name).hideUnsortedMedias) return this.listWithId(this.state.medias)
-        else return this.listWithId(this.state.medias).filter(m => m.categoryId === undefined)
+        if (!Utilities.loadSettings(config.name).hideUnsortedMedias) return this.listWithId(this.state.medias)
+        else return this.listWithId(this.state.medias).filter(m => m.category_id === undefined)
       }
-      return this.listWithId(this.state.medias).filter(m => m.categoryId === this.state.category.id)
+      return this.listWithId(this.state.medias).filter(m => m.category_id === this.state.category.id)
     }
 
     openCategoryModal (op, values) {
@@ -1082,17 +1350,17 @@ module.exports = (Plugin, Library) => {
     }
 
     changeMediaCategory (mediaId, categoryId) {
-      const typeData = Utilities.loadData(config.info.name, this.props.type)
-      typeData.medias[mediaId].categoryId = categoryId
-      Utilities.saveData(config.info.name, this.props.type, typeData)
+      const typeData = Utilities.loadData(config.name, this.props.type)
+      typeData.medias[mediaId].category_id = categoryId
+      Utilities.saveData(config.name, this.props.type, typeData)
       Toasts.success(labels.media.success.move[this.props.type])
       this.loadMedias()
     }
 
     removeMediaCategory (mediaId) {
-      const typeData = Utilities.loadData(config.info.name, this.props.type)
-      delete typeData.medias[mediaId].categoryId
-      Utilities.saveData(config.info.name, this.props.type, typeData)
+      const typeData = Utilities.loadData(config.name, this.props.type)
+      delete typeData.medias[mediaId].category_id
+      Utilities.saveData(config.name, this.props.type, typeData)
       Toasts.success(labels.media.success.remove[this.props.type])
       this.loadMedias()
     }
@@ -1110,16 +1378,16 @@ module.exports = (Plugin, Library) => {
     }
 
     isInCategory (mediaId) {
-      const media = Utilities.loadData(config.info.name, this.props.type, { medias: [] }).medias[mediaId]
+      const media = Utilities.loadData(config.name, this.props.type, { medias: [] }).medias[mediaId]
       if (!media) return undefined
-      return media.categoryId
+      return media.category_id
     }
 
     get randomThumbnails () {
       const thumbnails = []
       for (let c = 0; c < this.state.categories.length; c++) {
         const id = this.state.categories[c].id
-        const medias = this.state.medias.filter(m => m.categoryId === id)
+        const medias = this.state.medias.filter(m => m.category_id === id)
         let media = null
         if (medias.length === 0) continue
         else if (medias.length === 1) media = medias[0]
@@ -1130,11 +1398,11 @@ module.exports = (Plugin, Library) => {
     }
 
     loadCategories () {
-      this.setState({ categories: Utilities.loadData(config.info.name, this.props.type, { categories: [] }).categories })
+      this.setState({ categories: Utilities.loadData(config.name, this.props.type, { categories: [] }).categories })
     }
 
     loadMedias () {
-      this.setState({ medias: Utilities.loadData(config.info.name, this.props.type, { medias: [] }).medias })
+      this.setState({ medias: Utilities.loadData(config.name, this.props.type, { medias: [] }).medias })
     }
 
     uploadMedia (mediaId, spoiler) {
@@ -1194,7 +1462,7 @@ module.exports = (Plugin, Library) => {
         id: 'media-download',
         label: Strings.Messages.DOWNLOAD,
         action: () => {
-          const media = Utilities.loadData(config.info.name, this.props.type, { medias: [] }).medias[mediaId]
+          const media = Utilities.loadData(config.name, this.props.type, { medias: [] }).medias[mediaId]
           const ext = getUrlExt(media.url)
           BdApi.openDialog({ mode: 'save', defaultPath: media.name + ext }).then(({ filePath }) => {
             require('https').get(media.url, res => {
@@ -1495,7 +1763,7 @@ module.exports = (Plugin, Library) => {
     if (!name || typeof name !== 'string') return { error: 'error', message: labels.category.error.needName }
     if (name.length > 20) return { error: 'error', message: labels.category.error.invalidNameLength }
     if (!color || typeof color !== 'string' || !color.startsWith('#')) return { error: 'error', message: labels.category.error.wrongColor }
-    const typeData = Utilities.loadData(config.info.name, type, { categories: [], medias: [] })
+    const typeData = Utilities.loadData(config.name, type, { categories: [], medias: [] })
     if (typeData.categories.find(c => c.name === name && c.id !== id) !== undefined) return { error: 'error', message: labels.category.error.nameExists }
     return typeData
   }
@@ -1509,7 +1777,7 @@ module.exports = (Plugin, Library) => {
     }
 
     res.categories.push({ id: ((res.categories.slice(-1)[0] && res.categories.slice(-1)[0].id) || 0) + 1, name, color })
-    Utilities.saveData(config.info.name, type, res)
+    Utilities.saveData(config.name, type, res)
 
     Toasts.success(labels.category.success.create)
     return true
@@ -1524,27 +1792,27 @@ module.exports = (Plugin, Library) => {
     }
 
     res.categories[res.categories.findIndex(c => c.id === id)] = { id, name, color }
-    Utilities.saveData(config.info.name, type, res)
+    Utilities.saveData(config.name, type, res)
 
     Toasts.success(labels.category.success.edit)
     return true
   }
 
   function moveCategory (type, oldIndex, newIndex) {
-    const typeData = Utilities.loadData(config.info.name, type, { categories: [], medias: [] })
+    const typeData = Utilities.loadData(config.name, type, { categories: [], medias: [] })
     arrayMove(typeData.categories, oldIndex, newIndex)
-    Utilities.saveData(config.info.name, type, typeData)
+    Utilities.saveData(config.name, type, typeData)
 
     Toasts.success(labels.category.success.move)
     Dispatcher.dispatch({ type: 'UPDATE_CATEGORIES' })
   }
 
   function deleteCategory (type, id) {
-    const typeData = Utilities.loadData(config.info.name, type, { categories: [], medias: [] })
+    const typeData = Utilities.loadData(config.name, type, { categories: [], medias: [] })
     if (typeData.categories.find(c => c.id === id) === undefined) { Toasts.error(labels.category.error.invalidCategory); return false }
     typeData.categories = typeData.categories.filter(c => c.id !== id)
-    typeData.medias = typeData.medias.map(m => { if (m.categoryId === id) delete m.categoryId; return m })
-    Utilities.saveData(config.info.name, type, typeData)
+    typeData.medias = typeData.medias.map(m => { if (m.category_id === id) delete m.category_id; return m })
+    Utilities.saveData(config.name, type, typeData)
 
     Toasts.success(labels.category.success.delete)
     return true
@@ -1564,79 +1832,79 @@ module.exports = (Plugin, Library) => {
       this.patchGIFTab()
       this.patchMessageContextMenu()
       DOMTools.addStyle(this.getName() + '-css', `
-  .category-input-color > input[type='color'] {
-   opacity: 0;
-   -webkit-appearance: none;
-   width: 48px;
-   height: 48px;
-  }
-  .category-input-color {
-   transition: 0.2s;
-  }
-  .category-input-color:hover {
-   transform: scale(1.1);
-  }
-  .video-favbtn:not(.fm-uploaded) {
-   top: calc(50% - 1em);
-  }
-  .audio-favbtn {
-   margin-right: 12%;
-  }
-  .show-controls {
-   position: absolute;
-   top: 8px;
-   left: 8px;
-   z-index: 4;
-   opacity: 0;
-   -webkit-box-sizing: border-box;
-   box-sizing: border-box;
-   -webkit-transform: translateY(-10px);
-   transform: translateY(-10px);
-   -webkit-transition: opacity .1s ease,-webkit-transform .2s ease;
-   transition: opacity .1s ease,-webkit-transform .2s ease;
-   transition: transform .2s ease,opacity .1s ease;
-   transition: transform .2s ease,opacity .1s ease,-webkit-transform .2s ease;
-   width: 26px;
-   height: 26px;
-   color: var(--interactive-normal);
-  }
-  .show-controls:hover, .show-controls.active {
-   -webkit-transform: none;
-   transform: none;
-   color: var(--interactive-active);
-  }
-  div:hover > .show-controls {
-   opacity: 1;
-   -webkit-transform: none;
-   transform: none;
-  }
-  .${classes.result.result} > .${classes.result.gif}:focus {
-   outline: none;
-  }
-  .${classes.image.imageAccessory} > div:not(.${classes.gif.selected}) > svg {
-   filter: drop-shadow(2px 2px 2px rgb(0 0 0 / 0.3));
-  }
-  .category-dragover:after {
-   -webkit-box-shadow: inset 0 0 0 2px var(--brand-experiment), inset 0 0 0 3px #2f3136 !important;
-   box-shadow: inset 0 0 0 2px var(--brand-experiment), inset 0 0 0 3px #2f3136 !important;
-  }
-  .fm-colorDot {
-   margin-right: 0.7em;
-   margin-left: 0;
-  }
-  .${classes.image.embedWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):focus-within .${classes.gif.gifFavoriteButton1},
-  .${classes.image.embedWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):hover .${classes.gif.gifFavoriteButton1} {
-   opacity: 0;
-   -webkit-transform: unset;
-   transform: unset;
-  }
-  .${classes.image.imageWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):focus-within .${classes.gif.gifFavoriteButton1},
-  .${classes.image.imageWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):hover .${classes.gif.gifFavoriteButton1} {
-   opacity: 1;
-   -webkit-transform: translateY(0);f
-   transform: translateY(0);
-  }
-  `)
+        .category-input-color > input[type='color'] {
+          opacity: 0;
+          -webkit-appearance: none;
+          width: 48px;
+          height: 48px;
+        }
+        .category-input-color {
+          transition: 0.2s;
+        }
+        .category-input-color:hover {
+          transform: scale(1.1);
+        }
+        .video-favbtn:not(.fm-uploaded) {
+          top: calc(50% - 1em);
+        }
+        .audio-favbtn {
+          margin-right: 12%;
+        }
+        .show-controls {
+          position: absolute;
+          top: 8px;
+          left: 8px;
+          z-index: 4;
+          opacity: 0;
+          -webkit-box-sizing: border-box;
+          box-sizing: border-box;
+          -webkit-transform: translateY(-10px);
+          transform: translateY(-10px);
+          -webkit-transition: opacity .1s ease,-webkit-transform .2s ease;
+          transition: opacity .1s ease,-webkit-transform .2s ease;
+          transition: transform .2s ease,opacity .1s ease;
+          transition: transform .2s ease,opacity .1s ease,-webkit-transform .2s ease;
+          width: 26px;
+          height: 26px;
+          color: var(--interactive-normal);
+        }
+        .show-controls:hover, .show-controls.active {
+          -webkit-transform: none;
+          transform: none;
+          color: var(--interactive-active);
+        }
+        div:hover > .show-controls {
+          opacity: 1;
+          -webkit-transform: none;
+          transform: none;
+        }
+        .${classes.result.result} > .${classes.result.gif}:focus {
+          outline: none;
+        }
+        .${classes.image.imageAccessory} > div:not(.${classes.gif.selected}) > svg {
+          filter: drop-shadow(2px 2px 2px rgb(0 0 0 / 0.3));
+        }
+        .category-dragover:after {
+          -webkit-box-shadow: inset 0 0 0 2px var(--brand-experiment), inset 0 0 0 3px #2f3136 !important;
+          box-shadow: inset 0 0 0 2px var(--brand-experiment), inset 0 0 0 3px #2f3136 !important;
+        }
+        .fm-colorDot {
+          margin-right: 0.7em;
+          margin-left: 0;
+        }
+        .${classes.image.embedWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):focus-within .${classes.gif.gifFavoriteButton1},
+        .${classes.image.embedWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):hover .${classes.gif.gifFavoriteButton1} {
+          opacity: 0;
+          -webkit-transform: unset;
+          transform: unset;
+        }
+        .${classes.image.imageWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):focus-within .${classes.gif.gifFavoriteButton1},
+        .${classes.image.imageWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):hover .${classes.gif.gifFavoriteButton1} {
+          opacity: 1;
+          -webkit-transform: translateY(0);f
+          transform: translateY(0);
+        }
+      `)
     }
 
     onStop () {
@@ -1820,8 +2088,8 @@ module.exports = (Plugin, Library) => {
         data.favorited = this.isFavorited(data.type, data.url)
         const menuItems = []
         if (data.favorited) {
-          const categoryId = Utilities.loadData(config.info.name, data.type, { medias: [] }).medias.find(m => m.url === data.url)?.categoryId
-          const categories = Utilities.loadData(config.info.name, data.type, { categories: [] }).categories.filter(c => categoryId !== undefined ? c.id !== categoryId : true)
+          const categoryId = Utilities.loadData(this.meta.name, data.type, { medias: [] }).medias.find(m => m.url === data.url)?.category_id
+          const categories = Utilities.loadData(this.meta.name, data.type, { categories: [] }).categories.filter(c => categoryId !== undefined ? c.id !== categoryId : true)
           const buttonCategories = categories.map(c => ({
             id: `category-edit-${c.id}`,
             label: c.name,
@@ -1849,7 +2117,7 @@ module.exports = (Plugin, Library) => {
             })
           }
         } else {
-          const categories = Utilities.loadData(config.info.name, data.type, { categories: [] }).categories
+          const categories = Utilities.loadData(this.meta.name, data.type, { categories: [] }).categories
           const buttonCategories = categories.map(c => ({
             id: `category-name-${c.id}`,
             label: c.name,
@@ -1881,7 +2149,7 @@ module.exports = (Plugin, Library) => {
         }
         const contextMenu = ContextMenu.buildMenuItem({
           id: 'favoriteMedia',
-          label: config.info.name,
+          label: this.meta.name,
           type: 'submenu',
           items: menuItems
         })
@@ -1890,11 +2158,11 @@ module.exports = (Plugin, Library) => {
     }
 
     isFavorited (type, url) {
-      return Utilities.loadData(config.info.name, type, { medias: [] }).medias.find(e => e.url === url) !== undefined
+      return Utilities.loadData(this.meta.name, type, { medias: [] }).medias.find(e => e.url === url) !== undefined
     }
 
     favoriteMedia (props) {
-      const typeData = Utilities.loadData(config.info.name, props.type, { medias: [] })
+      const typeData = Utilities.loadData(this.meta.name, props.type, { medias: [] })
       if (typeData.medias.find(m => m.url === props.url)) return
       let data = null
       switch (props.type) {
@@ -1924,23 +2192,23 @@ module.exports = (Plugin, Library) => {
       }
       if (!data) return
       typeData.medias.push(data)
-      Utilities.saveData(config.info.name, props.type, typeData)
+      Utilities.saveData(this.meta.name, props.type, typeData)
     }
 
     unfavoriteMedia (props) {
-      const typeData = Utilities.loadData(config.info.name, props.type, { medias: [] })
+      const typeData = Utilities.loadData(this.meta.name, props.type, { medias: [] })
       if (!typeData.medias.length) return
       typeData.medias = typeData.medias.filter(e => e.url !== props.url)
-      Utilities.saveData(config.info.name, props.type, typeData)
+      Utilities.saveData(this.meta.name, props.type, typeData)
       if (props.fromPicker) Dispatcher.dispatch({ type: 'UPDATE_MEDIAS' })
     }
 
     moveMediaCategory (type, url, categoryId) {
-      const typeData = Utilities.loadData(config.info.name, type, { medias: [] })
+      const typeData = Utilities.loadData(this.meta.name, type, { medias: [] })
       const index = typeData.medias.findIndex(m => m.url === url)
       if (index < 0) return
-      typeData.medias[index].categoryId = categoryId
-      Utilities.saveData(config.info.name, type, typeData)
+      typeData.medias[index].category_id = categoryId
+      Utilities.saveData(this.meta.name, type, typeData)
       Toasts.success(labels.media.success.move[type])
     }
   }
@@ -1974,8 +2242,7 @@ module.exports = (Plugin, Library) => {
               wrongColor: 'Цветът е невалиден',
               nameExists: 'това име вече съществува',
               invalidCategory: 'Категорията не съществува',
-              download: 'Изтеглянето на мултимедия не бе успешно',
-              download: 'Median lataaminen epäonnistui'
+              download: 'Изтеглянето на мултимедия не бе успешно'
             },
             success: {
               create: 'Категорията е създадена!',
@@ -4437,23 +4704,7 @@ module.exports = (Plugin, Library) => {
         }
     }
   }
-}
-
-function getUrlName (url) {
-  return url.replace(/\.([^.]*)$/gm, '').split('/').pop()
-}
-
-function getUrlExt (url) {
-  return url.match(/\.([0-9a-z]+)(?=[?#])|(\.)(?:[\w]+)$/gmi)[0]
-}
-
-// https://stackoverflow.com/a/5306832/13314290
-function arrayMove (arr, oldIndex, newIndex) {
-  while (oldIndex < 0) oldIndex += arr.length
-  while (newIndex < 0) newIndex += arr.length
-  if (newIndex >= arr.length) {
-    let k = newIndex - arr.length + 1
-    while (k--) arr.push(undefined)
-  }
-  arr.splice(newIndex, 0, arr.splice(oldIndex, 1)[0])
-}
+};
+     return plugin(Plugin, Api);
+})(global.ZeresPluginLibrary.buildPlugin(config));
+/*@end@*/
