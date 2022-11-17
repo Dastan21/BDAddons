@@ -4,7 +4,7 @@
  * @author Dastan
  * @authorId 310450863845933057
  * @authorLink https://github.com/Dastan21
- * @version 1.6.2
+ * @version 1.6.3
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  */
 
@@ -13,7 +13,7 @@ const config = {
 		name: 'FavoriteMedia',
 		authors: [{ name: 'Dastan', github_username: 'Dastan21', discord_id: '310450863845933057' }],
 		description: 'Allows to favorite images, videos and audios.',
-		version: '1.6.2',
+		version: '1.6.3',
 		github: 'https://github.com/Dastan21/BDAddons/tree/main/plugins/FavoriteMedia',
 		github_raw: 'https://raw.githubusercontent.com/Dastan21/BDAddons/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js'
 	},
@@ -205,29 +205,30 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 	return ((Plugin, Api) => {
 		const { WebpackModules, ReactComponents, PluginUpdater, ContextMenu, PluginUtilities, Utilities, ColorConverter, Toasts, Modals, Tooltip, DiscordModules: { React, ElectronModule, Dispatcher, LocaleManager, SelectedChannelStore, ChannelStore, UserStore, Permissions, Strings }, Patcher } = Api
 		const { mkdir, access, writeFile, constants } = require('fs')
+		const { Webpack: { getModule, Filters } } = BdApi;
 
 		const class_modules = {
-			icon: WebpackModules.getByProps('hoverScale', 'buttonWrapper', 'button'),
-			menu: WebpackModules.getByProps('menu', 'scroller', 'styleFixed'),
-			result: WebpackModules.getByProps('desiredItemWidth', 'results', 'result'),
-			input: WebpackModules.getByProps('inputWrapper', 'input', 'focused'),
-			role: WebpackModules.getByProps('roleCircle'),
-			_gif: WebpackModules.getByProps('container', 'gifFavoriteButton', 'embedWrapper'),
-			gif: WebpackModules.getByProps('size', 'gifFavoriteButton', 'selected'),
-			image: WebpackModules.getByProps('flexCenter', 'imageWrapper', 'imageWrapperBackground'),
-			control: WebpackModules.getByProps('container', 'labelRow', 'control'),
-			category: WebpackModules.getByProps('container', 'categoryFade', 'categoryFadeBlurple'),
-			textarea: WebpackModules.getByProps('textAreaHeight', 'channelTextArea', 'highlighted'),
-			gutter: WebpackModules.getByProps('gutterSize', 'container', 'content'),
-			_flex: WebpackModules.getByProps('_flex', '_horizontal', '_horizontalReverse'),
-			flex: WebpackModules.getByProps('flex', 'alignStart', 'alignEnd'),
-			color: WebpackModules.getByProps('selectable', 'strong', 'colorStandard'),
-			size: WebpackModules.getByProps('size10', 'size12', 'size14'),
-			title: WebpackModules.getByProps('title', 'h1', 'h2'),
-			container: WebpackModules.getByProps('container', 'inner', 'pointer'),
-			scroller: WebpackModules.getByProps('scrollerBase', 'thin', 'fade'),
-			look: WebpackModules.getByProps('lowSaturationUnderline', 'button', 'lookFilled'),
-			audio: WebpackModules.getByProps('wrapper', 'wrapperAudio', 'wrapperPaused'),
+			icon: getModule(Filters.byProps('hoverScale', 'buttonWrapper', 'button')),
+			menu: getModule(Filters.byProps('menu', 'scroller', 'styleFixed')),
+			result: getModule(Filters.byProps('desiredItemWidth', 'results', 'result')),
+			input: getModule(Filters.byProps('inputWrapper', 'input', 'focused')),
+			role: getModule(Filters.byProps('roleCircle')),
+			_gif: getModule(Filters.byProps('container', 'gifFavoriteButton', 'embedWrapper')),
+			gif: getModule(Filters.byProps('size', 'gifFavoriteButton', 'selected')),
+			image: getModule(Filters.byProps('flexCenter', 'imageWrapper', 'imageWrapperBackground')),
+			control: getModule(Filters.byProps('container', 'labelRow', 'control')),
+			category: getModule(Filters.byProps('container', 'categoryFade', 'categoryFadeBlurple')),
+			textarea: getModule(Filters.byProps('textAreaHeight', 'channelTextArea', 'highlighted')),
+			gutter: getModule(Filters.byProps('gutterSize', 'container', 'content')),
+			_flex: getModule(Filters.byProps('_flex', '_horizontal', '_horizontalReverse')),
+			flex: getModule(Filters.byProps('flex', 'alignStart', 'alignEnd')),
+			color: getModule(Filters.byProps('selectable', 'strong', 'colorStandard')),
+			size: getModule(Filters.byProps('size10', 'size12', 'size14')),
+			title: getModule(Filters.byProps('title', 'h1', 'h2')),
+			container: getModule(Filters.byProps('container', 'inner', 'pointer')),
+			scroller: getModule(Filters.byProps('scrollerBase', 'thin', 'fade')),
+			look: getModule(Filters.byProps('lowSaturationUnderline', 'button', 'lookFilled')),
+			audio: getModule(Filters.byProps('wrapper', 'wrapperAudio', 'wrapperPaused')),
 		}
 		const classes = {
 			icon: {
@@ -336,15 +337,33 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 		const DEFAULT_BACKGROUND_COLOR = '#202225'
 		let canClosePicker = true
 		const labels = setLabelsByLanguage()
-		const ExpressionPicker = WebpackModules.getModule(e => e.type?.displayName === 'ExpressionPicker')
-		const ChannelTextAreaButtons = WebpackModules.getModule(m => m.type?.displayName === 'ChannelTextAreaButtons')
-		const ComponentDispatch = WebpackModules.getByProps('ComponentDispatch').ComponentDispatch
-		const EPS = WebpackModules.getByProps('toggleExpressionPicker')
-		const EPSConstants = WebpackModules.getByProps('ChatInputTypes').ChatInputTypes.NORMAL
-		const PermissionsConstants = WebpackModules.getByProps('Permissions', 'ActivityTypes').Permissions
-		const uploadFile = WebpackModules.getByProps('instantBatchUpload').upload
-		const MediaPlayer = WebpackModules.getByDisplayName('MediaPlayer')
-		const Image = WebpackModules.getByDisplayName('Image')
+		const ExpressionPicker = getModule(m => m.prototype.render.toString().includes('onUnmount'),{searchExports:true});
+		const ChannelTextAreaButtons = {}; // WebpackModules.getModule(m => m.type?.displayName === 'ChannelTextAreaButtons')
+		const ComponentDispatch = {
+			dispatchToLastSubscribed:(()=>{
+				let ComponentDispatch;
+				return (type,obj) => {
+					if (!ComponentDispatch) ComponentDispatch = getModule(m => m.dispatchToLastSubscribed && m.emitter.listeners('CLEAR_TEXT').length && m.emitter.listeners('INSERT_TEXT').length, { searchExports: true });
+					ComponentDispatch.dispatchToLastSubscribed(type, obj);
+				}
+			})()
+		};
+		const EPS = {};
+		Object.values(getModule(m => Object.keys(m).some(key => m[key].toString().includes('isSearchSuggestion')))).forEach(func => {
+			const code = func.toString();
+			if(code.includes('useDebugValue') && func.getState){
+				EPS["useExpressionPickerStore"] = func;
+			} else if(code.includes('===')){
+				EPS["toggleExpressionPicker"] = func;
+			}else if(code.includes('activeView:null,activeViewType:null')){
+				EPS["closeExpressionPicker"] = func;
+			}
+		});
+		const EPSConstants = getModule(Filters.byProps('FORUM_CHANNEL_GUIDELINES','CREATE_FORUM_POST'), { searchExports: true}).NORMAL;
+		const PermissionsConstants = getModule(Filters.byProps('ADD_REACTIONS'), { searchExports: true });
+		const uploadFile = getModule(Filters.byProps('instantBatchUpload')).upload;
+		const MediaPlayer = getModule(m => m.Types.VIDEO,{searchExports:true});
+		const Image = getModule(m => m.defaultProps.zoomable);
 		const ImageSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 384 384', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M341.333,0H42.667C19.093,0,0,19.093,0,42.667v298.667C0,364.907,19.093,384,42.667,384h298.667 C364.907,384,384,364.907,384,341.333V42.667C384,19.093,364.907,0,341.333,0z M42.667,320l74.667-96l53.333,64.107L245.333,192l96,128H42.667z' }))
 		const VideoSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 298 298', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M298,33c0-13.255-10.745-24-24-24H24C10.745,9,0,19.745,0,33v232c0,13.255,10.745,24,24,24h250c13.255,0,24-10.745,24-24V33zM91,39h43v34H91V39z M61,259H30v-34h31V259z M61,73H30V39h31V73z M134,259H91v-34h43V259z M123,176.708v-55.417c0-8.25,5.868-11.302,12.77-6.783l40.237,26.272c6.902,4.519,6.958,11.914,0.056,16.434l-40.321,26.277C128.84,188.011,123,184.958,123,176.708z M207,259h-43v-34h43V259z M207,73h-43V39h43V73z M268,259h-31v-34h31V259z M268,73h-31V39h31V73z' }))
 		const AudioSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 115.3 115.3', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M47.9,14.306L26,30.706H6c-3.3,0-6,2.7-6,6v41.8c0,3.301,2.7,6,6,6h20l21.9,16.4c4,3,9.6,0.2,9.6-4.8v-77C57.5,14.106,51.8,11.306,47.9,14.306z' }), React.createElement('path', { fill: 'currentColor', d: 'M77.3,24.106c-2.7-2.7-7.2-2.7-9.899,0c-2.7,2.7-2.7,7.2,0,9.9c13,13,13,34.101,0,47.101c-2.7,2.7-2.7,7.2,0,9.899c1.399,1.4,3.199,2,4.899,2s3.601-0.699,4.9-2.1C95.8,72.606,95.8,42.606,77.3,24.106z' }), React.createElement('path', { fill: 'currentColor', d: 'M85.1,8.406c-2.699,2.7-2.699,7.2,0,9.9c10.5,10.5,16.301,24.4,16.301,39.3s-5.801,28.8-16.301,39.3c-2.699,2.7-2.699,7.2,0,9.9c1.4,1.399,3.2,2.1,4.9,2.1c1.8,0,3.6-0.7,4.9-2c13.1-13.1,20.399-30.6,20.399-49.2c0-18.6-7.2-36-20.399-49.2C92.3,5.706,87.9,5.706,85.1,8.406z' }))
@@ -1835,7 +1854,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
 			patchExpressionPicker() {
 				// https://github.com/rauenzi/BetterDiscordApp/blob/main/renderer/src/builtins/emotes/emotemenu.js
-				Patcher.after(ExpressionPicker, 'type', (_, __, returnValue) => {
+				Patcher.after(ExpressionPicker.prototype, 'render', (_, __, returnValue) => {
 					const originalChildren = Utilities.getNestedProp(returnValue, 'props.children.props.children')
 					if (!originalChildren) return
 					returnValue.props.children.props.children = (props) => {
