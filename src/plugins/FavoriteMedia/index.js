@@ -8,7 +8,6 @@ module.exports = (Plugin, Library) => {
   const {
     WebpackModules,
     ReactComponents,
-    PluginUpdater,
     ContextMenu,
     Utilities,
     ColorConverter,
@@ -32,25 +31,6 @@ module.exports = (Plugin, Library) => {
   const { mkdir, lstat, writeFile } = require('fs')
   const BdApi = new window.BdApi('FavoriteMedia')
   const { Webpack } = BdApi
-
-  function getUrlName (url) {
-    return url.replace(/\.([^.]*)$/gm, '').split('/').pop()
-  }
-
-  function getUrlExt (url) {
-    return url.match(/\.([0-9a-z]+)(?=[?#])|(\.)(?:[\w]+)$/gmi)[0]
-  }
-
-  // https://stackoverflow.com/a/5306832/13314290
-  function arrayMove (arr, oldIndex, newIndex) {
-    while (oldIndex < 0) oldIndex += arr.length
-    while (newIndex < 0) newIndex += arr.length
-    if (newIndex >= arr.length) {
-      let k = newIndex - arr.length + 1
-      while (k--) arr.push(undefined)
-    }
-    arr.splice(newIndex, 0, arr.splice(oldIndex, 1)[0])
-  }
 
   const classModules = {
     icon: WebpackModules.getByProps('hoverScale', 'buttonWrapper', 'button'),
@@ -180,23 +160,11 @@ module.exports = (Plugin, Library) => {
   }
   const DEFAULT_BACKGROUND_COLOR = '#202225'
   let canClosePicker = true
+  let ChannelTextAreaButtons
   const labels = setLabelsByLanguage()
   const ExpressionPicker = Webpack.getModule(m => m.prototype?.render?.toString().includes('onUnmount'), { searchExports: true })
-  const ComponentDispatch = Webpack.getModule(m => m.dispatchToLastSubscribed && m.emitter?.listeners('CLEAR_TEXT').length && m.emitter?.listeners('INSERT_TEXT').length, { searchExports: true })
-  const EPS = (() => {
-    const modules = Webpack.getModule(m => Object.keys(m).some(key => m[key]?.toString?.().includes('isSearchSuggestion')))
-    return Object.values(modules).reduce((eps, fn) => {
-      const code = String(fn)
-      if (code.includes('useDebugValue') && fn.getState) {
-        eps = { ...eps, useExpressionPickerStore: fn }
-      } else if (code.includes('===')) {
-        eps = { ...eps, toggleExpressionPicker: fn }
-      } else if (code.includes('activeView:null,activeViewType:null')) {
-        eps = { ...eps, closeExpressionPicker: fn }
-      }
-      return eps
-    }, {})
-  })()
+  let ComponentDispatch
+  const EPS = {}
   const EPSConstants = Webpack.getModule(Webpack.Filters.byProps('FORUM_CHANNEL_GUIDELINES', 'CREATE_FORUM_POST'), { searchExports: true })?.NORMAL
   const PermissionsConstants = Webpack.getModule(Webpack.Filters.byProps('ADD_REACTIONS'), { searchExports: true })
   const uploadFile = Webpack.getModule(Webpack.Filters.byProps('instantBatchUpload')).upload
@@ -206,6 +174,66 @@ module.exports = (Plugin, Library) => {
   const VideoSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 298 298', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M298,33c0-13.255-10.745-24-24-24H24C10.745,9,0,19.745,0,33v232c0,13.255,10.745,24,24,24h250c13.255,0,24-10.745,24-24V33zM91,39h43v34H91V39z M61,259H30v-34h31V259z M61,73H30V39h31V73z M134,259H91v-34h43V259z M123,176.708v-55.417c0-8.25,5.868-11.302,12.77-6.783l40.237,26.272c6.902,4.519,6.958,11.914,0.056,16.434l-40.321,26.277C128.84,188.011,123,184.958,123,176.708z M207,259h-43v-34h43V259z M207,73h-43V39h43V73z M268,259h-31v-34h31V259z M268,73h-31V39h31V73z' }))
   const AudioSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 115.3 115.3', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M47.9,14.306L26,30.706H6c-3.3,0-6,2.7-6,6v41.8c0,3.301,2.7,6,6,6h20l21.9,16.4c4,3,9.6,0.2,9.6-4.8v-77C57.5,14.106,51.8,11.306,47.9,14.306z' }), React.createElement('path', { fill: 'currentColor', d: 'M77.3,24.106c-2.7-2.7-7.2-2.7-9.899,0c-2.7,2.7-2.7,7.2,0,9.9c13,13,13,34.101,0,47.101c-2.7,2.7-2.7,7.2,0,9.899c1.399,1.4,3.199,2,4.899,2s3.601-0.699,4.9-2.1C95.8,72.606,95.8,42.606,77.3,24.106z' }), React.createElement('path', { fill: 'currentColor', d: 'M85.1,8.406c-2.699,2.7-2.699,7.2,0,9.9c10.5,10.5,16.301,24.4,16.301,39.3s-5.801,28.8-16.301,39.3c-2.699,2.7-2.699,7.2,0,9.9c1.4,1.399,3.2,2.1,4.9,2.1c1.8,0,3.6-0.7,4.9-2c13.1-13.1,20.399-30.6,20.399-49.2c0-18.6-7.2-36-20.399-49.2C92.3,5.706,87.9,5.706,85.1,8.406z' }))
   const ColorDot = props => React.createElement('div', { className: classes.roleCircle + ' fm-colorDot', style: { 'background-color': props.color || DEFAULT_BACKGROUND_COLOR } })
+
+  function getUrlName (url) {
+    return url.replace(/\.([^.]*)$/gm, '').split('/').pop()
+  }
+
+  function getUrlExt (url) {
+    return url.match(/\.([0-9a-z]+)(?=[?#])|(\.)(?:[\w]+)$/gmi)[0]
+  }
+
+  // https://stackoverflow.com/a/5306832/13314290
+  function arrayMove (arr, oldIndex, newIndex) {
+    while (oldIndex < 0) oldIndex += arr.length
+    while (newIndex < 0) newIndex += arr.length
+    if (newIndex >= arr.length) {
+      let k = newIndex - arr.length + 1
+      while (k--) arr.push(undefined)
+    }
+    arr.splice(newIndex, 0, arr.splice(oldIndex, 1)[0])
+  }
+
+  function loadModules () {
+    loadEPS()
+    loadComponentDispatch()
+    loadChannelTextAreaButtons()
+  }
+
+  function loadEPS () {
+    const modules = Webpack.getModule(m => Object.keys(m).some(key => m[key]?.toString?.().includes('isSearchSuggestion')))
+    if (modules == null) return
+    Object.values(modules).forEach((fn) => {
+      const code = String(fn)
+      if (code.includes('useDebugValue') && fn.getState) {
+        EPS.useExpressionPickerStore = fn
+      } else if (code.includes('===')) {
+        EPS.toggleExpressionPicker = fn
+      } else if (code.includes('activeView:null,activeViewType:null')) {
+        EPS.closeExpressionPicker = fn
+      }
+    })
+  }
+
+  function loadComponentDispatch () {
+    if (ComponentDispatch != null) return
+    ComponentDispatch = Webpack.getModule(m => m.dispatchToLastSubscribed && m.emitter?.listeners('CLEAR_TEXT').length && m.emitter?.listeners('INSERT_TEXT').length, { searchExports: true })
+  }
+
+  // https://github.com/Strencher/BetterDiscordStuff/blob/master/InvisibleTyping/InvisibleTyping.plugin.js#L483-L494
+  function loadChannelTextAreaButtons () {
+    const buttonsClassName = WebpackModules.getByProps('profileBioInput', 'buttons')?.buttons
+    const vnode = ReactTools.getReactInstance(document.querySelector(`.${buttonsClassName}`))
+    if (!vnode) return
+    for (let curr = vnode, max = 100; curr !== null && max--; curr = curr.return) {
+      const tree = curr?.pendingProps?.children
+      let buttons
+      if (Array.isArray(tree) && (buttons = tree.find(s => s?.props?.type && s.props.channel && s.type?.$$typeof))) {
+        ChannelTextAreaButtons = buttons.type
+        return
+      }
+    }
+  }
 
   const MediaMenuItemInput = class extends React.Component {
     componentDidMount () {
@@ -758,6 +786,7 @@ module.exports = (Plugin, Library) => {
     }
 
     sendMedia (e) {
+      loadComponentDispatch()
       const sendMedia = e.type === 'SEND_MEDIA'
       if (sendMedia) {
         if (e.mediaId !== this.props.id) return
@@ -1182,6 +1211,7 @@ module.exports = (Plugin, Library) => {
     }
 
     uploadMedia (mediaId, spoiler) {
+      loadComponentDispatch()
       const media = this.state.medias[mediaId]
       if (!media) return
       require('https').get(media.url, res => {
@@ -1596,11 +1626,7 @@ module.exports = (Plugin, Library) => {
 
   return class FavoriteMedia extends Plugin {
     onStart () {
-      PluginUpdater.checkForUpdate(
-        this.getName(),
-        this.getVersion(),
-        'https://raw.githubusercontent.com/Dastan21/BDAddons/main/plugins/FavoriteMedia/FavoriteMedia.plugin.js'
-      )
+      loadModules()
       this.patchExpressionPicker()
       this.patchChannelTextArea()
       this.patchMedias()
@@ -1689,6 +1715,10 @@ module.exports = (Plugin, Library) => {
       this.contextMenu?.()
     }
 
+    onSwitch () {
+      if (!this.patchedCTA) this.patchChannelTextArea()
+    }
+
     getSettingsPanel () {
       return this.buildSettingsPanel().getElement()
     }
@@ -1737,22 +1767,10 @@ module.exports = (Plugin, Library) => {
       })
     }
 
-    // https://github.com/Strencher/BetterDiscordStuff/blob/master/InvisibleTyping/InvisibleTyping.plugin.js#L483-L494
     patchChannelTextArea () {
-      const buttonsClassName = WebpackModules.getByProps('profileBioInput', 'buttons')?.buttons
-
-      let ChannelTextAreaButtons
-      const vnode = ReactTools.getReactInstance(document.querySelector(`.${buttonsClassName}`))
-      if (!vnode) return
-      for (let curr = vnode, max = 100; curr !== null && max--; curr = curr.return) {
-        const tree = curr?.pendingProps?.children
-        let buttons
-        if (Array.isArray(tree) && (buttons = tree.find(s => s?.props?.type && s.props.channel && s.type?.$$typeof))) {
-          ChannelTextAreaButtons = buttons.type
-          break
-        }
-      }
+      loadChannelTextAreaButtons()
       if (ChannelTextAreaButtons == null) return
+      this.patchedCTA = true
 
       Patcher.after(ChannelTextAreaButtons, 'type', (_, __, returnValue) => {
         if (Utilities.getNestedProp(returnValue, 'props.children.1.props.type') === 'sidebar') return
@@ -1842,8 +1860,8 @@ module.exports = (Plugin, Library) => {
         if (!this.settings.showContextMenuFavorite) return
         if (!(
           ((props.target.tagName === 'A' && props.target.nextSibling?.firstChild?.tagName !== 'VIDEO') || (props.target.tagName === 'svg' && props.target.className && props.target.className.baseVal === classes.gif.icon) || props.target.tagName === 'path') || // image
-   (props.target.tagName === 'VIDEO' && props.target.className?.includes('video')) || // video
-   (props.target.tagName === 'A' && props.target.className && props.target.className.includes('metadataName')) // audio
+          (props.target.tagName === 'VIDEO' && props.target.className?.includes('video')) || // video
+          (props.target.tagName === 'A' && props.target.className && props.target.className.includes('metadataName')) // audio
         )) return
         if (new URL(String(props.target.href ?? props.target.src)).pathname.endsWith('.gif')) return
         let target = props.target
@@ -1864,8 +1882,8 @@ module.exports = (Plugin, Library) => {
         data.favorited = this.isFavorited(data.type, data.url)
         const menuItems = []
         if (data.favorited) {
-          const categoryId = Utilities.loadData(this.meta.name, data.type, { medias: [] }).medias.find(m => m.url === data.url)?.category_id
-          const categories = Utilities.loadData(this.meta.name, data.type, { categories: [] }).categories.filter(c => categoryId !== undefined ? c.id !== categoryId : true)
+          const categoryId = Utilities.loadData(this._config.name, data.type, { medias: [] }).medias.find(m => m.url === data.url)?.category_id
+          const categories = Utilities.loadData(this._config.name, data.type, { categories: [] }).categories.filter(c => categoryId !== undefined ? c.id !== categoryId : true)
           const buttonCategories = categories.map(c => ({
             id: `category-edit-${c.id}`,
             label: c.name,
@@ -1893,7 +1911,7 @@ module.exports = (Plugin, Library) => {
             })
           }
         } else {
-          const categories = Utilities.loadData(this.meta.name, data.type, { categories: [] }).categories
+          const categories = Utilities.loadData(this._config.name, data.type, { categories: [] }).categories
           const buttonCategories = categories.map(c => ({
             id: `category-name-${c.id}`,
             label: c.name,
@@ -1925,7 +1943,7 @@ module.exports = (Plugin, Library) => {
         }
         const contextMenu = ContextMenu.buildMenuItem({
           id: 'favoriteMedia',
-          label: this.meta.name,
+          label: this._config.name,
           type: 'submenu',
           items: menuItems
         })
@@ -1934,11 +1952,11 @@ module.exports = (Plugin, Library) => {
     }
 
     isFavorited (type, url) {
-      return Utilities.loadData(this.meta.name, type, { medias: [] }).medias.find(e => e.url === url) !== undefined
+      return Utilities.loadData(this._config.name, type, { medias: [] }).medias.find(e => e.url === url) !== undefined
     }
 
     favoriteMedia (props) {
-      const typeData = Utilities.loadData(this.meta.name, props.type, { medias: [] })
+      const typeData = Utilities.loadData(this._config.name, props.type, { medias: [] })
       if (typeData.medias.find(m => m.url === props.url)) return
       let data = null
       switch (props.type) {
@@ -1968,23 +1986,23 @@ module.exports = (Plugin, Library) => {
       }
       if (!data) return
       typeData.medias.push(data)
-      Utilities.saveData(this.meta.name, props.type, typeData)
+      Utilities.saveData(this._config.name, props.type, typeData)
     }
 
     unfavoriteMedia (props) {
-      const typeData = Utilities.loadData(this.meta.name, props.type, { medias: [] })
+      const typeData = Utilities.loadData(this._config.name, props.type, { medias: [] })
       if (!typeData.medias.length) return
       typeData.medias = typeData.medias.filter(e => e.url !== props.url)
-      Utilities.saveData(this.meta.name, props.type, typeData)
+      Utilities.saveData(this._config.name, props.type, typeData)
       if (props.fromPicker) Dispatcher.dispatch({ type: 'UPDATE_MEDIAS' })
     }
 
     moveMediaCategory (type, url, categoryId) {
-      const typeData = Utilities.loadData(this.meta.name, type, { medias: [] })
+      const typeData = Utilities.loadData(this._config.name, type, { medias: [] })
       const index = typeData.medias.findIndex(m => m.url === url)
       if (index < 0) return
       typeData.medias[index].category_id = categoryId
-      Utilities.saveData(this.meta.name, type, typeData)
+      Utilities.saveData(this._config.name, type, typeData)
       Toasts.success(labels.media.success.move[type])
     }
   }
