@@ -1736,16 +1736,15 @@ module.exports = (Plugin, Library) => {
     }
 
     patchExpressionPicker () {
-      // https://github.com/rauenzi/BetterDiscordApp/blob/main/renderer/src/builtins/emotes/emotemenu.js
+      // https://github.com/BetterDiscord/BetterDiscord/blob/3b9ad9b75b6ac64e6740e9c2f1d19fd4615010c7/renderer/src/builtins/emotes/emotemenu.js
       Patcher.after(ExpressionPicker.prototype, 'render', (_, __, returnValue) => {
-        const originalChildren = Utilities.getNestedProp(returnValue, 'props.children.props.children')
-        if (!originalChildren) return
-        returnValue.props.children.props.children = (props) => {
-          const childrenReturn = Reflect.apply(originalChildren, null, [props])
-          let head = Utilities.getNestedProp(childrenReturn, 'props.children.props.children.1.props.children.1.props.children.props.children')
-          if (!head) head = Utilities.getNestedProp(childrenReturn, 'props.children.props.children.1.props.children.0.props.children.props.children')
-          const body = Utilities.getNestedProp(childrenReturn, 'props.children.props.children.1.props.children')
-          if (!head || !body) return childrenReturn
+        const originalChildren = returnValue?.props?.children?.props?.children
+        if (originalChildren == null) return
+        returnValue.props.children.props.children = (...args) => {
+          const childrenReturn = originalChildren(...args)
+          const head = Utilities.findInTree(childrenReturn, (e) => e?.role === 'tablist', { walkable: ['props', 'children', 'return', 'stateNode'] })?.children
+          const body = Utilities.findInTree(childrenReturn, (e) => e?.[0]?.type === 'nav', { walkable: ['props', 'children', 'return', 'stateNode'] })
+          if (head == null || body == null) return childrenReturn
           try {
             const elementType = head[0].type.type
             if (this.settings.image.enabled) head.push(this.MediaTab('image', elementType))
