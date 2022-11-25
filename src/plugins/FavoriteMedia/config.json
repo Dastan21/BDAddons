@@ -5,7 +5,7 @@
   "author": "Dastan",
   "authorId": "310450863845933057",
   "authorLink": "",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "description": "Allows to favorite images, videos and audios.",
   "website": "",
   "source": "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -59,19 +59,53 @@
       "value": 10
     },
     {
-      "type": "dropdown",
-      "id": "btnsPosition",
+      "type": "category",
+      "id": "position",
       "name": "Buttons Position",
-      "note": "Position of the buttons on the chat",
-      "value": "right",
-      "options": [
+      "collapsible": true,
+      "shown": false,
+      "settings": [
         {
-          "label": "Right",
-          "value": "right"
+          "type": "dropdown",
+          "id": "btnsPosition",
+          "name": "Buttons Way",
+          "note": "Way of the buttons on the chat",
+          "value": "right",
+          "options": [
+            {
+              "label": "Right",
+              "value": "right"
+            },
+            {
+              "label": "Left",
+              "value": "left"
+            }
+          ]
         },
         {
-          "label": "Left",
-          "value": "left"
+          "type": "dropdown",
+          "id": "btnsPositionKey",
+          "name": "Buttons Relative Position",
+          "note": "Near which other button the buttons have to be placed",
+          "value": "emoji",
+          "options": [
+            {
+              "label": "Gift",
+              "value": "gift"
+            },
+            {
+              "label": "GIF",
+              "value": "gif"
+            },
+            {
+              "label": "Sticker",
+              "value": "sticker"
+            },
+            {
+              "label": "Emoji",
+              "value": "emoji"
+            }
+          ]
         }
       ]
     },
@@ -172,6 +206,13 @@
       "type": "fixed",
       "items": [
         "Plugin works again thanks to Skamt!"
+      ]
+    },
+    {
+      "title": "Added",
+      "type": "added",
+      "items": [
+        "More options for textarea buttons positions"
       ]
     }
   ]

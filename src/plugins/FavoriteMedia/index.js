@@ -1782,15 +1782,14 @@ module.exports = (Plugin, Library) => {
         if (!channel.type && !perms) return
         const buttons = returnValue.props.children
         if (!buttons || !Array.isArray(buttons)) return
-        if (this.settings.btnsPosition === 'left') {
-          if (this.settings.audio.showBtn && this.settings.audio.enabled) buttons.unshift(React.createElement(MediaButton, { type: 'audio' }))
-          if (this.settings.video.showBtn && this.settings.video.enabled) buttons.unshift(React.createElement(MediaButton, { type: 'video' }))
-          if (this.settings.image.showBtn && this.settings.image.enabled) buttons.unshift(React.createElement(MediaButton, { type: 'image' }))
-        } else {
-          if (this.settings.image.showBtn && this.settings.image.enabled) buttons.push(React.createElement(MediaButton, { type: 'image' }))
-          if (this.settings.video.showBtn && this.settings.video.enabled) buttons.push(React.createElement(MediaButton, { type: 'video' }))
-          if (this.settings.audio.showBtn && this.settings.audio.enabled) buttons.push(React.createElement(MediaButton, { type: 'audio' }))
-        }
+        const fmButtons = []
+        if (this.settings.image.showBtn && this.settings.image.enabled) fmButtons.push(React.createElement(MediaButton, { type: 'image' }))
+        if (this.settings.video.showBtn && this.settings.video.enabled) fmButtons.push(React.createElement(MediaButton, { type: 'video' }))
+        if (this.settings.audio.showBtn && this.settings.audio.enabled) fmButtons.push(React.createElement(MediaButton, { type: 'audio' }))
+        let index = (buttons.findIndex((b) => b.key === this.settings.position.btnsPositionKey) + (this.settings.position.btnsPosition === 'right' ? 1 : 0))
+        if (index < 0) index = buttons.length - 1
+        buttons.splice(index, 0, ...fmButtons)
+        buttons.forEach((b) => { if (['image', 'video', 'audio'].includes(b.props?.type)) b.key = b.props.type })
       })
     }
 

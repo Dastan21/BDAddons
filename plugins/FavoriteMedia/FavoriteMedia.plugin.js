@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite images, videos and audios.
- * @version 1.6.3
+ * @version 1.6.4
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -36,7 +36,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "1.6.3",
+    version: "1.6.4",
     description: "Allows to favorite images, videos and audios.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -102,19 +102,53 @@ const config = {
             value: 10
         },
         {
-            type: "dropdown",
-            id: "btnsPosition",
+            type: "category",
+            id: "position",
             name: "Buttons Position",
-            note: "Position of the buttons on the chat",
-            value: "right",
-            options: [
+            collapsible: true,
+            shown: false,
+            settings: [
                 {
-                    label: "Right",
-                    value: "right"
+                    type: "dropdown",
+                    id: "btnsPosition",
+                    name: "Buttons Way",
+                    note: "Way of the buttons on the chat",
+                    value: "right",
+                    options: [
+                        {
+                            label: "Right",
+                            value: "right"
+                        },
+                        {
+                            label: "Left",
+                            value: "left"
+                        }
+                    ]
                 },
                 {
-                    label: "Left",
-                    value: "left"
+                    type: "dropdown",
+                    id: "btnsPositionKey",
+                    name: "Buttons Relative Position",
+                    note: "Near which other button the buttons have to be placed",
+                    value: "emoji",
+                    options: [
+                        {
+                            label: "Gift",
+                            value: "gift"
+                        },
+                        {
+                            label: "GIF",
+                            value: "gif"
+                        },
+                        {
+                            label: "Sticker",
+                            value: "sticker"
+                        },
+                        {
+                            label: "Emoji",
+                            value: "emoji"
+                        }
+                    ]
                 }
             ]
         },
@@ -215,6 +249,13 @@ const config = {
             type: "fixed",
             items: [
                 "Plugin works again thanks to Skamt!"
+            ]
+        },
+        {
+            title: "Added",
+            type: "added",
+            items: [
+                "More options for textarea buttons positions"
             ]
         }
     ]
@@ -2025,15 +2066,14 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         if (!channel.type && !perms) return
         const buttons = returnValue.props.children
         if (!buttons || !Array.isArray(buttons)) return
-        if (this.settings.btnsPosition === 'left') {
-          if (this.settings.audio.showBtn && this.settings.audio.enabled) buttons.unshift(React.createElement(MediaButton, { type: 'audio' }))
-          if (this.settings.video.showBtn && this.settings.video.enabled) buttons.unshift(React.createElement(MediaButton, { type: 'video' }))
-          if (this.settings.image.showBtn && this.settings.image.enabled) buttons.unshift(React.createElement(MediaButton, { type: 'image' }))
-        } else {
-          if (this.settings.image.showBtn && this.settings.image.enabled) buttons.push(React.createElement(MediaButton, { type: 'image' }))
-          if (this.settings.video.showBtn && this.settings.video.enabled) buttons.push(React.createElement(MediaButton, { type: 'video' }))
-          if (this.settings.audio.showBtn && this.settings.audio.enabled) buttons.push(React.createElement(MediaButton, { type: 'audio' }))
-        }
+        const fmButtons = []
+        if (this.settings.image.showBtn && this.settings.image.enabled) fmButtons.push(React.createElement(MediaButton, { type: 'image' }))
+        if (this.settings.video.showBtn && this.settings.video.enabled) fmButtons.push(React.createElement(MediaButton, { type: 'video' }))
+        if (this.settings.audio.showBtn && this.settings.audio.enabled) fmButtons.push(React.createElement(MediaButton, { type: 'audio' }))
+        let index = (buttons.findIndex((b) => b.key === this.settings.position.btnsPositionKey) + (this.settings.position.btnsPosition === 'right' ? 1 : 0))
+        if (index < 0) index = buttons.length - 1
+        buttons.splice(index, 0, ...fmButtons)
+        buttons.forEach((b) => { if (['image', 'video', 'audio'].includes(b.props?.type)) b.key = b.props.type })
       })
     }
 
