@@ -97,6 +97,10 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     {
       match: /^https:\/\/(.*)youtu.be\/(.*)/,
       replace: href => 'https://www.youtube.com/watch?v=' + String(href).split('/')?.pop()
+    },
+    {
+      match: /^https:\/\/(.*)youtube.com\/shorts\/(.*)/,
+      replace: href => 'https://www.youtube.com/watch?v=' + String(href).split('/')?.pop()
     }
   ]
   // Discord classes
