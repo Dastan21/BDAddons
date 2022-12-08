@@ -1,7 +1,7 @@
 /**
  * @name HideEmbedLink
  * @description Hides embed messages link.
- * @version 2.1.0
+ * @version 2.1.1
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink
@@ -36,7 +36,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "2.1.0",
+    version: "2.1.1",
     description: "Hides embed messages link.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink",
@@ -45,14 +45,22 @@ const config = {
     invite: "",
     changelog: [
         {
-            title: "v2.1.0",
-            type: "fixed",
+            title: "v2.1.1",
+            type: "added",
             items: [
-                "Fixed the plugin."
+                "Added setting to hide only medias links"
             ]
         }
     ],
-    defaultConfig: []
+    defaultConfig: [
+        {
+            type: "switch",
+            id: "hideMediasOnly",
+            name: "Hide Only Medias",
+            note: "Hide only medias links, like images, videos...",
+            value: false
+        }
+    ]
 };
 class Dummy {
     constructor() {this._config = config;}
@@ -85,9 +93,9 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
      const plugin = (Plugin, Library) => {
   const { Patcher, DOMTools, WebpackModules, DiscordModules: { React } } = Library
 
-  FIX_LIST = [
+  const FIX_LIST = [
     {
-      match: new RegExp('^https://(.*)youtu.be/(.*)'),
+      match: /^https:\/\/(.*)youtu.be\/(.*)/,
       replace: href => 'https://www.youtube.com/watch?v=' + String(href).split('/')?.pop()
     }
   ]
@@ -97,7 +105,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
   const ShowIcon = React.createElement('path', { fill: 'currentColor', d: 'M113,37.66667c-75.33333,0 -103.58333,75.33333 -103.58333,75.33333c0,0 28.25,75.33333 103.58333,75.33333c75.33333,0 103.58333,-75.33333 103.58333,-75.33333c0,0 -28.25,-75.33333 -103.58333,-75.33333zM113,65.91667c25.99942,0 47.08333,21.08392 47.08333,47.08333c0,25.99942 -21.08392,47.08333 -47.08333,47.08333c-25.99942,0 -47.08333,-21.08392 -47.08333,-47.08333c0,-25.99942 21.08392,-47.08333 47.08333,-47.08333zM113,84.75c-15.60204,0 -28.25,12.64796 -28.25,28.25c0,15.60204 12.64796,28.25 28.25,28.25c15.60204,0 28.25,-12.64796 28.25,-28.25c0,-15.60204 -12.64796,-28.25 -28.25,-28.25z' })
   const HideIcon = React.createElement('path', { fill: 'currentColor', d: 'M37.57471,28.15804c-3.83186,0.00101 -7.28105,2.32361 -8.72295,5.87384c-1.4419,3.55022 -0.58897,7.62011 2.15703,10.29267l16.79183,16.79183c-18.19175,14.60996 -29.9888,32.52303 -35.82747,43.03711c-3.12633,5.63117 -3.02363,12.41043 0.03678,18.07927c10.87625,20.13283 42.14532,66.10058 100.99007,66.10058c19.54493,0 35.83986,-5.13463 49.36394,-12.65365l19.31152,19.31152c2.36186,2.46002 5.8691,3.45098 9.16909,2.5907c3.3,-0.86028 5.87708,-3.43736 6.73736,-6.73736c0.86028,-3.3 -0.13068,-6.80724 -2.5907,-9.16909l-150.66666,-150.66667c-1.77289,-1.82243 -4.20732,-2.8506 -6.74984,-2.85075zM113,37.66667c-11.413,0 -21.60375,1.88068 -30.91683,4.81869l24.11182,24.11182c2.23175,-0.32958 4.47909,-0.6805 6.80501,-0.6805c25.99942,0 47.08333,21.08392 47.08333,47.08333c0,2.32592 -0.35092,4.57326 -0.6805,6.80501l32.29623,32.29623c10.1135,-11.22467 17.51573,-22.61015 21.94157,-30.18115c3.3335,-5.68767 3.32011,-12.67425 0.16553,-18.4655c-11.00808,-20.27408 -42.2439,-65.78792 -100.80615,-65.78792zM73.77002,87.08577l13.77555,13.77556c-1.77707,3.67147 -2.79557,7.77466 -2.79557,12.13867c0,15.60342 12.64658,28.25 28.25,28.25c4.364,0 8.46719,-1.01851 12.13867,-2.79557l13.79395,13.79395c-9.356,6.20362 -21.03043,9.17606 -33.4733,7.24642c-19.75617,-3.06983 -35.88427,-19.19794 -38.9541,-38.9541c-1.92879,-12.43739 1.0665,-24.10096 7.26481,-33.45491z' })
   const Icon = class extends React.Component {
-    constructor(props) {
+    constructor (props) {
       super(props)
 
       this.state = {
@@ -105,21 +113,25 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       }
     }
 
-    get isHidden() {
-      return this.link?.classList?.contains('hideLink') ?? false
+    componentDidMount () {
+      this.setState({ show: !this.isHidden })
     }
 
-    get link() {
-      return document.querySelector(`div[id^='message-content-${this.props.message_id}'] a.embedLink[title="${this.props.url}"]`)
+    get isHidden () {
+      return this.link?.classList?.contains('hel-hideLink') ?? false
     }
 
-    render() {
+    get link () {
+      return document.querySelector(`div[id^='message-content-${this.props.messageId}'] a.hel-embedLink[title="${this.props.url}"]`)
+    }
+
+    render () {
       return React.createElement('span', {
         className: `${embedSuppressButton} hel-eye`,
         onClick: () => {
           this.setState({ show: this.isHidden })
-          if (this.isHidden) this.link.classList.remove('hideLink')
-          else this.link.classList.add('hideLink')
+          if (this.isHidden) this.link?.classList.remove('hel-hideLink')
+          else this.link?.classList.add('hel-hideLink')
         },
         title: `${this.state.show ? 'Hide' : 'Show'} link`
       }, React.createElement('svg', {
@@ -131,14 +143,14 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
   }
 
   return class extends Plugin {
-    constructor(meta) {
+    constructor (meta) {
       super(meta)
       this.meta = meta
     }
 
-    onStart() {
+    onStart () {
       DOMTools.addStyle(this.meta.id, `
-        div[id^="message-content-"]:not([class*="repliedTextContent"]) a.embedLink.hideLink {
+        div[id^="message-content-"]:not([class*="repliedTextContent"]) a.hel-embedLink.hel-hideLink {
           display: none;
         }
         .hel-eye, .hel-eye ~ .${embedSuppressButton} {
@@ -154,12 +166,16 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       this.patchMessageAccessories()
     }
 
-    onStop() {
+    onStop () {
       DOMTools.removeStyle(this.meta.id)
       Patcher.unpatchAll()
     }
 
-    patchMessageContent() {
+    getSettingsPanel () {
+      return this.buildSettingsPanel().getElement()
+    }
+
+    patchMessageContent () {
       const MessageContentModule = WebpackModules.find(m => m?.type?.toString().includes('isEdited'))
       if (MessageContentModule?.type == null) return
       Patcher.after(MessageContentModule, 'type', (_, [props], ret) => {
@@ -169,35 +185,39 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         ret.props.children[0].forEach(m => {
           if (m.props && this.hasEmbed(m, props.message.embeds)) {
             hasEmbeds = true
-            m.props.className = 'embedLink'
+            m.props.className = 'hel-embedLink'
           }
         })
         if (!hasEmbeds) return
         props.message.showLinks = props.message.showLinks ?? false
-        ret.props.children[0].forEach(m => {
+        let i = 0
+        ret.props.children[0].forEach((m) => {
           if (!props.message.showLinks && m.props && this.hasEmbed(m, props.message.embeds)) {
-            m.props.className += ' hideLink'
+            if (props.message.embeds[i]?.provider == null || (props.message.embeds[i]?.provider != null && !this.settings.hideMediasOnly)) {
+              m.props.className += ' hel-hideLink'
+            }
+            i++
           }
         })
       })
     }
 
-    patchEmbed() {
+    patchEmbed () {
       const EmbedModule = WebpackModules.find(m => m.prototype?.constructor?.toString().includes('renderSuppressButton'), { searchExports: true })
       if (EmbedModule?.prototype?.render == null) return
       Patcher.after(EmbedModule.prototype, 'render', (t, _, ret) => {
         if (t.props.embed.url == null) return
-        const message_id = t.props['aria-hel-id']
+        const messageId = t.props['aria-hel-id']
         const url = t.props['aria-hel-url']
-        ret.props['aria-hel-id'] = message_id
+        ret.props['aria-hel-id'] = messageId
         ret.props['aria-hel-url'] = url
-        if (message_id == null || url == null) return
-        ret.props.children?.props?.children?.props?.children?.unshift(BdApi.React.createElement(Icon, { message_id, url }))
+        if (messageId == null || url == null) return
+        ret.props.children?.props?.children?.props?.children?.unshift(React.createElement(Icon, { messageId, url }))
       })
     }
-  
-    patchMessageAccessories() {
-      const MessageAccessoriesModule = WebpackModules.find(m => m.prototype?.constructor?.toString().includes('hasSpoilerEmbeds'), { searchExports: true })
+
+    patchMessageAccessories () {
+      const MessageAccessoriesModule = WebpackModules.find(m => m.prototype?.constructor?.toString().includes('attachmentToDelete'), { searchExports: true })
       if (MessageAccessoriesModule?.prototype?.render == null) return
       Patcher.after(MessageAccessoriesModule.prototype, 'render', (t, _, ret) => {
         if (t.props?.message?.content == null || t.props.message.content === '') return
@@ -206,18 +226,20 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         embeds.forEach((e, i) => {
           if (e.props?.children?.props == null) return
           e.props.children.props['aria-hel-id'] = t.props.message.id
-          e.props.children.props['aria-hel-url'] = Array.from(document.querySelectorAll(`div[id='message-content-${t.props.message.id}'] a.embedLink`)).find(link => this.isValid(link.getAttribute('title'), [t.props.message.embeds[i].url]))?.getAttribute('title')
+          e.props.children.props['aria-hel-url'] = Array
+            .from(document.querySelectorAll(`div[id='message-content-${t.props.message.id}'] a.hel-embedLink`))
+            .find(link => this.isValid(link.getAttribute('title'), [t.props.message.embeds[i].url]))?.getAttribute('title')
         })
       })
     }
 
-    hasEmbed(m, embeds) {
+    hasEmbed (m, embeds) {
       const embedURLs = embeds.map(e => e.url)
       if (!m.props) return false
       return m.type && (embedURLs.includes(m.props.href) || this.isValid(m.props.href, embedURLs))
     }
 
-    isValid(href, urls = []) {
+    isValid (href, urls = []) {
       if (!href || !urls?.length) return false
       if (urls.includes(href)) return true
       return FIX_LIST.some(l => l.match.test(String(href)) && urls.includes(l.replace(href)))
