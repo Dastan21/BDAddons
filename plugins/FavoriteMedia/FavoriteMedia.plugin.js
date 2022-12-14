@@ -318,7 +318,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
   const classModules = {
     icon: WebpackModules.getByProps('hoverScale', 'buttonWrapper', 'button'),
-    menu: WebpackModules.getByProps('menu', 'scroller', 'styleFixed'),
+    menu: WebpackModules.getByProps('menu', 'scroller', 'colorDefault'),
     result: WebpackModules.getByProps('desiredItemWidth', 'results', 'result'),
     input: WebpackModules.getByProps('inputWrapper', 'input', 'focused'),
     role: WebpackModules.getByProps('roleCircle'),
