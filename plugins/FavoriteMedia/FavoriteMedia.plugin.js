@@ -313,6 +313,8 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     }, Patcher
   } = Library
   const { mkdir, lstat, writeFile } = require('fs')
+  const path = require('path')
+  const https = require('https')
   const BdApi = new window.BdApi('FavoriteMedia')
   const { Webpack } = BdApi
 
@@ -889,19 +891,17 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           id: 'category-download',
           label: labels.category.download,
           action: () => BdApi.openDialog({ openDirectory: true }).then(({ filePaths }) => {
-            if (!filePaths) return
-            const path = filePaths[0]
-            if (!path) return
-            const categoryFolder = path + `\\${this.props.name}`
+            if (!filePaths?.[0]) return
+            const categoryFolder = path.join(filePaths[0], this.props.name)
             mkdir(categoryFolder, {}, () => {
               const medias = Utilities.loadData(config.name, this.props.type, { medias: [] }).medias.filter(m => m.category_id === this.props.id).map(m => { return this.props.type === 'audio' ? m : { ...m, ext: getUrlExt(m.url) } })
               Promise.all(medias.map(m => new Promise((resolve, reject) => {
-                lstat(categoryFolder + `\\${m.name}${m.ext}`, {}, e => {
+                lstat(path.join(categoryFolder, `${m.name}${m.ext}`), {}, e => {
                   if (!e) return resolve()
-                  require('https').get(m.url, res => {
+                  https.get(m.url, res => {
                     const bufs = []
                     res.on('data', chunk => bufs.push(chunk))
-                    res.on('end', () => writeFile(categoryFolder + `\\${m.name}${m.ext}`, Buffer.concat(bufs), err => err ? reject(err) : resolve()))
+                    res.on('end', () => writeFile(path.join(categoryFolder, `${m.name}${m.ext}`), Buffer.concat(bufs), err => err ? reject(err) : resolve()))
                     res.on('error', err => reject(err))
                   })
                 })
@@ -921,6 +921,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           id: 'category-delete',
           label: labels.category.delete,
           danger: true,
+          color: 'colorDanger',
           action: () => {
             deleteCategory(this.props.type, this.props.id)
             this.props.setCategory()
@@ -1079,7 +1080,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       if (['path', 'svg'].includes(e.target.tagName)) return
       const shiftPressed = e.shiftKey
       if (!sendMedia && (this.props.alwaysUploadFile || this.props.type === 'audio')) {
-        require('https').get(this.props.url, res => {
+        https.get(this.props.url, res => {
           const bufs = []
           res.on('data', chunk => bufs.push(chunk))
           res.on('end', () => {
@@ -1498,7 +1499,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       loadComponentDispatch()
       const media = this.state.medias[mediaId]
       if (!media) return
-      require('https').get(media.url, res => {
+      https.get(media.url, res => {
         const bufs = []
         res.on('data', chunk => bufs.push(chunk))
         res.on('end', () => {
@@ -1555,7 +1556,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           const media = Utilities.loadData(config.name, this.props.type, { medias: [] }).medias[mediaId]
           const ext = getUrlExt(media.url)
           BdApi.openDialog({ mode: 'save', defaultPath: media.name + ext }).then(({ filePath }) => {
-            require('https').get(media.url, res => {
+            https.get(media.url, res => {
               const bufs = []
               res.on('data', chunk => bufs.push(chunk))
               res.on('end', () => writeFile(filePath, Buffer.concat(bufs), err => {
@@ -1588,6 +1589,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           id: 'media-removeFrom',
           label: labels.media.removeFrom,
           danger: true,
+          color: 'colorDanger',
           action: () => this.removeMediaCategory(mediaId)
         })
       }
