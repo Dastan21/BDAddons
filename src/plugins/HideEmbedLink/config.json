@@ -5,7 +5,7 @@
   "author": "Dastan",
   "authorId": "310450863845933057",
   "authorLink": "",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Hides embed messages link.",
   "website": "",
   "source": "https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink",
@@ -14,10 +14,10 @@
   "invite": "",
   "changelog": [
     {
-      "title": "v2.1.1",
-      "type": "added",
+      "title": "Fixed",
+      "type": "fixed",
       "items": [
-        "Added setting to hide only medias links"
+        "Fixed setting to hide only medias links hiding filter"
       ]
     }
   ],

@@ -1,7 +1,7 @@
 /**
  * @name HideEmbedLink
  * @description Hides embed messages link.
- * @version 2.1.1
+ * @version 2.1.2
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink
@@ -36,7 +36,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "2.1.1",
+    version: "2.1.2",
     description: "Hides embed messages link.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink",
@@ -45,10 +45,10 @@ const config = {
     invite: "",
     changelog: [
         {
-            title: "v2.1.1",
-            type: "added",
+            title: "Bugs",
+            type: "fixed",
             items: [
-                "Added setting to hide only medias links"
+                "Fixed setting to hide only medias links hiding filter"
             ]
         }
     ],
@@ -197,7 +197,8 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         let i = 0
         ret.props.children[0].forEach((m) => {
           if (!props.message.showLinks && m.props && this.hasEmbed(m, props.message.embeds)) {
-            if (props.message.embeds[i]?.provider == null || (props.message.embeds[i]?.provider != null && !this.settings.hideMediasOnly)) {
+            const isMedia = props.message.embeds[i].rawDescription == null
+            if (isMedia || (!isMedia && !this.settings.hideMediasOnly)) {
               m.props.className += ' hel-hideLink'
             }
             i++

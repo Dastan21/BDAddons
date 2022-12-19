@@ -109,7 +109,8 @@ module.exports = (Plugin, Library) => {
         let i = 0
         ret.props.children[0].forEach((m) => {
           if (!props.message.showLinks && m.props && this.hasEmbed(m, props.message.embeds)) {
-            if (props.message.embeds[i]?.provider == null || (props.message.embeds[i]?.provider != null && !this.settings.hideMediasOnly)) {
+            const isMedia = props.message.embeds[i].rawDescription == null
+            if (isMedia || (!isMedia && !this.settings.hideMediasOnly)) {
               m.props.className += ' hel-hideLink'
             }
             i++
