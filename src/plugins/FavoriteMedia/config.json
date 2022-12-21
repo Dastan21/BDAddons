@@ -5,7 +5,7 @@
   "author": "Dastan",
   "authorId": "310450863845933057",
   "authorLink": "",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "description": "Allows to favorite images, videos and audios.",
   "website": "",
   "source": "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -205,14 +205,7 @@
       "title": "Fixed",
       "type": "fixed",
       "items": [
-        "Plugin works again thanks to Skamt!"
-      ]
-    },
-    {
-      "title": "Added",
-      "type": "added",
-      "items": [
-        "More options for textarea buttons positions"
+        "Now uploading media with a message containing mentions should send properly"
       ]
     }
   ]
