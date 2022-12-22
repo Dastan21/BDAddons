@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite images, videos and audios.
- * @version 1.6.4
+ * @version 1.6.5
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -36,7 +36,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "1.6.4",
+    version: "1.6.5",
     description: "Allows to favorite images, videos and audios.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -248,14 +248,7 @@ const config = {
             title: "Fixed",
             type: "fixed",
             items: [
-                "Plugin works again thanks to Skamt!"
-            ]
-        },
-        {
-            title: "Added",
-            type: "added",
-            items: [
-                "More options for textarea buttons positions"
+                "Now uploading media with a message containing mentions should send properly"
             ]
         }
     ]
@@ -460,6 +453,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
   const VideoSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 298 298', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M298,33c0-13.255-10.745-24-24-24H24C10.745,9,0,19.745,0,33v232c0,13.255,10.745,24,24,24h250c13.255,0,24-10.745,24-24V33zM91,39h43v34H91V39z M61,259H30v-34h31V259z M61,73H30V39h31V73z M134,259H91v-34h43V259z M123,176.708v-55.417c0-8.25,5.868-11.302,12.77-6.783l40.237,26.272c6.902,4.519,6.958,11.914,0.056,16.434l-40.321,26.277C128.84,188.011,123,184.958,123,176.708z M207,259h-43v-34h43V259z M207,73h-43V39h43V73z M268,259h-31v-34h31V259z M268,73h-31V39h31V73z' }))
   const AudioSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 115.3 115.3', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M47.9,14.306L26,30.706H6c-3.3,0-6,2.7-6,6v41.8c0,3.301,2.7,6,6,6h20l21.9,16.4c4,3,9.6,0.2,9.6-4.8v-77C57.5,14.106,51.8,11.306,47.9,14.306z' }), React.createElement('path', { fill: 'currentColor', d: 'M77.3,24.106c-2.7-2.7-7.2-2.7-9.899,0c-2.7,2.7-2.7,7.2,0,9.9c13,13,13,34.101,0,47.101c-2.7,2.7-2.7,7.2,0,9.899c1.399,1.4,3.199,2,4.899,2s3.601-0.699,4.9-2.1C95.8,72.606,95.8,42.606,77.3,24.106z' }), React.createElement('path', { fill: 'currentColor', d: 'M85.1,8.406c-2.699,2.7-2.699,7.2,0,9.9c10.5,10.5,16.301,24.4,16.301,39.3s-5.801,28.8-16.301,39.3c-2.699,2.7-2.699,7.2,0,9.9c1.4,1.399,3.2,2.1,4.9,2.1c1.8,0,3.6-0.7,4.9-2c13.1-13.1,20.399-30.6,20.399-49.2c0-18.6-7.2-36-20.399-49.2C92.3,5.706,87.9,5.706,85.1,8.406z' }))
   const ColorDot = props => React.createElement('div', { className: classes.roleCircle + ' fm-colorDot', style: { 'background-color': props.color || DEFAULT_BACKGROUND_COLOR } })
+  const DraftStore = Webpack.getModule(Webpack.Filters.byProps('getDraft', 'getState'))
 
   function getUrlName (url) {
     return url.replace(/\.([^.]*)$/gm, '').split('/').pop()
@@ -525,6 +519,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     componentDidMount () {
       const media = Utilities.loadData(config.name, this.props.type, { medias: [] }).medias[this.props.id]
       this.refs.inputName.value = media.name || ''
+      this.refs.inputName.onkeydown = (e) => e.stopPropagation()
     }
 
     componentWillUnmount () {
@@ -551,8 +546,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         type: 'text',
         placeholder: labels.media.placeholder[this.props.type],
         maxlength: '40',
-        ref: 'inputName',
-        onChange: this.saveName
+        ref: 'inputName'
       })
       )
     }
@@ -921,7 +915,6 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           id: 'category-delete',
           label: labels.category.delete,
           danger: true,
-          color: 'colorDanger',
           action: () => {
             deleteCategory(this.props.type, this.props.id)
             this.props.setCategory()
@@ -1086,7 +1079,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           res.on('end', () => {
             if (!shiftPressed) EPS.closeExpressionPicker()
             try {
-              const content = document.querySelector('[class*="textArea"] [data-slate-string]')?.innerText
+              const content = DraftStore.getDraft(SelectedChannelStore.getChannelId(), 0)
               const fileName = this.props.name + (this.props.ext ?? getUrlExt(this.props.url))
               uploadFile({
                 channelId: SelectedChannelStore.getChannelId(),
@@ -1504,7 +1497,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         res.on('data', chunk => bufs.push(chunk))
         res.on('end', () => {
           try {
-            const content = document.querySelector('[class*="textArea"] [data-slate-string]')?.innerText
+            const content = DraftStore.getDraft(SelectedChannelStore.getChannelId(), 0)
             const fileName = (media.name || 'unknown') + '.' + (media.url.split('.').pop().split('?').shift() || 'png')
             const file = new File([Buffer.concat(bufs)], fileName)
             uploadFile({
@@ -1589,7 +1582,6 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           id: 'media-removeFrom',
           label: labels.media.removeFrom,
           danger: true,
-          color: 'colorDanger',
           action: () => this.removeMediaCategory(mediaId)
         })
       }
