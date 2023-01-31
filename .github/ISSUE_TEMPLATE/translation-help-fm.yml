@@ -1,0 +1,12 @@
+name: FavoriteMedia Translation Help
+description: Help translate FavoriteMedia plugin
+title: "[FavoriteMedia]: Translation for "
+labels: ["translation"]
+body:
+  - type: textarea
+    id: translation
+    attributes:
+      label: Translations Tweaks
+      description: List of translations tweaks (ex - media.upload.title = "Upload Media")
+    validations:
+      required: true
