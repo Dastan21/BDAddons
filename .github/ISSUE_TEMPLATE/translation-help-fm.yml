@@ -3,6 +3,41 @@ description: Help translate FavoriteMedia plugin
 title: "[FavoriteMedia]: Translation for "
 labels: ["translation"]
 body:
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      description: What language do you want to help with?
+      options:
+        - Bulgarian (bg)
+        - Danish (da)
+        - German (de)
+        - Greek (el)
+        - English (en)
+        - Spanish (es)
+        - Finnish (fi)
+        - French (fr)
+        - Croatian (hr)
+        - Hungarian (hu)
+        - Italian (it)
+        - Japanese (ja)
+        - Korean (ko)
+        - Lithuanian (lt)
+        - Dutch (nl)
+        - Norwegian (no)
+        - Polish (pl)
+        - Portuguese (pt-BR)
+        - Romanian (ro)
+        - Russian (ru)
+        - Swedish (sv)
+        - Thai (th)
+        - Turkish (tr)
+        - Ukrainian (uk)
+        - Vietnamese (vi)
+        - Chinese (zh-CN)
+        - Chinese (zh-TW)
+    validations:
+      required: true
   - type: textarea
     id: translation
     attributes:
