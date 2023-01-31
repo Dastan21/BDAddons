@@ -301,7 +301,8 @@ module.exports = (Plugin, Library) => {
       const [channelId, messageId] = findMessageIds($target)
       const embed = MessageStore.getMessage(channelId, messageId)?.embeds?.find((e) => {
         if (Array.isArray(e.images)) return e.images.find((i) => i.url === url) != null
-        return e?.thumbnail?.url === url || e?.thumbnail?.proxyURL === url
+        if (e.thumbnail != null) return e.thumbnail?.url === url || e.thumbnail?.proxyURL === url
+        return e.image?.url === url || e.image?.proxyURL === url
       })
       if (embed == null) return
       return embed.url
