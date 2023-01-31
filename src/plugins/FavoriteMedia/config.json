@@ -5,7 +5,7 @@
   "author": "Dastan",
   "authorId": "310450863845933057",
   "authorLink": "",
-  "version": "1.6.6",
+  "version": "1.7.0",
   "description": "Allows to favorite images, videos and audios.",
   "website": "",
   "source": "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -29,24 +29,35 @@
     },
     {
       "type": "switch",
-      "id": "showContextMenuFavorite",
-      "name": "Show ContextMenu Favorite Button",
-      "note": "Show the button in the message context menu to favorite a media",
-      "value": true
-    },
-    {
-      "type": "switch",
-      "id": "forceShowFavoritesGIFs",
-      "name": "Show only favorites in GIFs tab",
-      "note": "Force show favorites GIFs over trendings categories",
-      "value": false
-    },
-    {
-      "type": "switch",
       "id": "alwaysUploadFile",
       "name": "Always upload as file",
       "note": "Uploads media as file instead of sending a link",
       "value": false
+    },
+    {
+      "type": "dropdown",
+      "id": "alwaysSendUpload",
+      "name": "Send/upload instantly medias",
+      "note": "Send instantly medias links and/or files",
+      "value": "both",
+      "options": [
+        {
+          "label": "None",
+          "value": "none"
+        },
+        {
+          "label": "Links",
+          "value": "link"
+        },
+        {
+          "label": "Files",
+          "value": "file"
+        },
+        {
+          "label": "Both",
+          "value": "both"
+        }
+      ]
     },
     {
       "type": "slider",
@@ -68,8 +79,8 @@
         {
           "type": "dropdown",
           "id": "btnsPosition",
-          "name": "Buttons Way",
-          "note": "Way of the buttons on the chat",
+          "name": "Buttons Direction",
+          "note": "Direction of the buttons on the chat",
           "value": "right",
           "options": [
             {
@@ -106,6 +117,22 @@
               "value": "emoji"
             }
           ]
+        }
+      ]
+    },
+    {
+      "type": "category",
+      "id": "gif",
+      "name": "GIF Settings",
+      "collapsible": true,
+      "shown": false,
+      "settings": [
+        {
+          "type": "switch",
+          "id": "enabled",
+          "name": "General",
+          "note": "Replace Discord GIFs tab",
+          "value": true
         }
       ]
     },
@@ -202,10 +229,29 @@
   ],
   "changelog": [
     {
-      "title": "Fixed",
+      "title": "Features",
+      "type": "added",
+      "items": [
+        "Remade the GIF tab (toggle in the settings)",
+        "Added setting to not instantly send/upload media in chat",
+        "Added medias options: message link & source link",
+        "it is now possible to create sub-categories"
+      ]
+    },
+    {
+      "title": "Improvements",
+      "type": "improved",
+      "items": [
+        "Added a lot more controls on messages context menu: media & categories managing",
+        "Medias are now preloaded, they should be displayed way faster in their tab",
+        "You can now download medias that are not in categories"
+      ]
+    },
+    {
+      "title": "Bugs",
       "type": "fixed",
       "items": [
-        "Medias would not be uploaded"
+        "Split view & VC chat buttons/tabs now work properly"
       ]
     }
   ]

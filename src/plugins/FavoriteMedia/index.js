@@ -21,6 +21,7 @@ module.exports = (Plugin, Library) => {
       ElectronModule,
       Dispatcher,
       LocaleManager,
+      MessageStore,
       SelectedChannelStore,
       ChannelStore,
       UserStore,
@@ -49,8 +50,6 @@ module.exports = (Plugin, Library) => {
     gutter: WebpackModules.getByProps('gutterSize', 'container', 'content'),
     _flex: WebpackModules.getByProps('_flex', '_horizontal', '_horizontalReverse'),
     flex: WebpackModules.getByProps('flex', 'alignStart', 'alignEnd'),
-    color: WebpackModules.getByProps('selectable', 'strong', 'colorStandard'),
-    size: WebpackModules.getByProps('size10', 'size12', 'size14'),
     title: WebpackModules.getByProps('title', 'h1', 'h2'),
     container: WebpackModules.getByProps('container', 'inner', 'pointer'),
     scroller: WebpackModules.getByProps('scrollerBase', 'thin', 'fade'),
@@ -110,7 +109,7 @@ module.exports = (Plugin, Library) => {
       container: classModules.category.container
     },
     textarea: {
-      textAreaSlate: classModules.textarea.textAreaSlate,
+      channelTextArea: classModules.textarea.channelTextArea,
       buttonContainer: classModules.textarea.buttonContainer,
       button: classModules.textarea.button
     },
@@ -129,8 +128,6 @@ module.exports = (Plugin, Library) => {
       alignCenter: classModules.flex.alignCenter,
       noWrap: classModules.flex.noWrap
     },
-    colorStandard: classModules.color.colorStandard,
-    size14: classModules.size.size14,
     h5: classModules.title.h5,
     container: {
       container: classModules.container.container,
@@ -160,31 +157,41 @@ module.exports = (Plugin, Library) => {
       wrapperAudio: classModules.audio.wrapperAudio
     }
   }
-  const DEFAULT_BACKGROUND_COLOR = '#202225'
-  let canClosePicker = true
+
+  const canClosePicker = { context: '', value: true }
+  let closeExpressionPickerKey = ''
+  let currentChannelId = ''
+  let currentTextareaInput = null
+
   let ChannelTextAreaButtons
-  const labels = setLabelsByLanguage()
-  const ExpressionPicker = Webpack.getModule(m => m.prototype?.render?.toString().includes('onUnmount'), { searchExports: true })
   let ComponentDispatch
   const EPS = {}
-  const EPSConstants = Webpack.getModule(Webpack.Filters.byProps('FORUM_CHANNEL_GUIDELINES', 'CREATE_FORUM_POST'), { searchExports: true })?.NORMAL
+  const EPSModules = Webpack.getModule(m => Object.keys(m).some(key => m[key]?.toString?.().includes('isSearchSuggestion')))
+  const EPSConstants = Webpack.getModule(Webpack.Filters.byProps('FORUM_CHANNEL_GUIDELINES', 'CREATE_FORUM_POST'), { searchExports: true })
+  const ExpressionPicker = Webpack.getModule(m => m.prototype?.render?.toString().includes('onUnmount'), { searchExports: true })
   const PermissionsConstants = Webpack.getModule(Webpack.Filters.byProps('ADD_REACTIONS'), { searchExports: true })
-  const uploadFiles = Webpack.getModule(Webpack.Filters.byProps('instantBatchUpload')).uploadFiles
-  const UploadObject = Webpack.getModule(m => m.prototype?.upload && m.prototype?.getSize, { searchExports: true })
   const MediaPlayer = Webpack.getModule(m => m.Types?.VIDEO, { searchExports: true })
   const Image = Webpack.getModule(m => m.defaultProps?.zoomable)
+  const FrecencyUserSettingsProto = Webpack.getModule(m => m.ProtoClass?.typeName === 'discord_protos.discord_users.v1.FrecencyUserSettings', { searchExports: true })
+  const FilesUpload = Webpack.getModule(Webpack.Filters.byProps('addFiles'))
+  const MessagesManager = Webpack.getModule(Webpack.Filters.byProps('sendMessage'))
+
+  const DEFAULT_BACKGROUND_COLOR = '#202225'
+  const MediaLoadFailImg = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAABVCAYAAACBzexXAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAxtSURBVHhe7Z17cBXVGcC/b3fvKyFvDCDUgCCd0lKpL5BAEhIgGCBoASmjdKYdSnW0Wlst9I+OdsaOTK3tTGtbpZ1pdRxxLD5AURKQCAKiKIgPKFIUEEkIgUCSe3Mfu/v1O2c3EDqRkAA153p+M5s9+7h3d+/3Pmd3AxqNRqPRaDQajUaj0Wg0Go1Go9FoNBqNRqPRaDQajSaNQH+eVtAlMxASSYSWqL+mJxCAYQDkZRMee4UXNEpAhTORQqUmwVjTX3XeUKiMNSG9SQsPQOZEA503XH8R6BsLcuHo8UJoamYB9vQSicAyLbhs0GH85NlmgnEmwlbH35h2KK8ABFcZCNtd+v6DIXi+rgriqTl8VaPBpVxwTulETzEgYB2DQQUL8eDz2yij3MLYetvfllYorQAEV1sI79qUM3Ucx/xHIGmPZ8H7Wy8AlnmAp0qM1+0hY4KF7qa0UwJlYxzBGLZ8Fn7h9DnQ1v4qxJMsfJcFxAog1Jq3MsIFCI3ozWSDbReB7ayk4XO/LoRP4UkWr08rlPQAFC4zMf66w5Y/GaLxVSykCK+1AQ0LAuY2zuKfZRe+E1qjbXyJ53KNnDjSSTDNG1mJfs3iFwogPpfkKQhB6yMIhyqxpfZzgvGcE2xJ25ygz0M5lVKgNGxOIQVL9rFAOGsrtjkRtClz8mL624qA3LEXULBsLmGx+D6HcILLk2gn5TECJdvo6h8M9vYrTRtPoJwHoABbYGqLQ/0m3w/R9gfYVh2+CoSszDvZQv/KposQKTHBNghSKWHJZ0c4CCLOJTYnKTRpASSTT0r7N/Aj9gg7IGXfyktJ/tYge5UtkJ1VhU0vn0znxLDPQvlVnvWPvCWLLf4D3/qJLfIpuR5GmzRkdo+Vmq1eWjQrwC2+BxDT+6xkeRQp/ycZcjkujxcsfY2m3J0t9x8w84L1OXxZqJUEJhKecBsar2FpF8m2gQ5kRpbJduYAwEPPdW/1X0xn5QlAW6sNDSsXgmW9INSDN8ch5ZTDhveepEhpEI+85FBWpdKdRWqdfMr2BJTk7BwoS7YN3A/52e/JNhm9K/xNDheCsJXyqgdeNI0wZGVnYE6WDUVD5nMSWMPqEeZwkeDjz+LA8zTNWRLG1hqX+k9XVgnUOvGkH3ITydCpej8QaIZw0NsQYSPtDaGg92UufMayPyHbREPZ8q+T7b17knDlFQvAMjd4ngASXHnMhlfeXkYwysCm1S7lTFNSCdTUXJL1vYdlGJDvOQMu17x5Twn6CjBiyHYuIT+WkUAoWEvbUiqoGoHwDuFby45CKDyDleVt3lMoYAJiiQUQKnycNu428OQa9gQzOocQJVDVdZ3+oTk9A9cvy0W7F2Dzq0ThUhN3/CPO3uRRPwwkwXFHwcm2dRSZdCflVt4AA3JyYGRRNSvdDt8TpDgsLYRpd/6RbrzXgKZ98vtUQtnYdRohrA596L0BYnyDQzDMgNa1T7Grf4JXBXmy2dUXQTz5J2iLvQCfNW6Gw0cGQjBQxaFnF28PyN7H9vgdULt9FsJuInOCUpVBGijABSQylBCRIBS5jZO+R8FEL6YIx2LbJiRTReDQTVz/N8Dgwls55DTxFlNujyUGil15u5ypglaATmB7HdElMxFb18QxXvcTiIRnQiiwgiuCfWzxxJb/IWcfy+XORQW7edsn4mNyWXgLBdEK0AnKqEA8+hJRfiW7gUEGtq17GZ5+aB5khK+Hywd/B4YPrsCWmj1y53iKLZ86dzv3Pv58iaSBApybyyUYz8V+AQv2SqRB1WcIi6wSXn+tgbHXiIxiA4/XEEK9S8EyE2df72Lr2qO4Z/lHuPvpRirwa37L4gPzxxRHVQU4/cOLmC3u4TsLlDUFEba4ULWQ5zsJ61cJK5cfolAZor2RBb7NpdG3muhuPlViYvJ1h/KnI4XKkXKnGlwJIFgcCtIIVRWgo+AndsMWZ+meRbMY/xfKm2awBRNlT/0m1L65gku6ZTRu0QC2cpf6TbIg0eztZ5Usgd0HayijvFIuB8bL3waPryZMrCc8UeviiRo6t9FldVBLASy/wgoGGrhWFy4YwaW98PCidrkeu+gJbt7pzZOppZzJ38TK8iPY/em/aO6v+mNbnS08AhkTHuJyjye7guv6x2nsoixMbVGyY6enKKUA7Kq5yPoWsmt+gROzRZAR+j0Eg/dg2ViXMtnNN7zYhXvO8GamUe8P/UahNTYRXtr0JHuD/mRO/C0r0RLeI+Hv1wDzK+OyHU6bYf8vRLkQgPChFDJn6H/nevzneGLNIbkcXdt1bC4c5a2/tHAJe46NvGcml3IpiCdu4Ex+AzjufbxVuI4Q5xKfQiC4EH86O0XAyeChrhQqvVA1B+AYPdEka4JJmZPP6qaxkcu67CkG7l1+HApy5kFADOgAl29oszcYxW3Rj2ywd/iYM/tqbK1lDWPhw+lkMJ1RVgEw9YbDVu1idF23Voota11OBi08vLIBrhj6Xc4lDvJq4d9TPAnh2xC05nNo+ZCTweBXRfgCJRWACrw7g/Dg8+IOnW6vgYZ/D7F5jU3EZcLBw4vZ7Q8Rq3kSHTmurCRsdzENm5PJeUaSIuVpn/x1oJwC0MAqFM/s0dZdBk29JwOTG1yCorMLbN8z3jy38g8Qi/8CSBo4cswX1YMoLWxwnJvhUONyGnZzDravJ8qs+EoogVIKQP0mc6bPws+Zkgtld/wFNu6o5XWlCAfYtou7vBaCq8XgrsgD7uPs/25wXZHhGxAOHIL+2XN40xqeRDiIQcqZCQ1HH5UfjO4Euqzn9xeqhloeoC3qnW8sOQsSyR9zTV/MAn2AqpcEkDa7VHjjGQKj62/j5Xe9Bdup5n1FK8zVQD0U5M7FxtWvQHbWD7mk3Mz+gOtFjgq2M53GLcpDaCJo96rBdEaxEOCfbsqOnOoMNoxcaGwSY/fcPtNg8c3HCHCiv2A8zNPHEAzugPycWfj5i1s51gexpaYexoycCxmh1fz5wxCwfoNblzWLMQM8ulqXgX2Uzk/mON7ATNcgvcE5wlXI1cIqtvwKtvwp2LBqG8F1Jsf6pOjjxy2P1cPwr82DSHgCxtY/Ij8YzpezdEdVBehs6sgR3m92DcJ20d1rYKLuENa/eEyMDCK8LZVI9PHTwGrE95+IYvS1TwkGye/GeF3aW79AVQXohJBTh6y+WGbobnIpUGqIR8vkyGAn2COQUALxQgiE+m4E3/lY3eyqAKoqwOlfXvTvdwwHdzNSh6kNLp6s6VJqQgkw8Xr3HUDoH8vg6vHM4ympDWoqAFfwfktk7S40erfyc1XgzS8mHZXBkeOcjHZ6AwV2aIZaqHXSYf8OrEgocSrjT9p5kHC9Ybt2b1T4otKhZK2xAKRSebItzkWck6DjHBVBLQUI+nfjhIP72eJaZJtoGLRFr5Ft8/9wPZZ/DNu9lv9eLtviXMKB/bLdcY6KoJYCZEa8H3dk0TtsdQdk2yUDou23y3a0HqhwxkW7JhpQjdBW7y20tS8Cx78FCXE/jBjyjmxnhJVSgLNnTX0QMQSM9iaHMioWczxeyh5AvBnEZAu8C9vrZDeufNxbWKLjdnu/YLeIElMMIpmc8SV2uggnXOo3+XaIxv/M68W7CSwIBX/JZeNSsor53DZ37qPQXGjEDZ5yPmJeHlklH/jP8tuEE2wu4+6nirsy5Y4XATGayIp3LxkTbXlM8b4Aq+TfNHR2f7ndPzeVUO6EBRSaJDp1hCUWQ3tiFThOPl9Kiq8mAJb5AVv/SrCsrZBINssETVxlbxyzKPOEFzEN8RzgGEik5vCxivm7xEMgFlhGFEKhmRhdV0cZ5SbG1itn/UoqgIDCk0x2uxwKyku5EniGy0HxaJYnGIEQvHjZE0rRn891im/hOCJCgVzmY5AFpnkC+ucsxCMvPye7lf2eRdVQVgEEFCm3sH29TfnTvs0x+UFI2dNlUnjRYA0QOYVlvslx/2fYunYrwVUWwnYlHwsTKK0AAlYCMagjrY/yplVAPDGfS7QxHLAL2SvIfc4bg92JwaWeaeyCcGgFjB29Emt/F/fuNXi3+97DPozyCiCQL3VO/IdT9UPSSctEcNeBS6G+SYQDz3H3GpZvFueVA/ObcO+z4mlgCQXKDEydQ9dxHyctFEAgM3DHNiAW44t666LEY4LRBgTyELKzXDyWHvcKpI0CdIYGz0KIJRCaW/015wPLWbx7KDNC2KT/f4BGo9FoNBqNRqPRaDQajUaj0Wg0Go1Go9FoNBqNRqPpuwD8F4Nj88ZHDvtKAAAAAElFTkSuQmCC'
   const ImageSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 384 384', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M341.333,0H42.667C19.093,0,0,19.093,0,42.667v298.667C0,364.907,19.093,384,42.667,384h298.667 C364.907,384,384,364.907,384,341.333V42.667C384,19.093,364.907,0,341.333,0z M42.667,320l74.667-96l53.333,64.107L245.333,192l96,128H42.667z' }))
   const VideoSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 298 298', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M298,33c0-13.255-10.745-24-24-24H24C10.745,9,0,19.745,0,33v232c0,13.255,10.745,24,24,24h250c13.255,0,24-10.745,24-24V33zM91,39h43v34H91V39z M61,259H30v-34h31V259z M61,73H30V39h31V73z M134,259H91v-34h43V259z M123,176.708v-55.417c0-8.25,5.868-11.302,12.77-6.783l40.237,26.272c6.902,4.519,6.958,11.914,0.056,16.434l-40.321,26.277C128.84,188.011,123,184.958,123,176.708z M207,259h-43v-34h43V259z M207,73h-43V39h43V73z M268,259h-31v-34h31V259z M268,73h-31V39h31V73z' }))
   const AudioSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 115.3 115.3', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M47.9,14.306L26,30.706H6c-3.3,0-6,2.7-6,6v41.8c0,3.301,2.7,6,6,6h20l21.9,16.4c4,3,9.6,0.2,9.6-4.8v-77C57.5,14.106,51.8,11.306,47.9,14.306z' }), React.createElement('path', { fill: 'currentColor', d: 'M77.3,24.106c-2.7-2.7-7.2-2.7-9.899,0c-2.7,2.7-2.7,7.2,0,9.9c13,13,13,34.101,0,47.101c-2.7,2.7-2.7,7.2,0,9.899c1.399,1.4,3.199,2,4.899,2s3.601-0.699,4.9-2.1C95.8,72.606,95.8,42.606,77.3,24.106z' }), React.createElement('path', { fill: 'currentColor', d: 'M85.1,8.406c-2.699,2.7-2.699,7.2,0,9.9c10.5,10.5,16.301,24.4,16.301,39.3s-5.801,28.8-16.301,39.3c-2.699,2.7-2.699,7.2,0,9.9c1.4,1.399,3.2,2.1,4.9,2.1c1.8,0,3.6-0.7,4.9-2c13.1-13.1,20.399-30.6,20.399-49.2c0-18.6-7.2-36-20.399-49.2C92.3,5.706,87.9,5.706,85.1,8.406z' }))
   const ColorDot = props => React.createElement('div', { className: classes.roleCircle + ' fm-colorDot', style: { 'background-color': props.color || DEFAULT_BACKGROUND_COLOR } })
-  const DraftStore = Webpack.getModule(Webpack.Filters.byProps('getDraft', 'getState'))
+  const labels = setLabelsByLanguage()
 
   function getUrlName (url) {
+    // tenor case, otherwise it would always return 'tenor'
+    if (url.startsWith('https://tenor.com/view/')) return url.match(/view\/(.*)-gif-/)?.[1]
     return url.replace(/\.([^.]*)$/gm, '').split('/').pop()
   }
 
   function getUrlExt (url) {
-    return url.match(/\.([0-9a-z]+)(?=[?#])|(\.)(?:[\w]+)$/gmi)[0]
+    return url.match(/\.([0-9a-z]+)(?=[?#])|(\.)(?:[\w]+)$/gmi)?.[0] ?? ''
   }
 
   // https://stackoverflow.com/a/5306832/13314290
@@ -198,6 +205,111 @@ module.exports = (Plugin, Library) => {
     arr.splice(newIndex, 0, arr.splice(oldIndex, 1)[0])
   }
 
+  async function sendInTextarea () {
+    return await new Promise((resolve, reject) => {
+      try {
+        const enterEvent = new KeyboardEvent('keydown', { charCode: 13, keyCode: 13, bubbles: true })
+        setTimeout(() => {
+          currentTextareaInput?.dispatchEvent(enterEvent)
+          resolve()
+        })
+      } catch (error) {
+        reject(error)
+      }
+    })
+  }
+
+  function uploadFile (type, buffer, media) {
+    // if the textarea has not been patched, file uploading will fail
+    if (currentTextareaInput == null || !document.body.contains(currentTextareaInput)) return console.error('[FavoriteMedia]', 'Could not find current textarea, upload file canceled.')
+    const ext = getUrlExt(media.url)
+    const fileName = `${getUrlName(media.name).replace(/ /g, '_')}${ext}`
+    const mime = `${type === 'gif' ? 'image' : type}/${ext.slice(1)}`
+    const file = new File([buffer], fileName, { type: mime })
+    FilesUpload.addFiles({
+      channelId: currentChannelId,
+      draftType: 0,
+      files: [{ file, platform: 1 }],
+      showLargeMessageDialog: false
+    })
+  }
+
+  async function fetchMedia (media) {
+    return await new Promise((resolve, reject) => {
+      https.get(media.url, (res) => {
+        let bufs = []
+        res.on('data', (chunk) => bufs.push(chunk))
+        res.on('end', async () => {
+          // no longer cached on Discord CDN
+          const td = new TextDecoder('utf-8')
+          if (td.decode(bufs[0].subarray(0, 5)) === '<?xml') return reject(new Error('Media no longer cached on the server'))
+          // tenor GIF case
+          if (media.url.startsWith('https://tenor.com/view/')) {
+            const td = new TextDecoder('utf-8')
+            if (td.decode(bufs[0].subarray(0, 15)) === '<!DOCTYPE html>') {
+              bufs = bufs.map((b) => td.decode(b))
+              media.url = String(bufs).match(/src="(https:\/\/media\.tenor\.com\/[^"]*)"/)?.[1]
+              media.name = media.url.match(/view\/(.*)-gif-/)?.[1]
+              bufs = await new Promise((resolve, reject) => {
+                https.get(media.url, (res) => {
+                  const bufsGIF = []
+                  res.on('data', chunk => bufsGIF.push(chunk))
+                  res.on('end', () => resolve(bufsGIF))
+                  res.on('error', (err) => reject(err))
+                })
+              })
+            }
+          }
+          resolve(Buffer.concat(bufs))
+        })
+        res.on('error', (err) => reject(err))
+      })
+    })
+  }
+
+  function findTextareaInput ($button = document.getElementsByClassName(classes.textarea.buttonContainer).item(0)) {
+    return $button?.closest(`.${classes.textarea.channelTextArea}`)?.querySelector('[role="textbox"]')
+  }
+
+  function findSpoilerButton () {
+    return currentTextareaInput?.closest(`.${classes.textarea.channelTextArea}`)?.querySelector('[role="button"]:first-child')
+  }
+
+  function findMessageIds ($target) {
+    if ($target == null) return
+    const ids = $target.closest('[id^="chat-messages-"]')?.getAttribute('id').split('-')?.slice(2)
+    if (ids == null) return
+    return ids
+  }
+
+  function findMessageLink ($target) {
+    if ($target == null) return
+    try {
+      const [channelId, messageId] = findMessageIds($target)
+      const guildId = location.href.match(/channels\/(\d+)/)?.[1]
+      return `${location.origin}/channels/${guildId}/${channelId}/${messageId}`
+    } catch (error) {
+      console.error('[FavoriteMedia]', error)
+    }
+  }
+
+  function findSourceLink ($target, url) {
+    if ($target == null) return
+    const ids = $target.closest('[id^="chat-messages-"]')?.getAttribute('id').split('-')?.slice(2)
+    if (ids == null) return
+    try {
+      const [channelId, messageId] = findMessageIds($target)
+      const embed = MessageStore.getMessage(channelId, messageId)?.embeds?.find((e) => {
+        if (Array.isArray(e.images)) return e.images.find((i) => i.url === url) != null
+        return e?.thumbnail?.url === url || e?.thumbnail?.proxyURL === url
+      })
+      if (embed == null) return
+      return embed.url
+    } catch (error) {
+      console.error('[FavoriteMedia]', error)
+    }
+  }
+
   function loadModules () {
     loadEPS()
     loadComponentDispatch()
@@ -205,9 +317,8 @@ module.exports = (Plugin, Library) => {
   }
 
   function loadEPS () {
-    const modules = Webpack.getModule(m => Object.keys(m).some(key => m[key]?.toString?.().includes('isSearchSuggestion')))
-    if (modules == null) return
-    Object.values(modules).forEach((fn) => {
+    if (EPSModules == null) return
+    Object.entries(EPSModules).forEach(([key, fn]) => {
       const code = String(fn)
       if (code.includes('useDebugValue') && fn.getState) {
         EPS.useExpressionPickerStore = fn
@@ -215,6 +326,7 @@ module.exports = (Plugin, Library) => {
         EPS.toggleExpressionPicker = fn
       } else if (code.includes('activeView:null,activeViewType:null')) {
         EPS.closeExpressionPicker = fn
+        closeExpressionPickerKey = key
       }
     })
   }
@@ -243,7 +355,15 @@ module.exports = (Plugin, Library) => {
     componentDidMount () {
       const media = Utilities.loadData(config.name, this.props.type, { medias: [] }).medias[this.props.id]
       this.refs.inputName.value = media.name || ''
-      this.refs.inputName.onkeydown = (e) => e.stopPropagation()
+      this.refs.inputName.onkeydown = (e) => {
+        // allow space input
+        if (e.key === ' ') {
+          const cursor = e.target.selectionStart
+          this.refs.inputName.value = this.refs.inputName.value.slice(0, cursor) + ' ' + this.refs.inputName.value.slice(cursor)
+          this.refs.inputName.setSelectionRange(cursor + 1, cursor + 1)
+        }
+        e.stopPropagation()
+      }
     }
 
     componentWillUnmount () {
@@ -311,13 +431,11 @@ module.exports = (Plugin, Library) => {
 
       this.updateFavorite = this.updateFavorite.bind(this)
       this.changeFavorite = this.changeFavorite.bind(this)
-      this.favoriteMedia = this.favoriteMedia.bind(this)
-      this.unfavoriteMedia = this.unfavoriteMedia.bind(this)
       this.favButton = this.favButton.bind(this)
     }
 
     componentDidMount () {
-      this.tooltipFav = Tooltip.create(this.refs.tooltipFav, this.isFavorited ? Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES)
+      this.tooltipFav = Tooltip.create(this.refs.tooltipFav, this.isFavorited ? Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES, { style: 'primary' })
       Dispatcher.subscribe('FAVORITE_MEDIA', this.updateFavorite)
     }
 
@@ -338,8 +456,8 @@ module.exports = (Plugin, Library) => {
     }
 
     changeFavorite () {
-      if (this.state.favorited) this.unfavoriteMedia()
-      else this.favoriteMedia()
+      if (this.state.favorited) MediaFavButton.unfavoriteMedia(this.props)
+      else MediaFavButton.favoriteMedia(this.props)
       if (!this.props.fromPicker) this.setState({ favorited: this.isFavorited })
       Dispatcher.dispatch({ type: 'FAVORITE_MEDIA', url: this.props.url })
       if (this.props.fromPicker) return
@@ -352,51 +470,86 @@ module.exports = (Plugin, Library) => {
       }, 200)
     }
 
-    favoriteMedia () {
-      const typeData = Utilities.loadData(config.name, this.props.type, { medias: [] })
-      if (typeData.medias.find(m => m.url === this.props.url)) return
+    static getMediaDataFromProps (props) {
       let data = null
-      switch (this.props.type) {
+      switch (props.type) {
+        case 'gif':
+          data = {
+            url: props.url,
+            src: props.src,
+            width: props.width,
+            height: props.height,
+            name: getUrlName(props.url),
+            message: props.message,
+            source: props.source
+          }
+          break
         case 'video':
           data = {
-            url: this.props.url,
-            poster: this.props.poster,
-            width: this.props.width,
-            height: this.props.height,
-            name: getUrlName(this.props.url)
+            url: props.url,
+            poster: props.poster,
+            width: props.width,
+            height: props.height,
+            name: getUrlName(props.url),
+            message: props.message,
+            source: props.source
           }
           break
         case 'audio':
           data = {
-            url: this.props.url,
-            name: getUrlName(this.props.url),
-            ext: getUrlExt(this.props.url)
+            url: props.url,
+            name: getUrlName(props.url),
+            ext: getUrlExt(props.url),
+            message: props.message,
+            source: props.source
           }
           break
         default: // image
           data = {
-            url: this.props.url,
-            width: this.props.width,
-            height: this.props.height,
-            name: getUrlName(this.props.url)
+            url: props.url,
+            width: props.width,
+            height: props.height,
+            name: getUrlName(props.url),
+            message: props.message,
+            source: props.source
           }
       }
-      if (!data) return
-      typeData.medias.push(data)
-      Utilities.saveData(config.name, this.props.type, typeData)
+      return data
     }
 
-    unfavoriteMedia () {
-      const typeData = Utilities.loadData(config.name, this.props.type, { medias: [] })
+    static favoriteMedia (props) {
+      // get message and source links
+      const $target = props.target?.current
+      if ($target != null) {
+        props.message = findMessageLink($target)
+        props.source = findSourceLink($target, props.url)
+      }
+      const typeData = Utilities.loadData(config.name, props.type, { medias: [] })
+      if (typeData.medias.find(m => m.url === props.url)) return
+      const data = MediaFavButton.getMediaDataFromProps(props)
+      if (!data) return
+      typeData.medias.push(data)
+      Utilities.saveData(config.name, props.type, typeData)
+    }
+
+    static unfavoriteMedia (props) {
+      const typeData = Utilities.loadData(config.name, props.type, { medias: [] })
       if (!typeData.medias.length) return
-      typeData.medias = typeData.medias.filter(e => e.url !== this.props.url)
-      Utilities.saveData(config.name, this.props.type, typeData)
-      if (this.props.fromPicker) Dispatcher.dispatch({ type: 'UPDATE_MEDIAS' })
+      if (props.type === 'gif') MediaFavButton.unfavoriteGIF(props)
+      typeData.medias = typeData.medias.filter(e => e.url !== props.url)
+      Utilities.saveData(config.name, props.type, typeData)
+      if (props.fromPicker) Dispatcher.dispatch({ type: 'UPDATE_MEDIAS' })
+    }
+
+    static unfavoriteGIF (props) {
+      FrecencyUserSettingsProto.updateAsync('favoriteGifs', function (t) {
+        delete t.gifs[props.url]
+      }, 0).catch((err) => console.error('[FavoriteMedia]', err))
     }
 
     favButton () {
       return React.createElement('div', {
-        className: `${this.props.fromPicker ? `${classes.result.favButton} ` : classes.gif.gifFavoriteButton1} ${classes.gif.size} ${classes.gif.gifFavoriteButton2}${this.state.favorited ? ` ${classes.gif.selected}` : ''}${this.state.pulse ? ` ${classes.gif.showPulse}` : ''}`,
+        className: `${this.props.fromPicker ? classes.result.favButton : classes.gif.gifFavoriteButton1} ${classes.gif.size} ${classes.gif.gifFavoriteButton2}${this.state.favorited ? ` ${classes.gif.selected}` : ''}${this.state.pulse ? ` ${classes.gif.showPulse}` : ''}`,
         tabindex: '-1',
         role: 'button',
         ref: 'tooltipFav',
@@ -412,7 +565,7 @@ module.exports = (Plugin, Library) => {
       return this.props.fromPicker
         ? this.favButton()
         : React.createElement('div', {
-          className: `${classes.image.imageAccessory} ${classes.image.clickable} ${this.props.type}-favbtn ${!this.props.uploaded ? 'fm-uploaded' : ''}`
+          className: `${classes.image.imageAccessory} ${classes.image.clickable} fm-favBtn fm-${this.props.type}${!this.props.uploaded ? 'fm-uploaded' : ''}`
         }, this.favButton())
     }
   }
@@ -485,7 +638,7 @@ module.exports = (Plugin, Library) => {
       ),
       React.createElement('div', {
         className: classes.result.emptyHintText
-      }, labels.media.emptyHint[this.props.type])
+      }, this.props.type === 'gif' ? Strings.Messages.NO_GIF_FAVORITES_HOW_TO_FAVORITE : labels.media.emptyHint[this.props.type])
       )
       ),
       React.createElement('div', {
@@ -563,14 +716,12 @@ module.exports = (Plugin, Library) => {
 
       this.onContextMenu = this.onContextMenu.bind(this)
       this.onDrop = this.onDrop.bind(this)
+      this.onError = this.onError.bind(this)
     }
 
     get nameColor () {
       const rgb = ColorConverter.getRGB(this.props.color)
-      const brightness = Math.round((
-        (parseInt(rgb[0]) * 299) +
-  (parseInt(rgb[1]) * 587) +
-  (parseInt(rgb[2]) * 114)) / 1000)
+      const brightness = Math.round(((parseInt(rgb[0]) * 299) + (parseInt(rgb[1]) * 587) + (parseInt(rgb[2]) * 114)) / 1000)
       if (brightness > 125) return 'black'
       return 'white'
     }
@@ -579,8 +730,13 @@ module.exports = (Plugin, Library) => {
       return Utilities.loadSettings(config.name).hideThumbnail || !this.props.thumbnail
     }
 
+    get isGIF () {
+      return this.props.type === 'gif'
+    }
+
     onContextMenu (e) {
-      canClosePicker = false
+      canClosePicker.context = 'contextmenu'
+      canClosePicker.value = false
       const moveItems = []
       if (this.props.index > 0) {
         moveItems.push({
@@ -600,48 +756,37 @@ module.exports = (Plugin, Library) => {
         {
           id: 'category-copyColor',
           label: labels.category.copyColor,
-          action: () => {
-            ElectronModule.copy(this.props.color || DEFAULT_BACKGROUND_COLOR)
-            Toasts.success(labels.category.copiedColor)
-          }
+          action: () => ElectronModule.copy(this.props.color || DEFAULT_BACKGROUND_COLOR)
         },
         {
           id: 'category-download',
           label: labels.category.download,
-          action: () => BdApi.openDialog({ openDirectory: true }).then(({ filePaths }) => {
-            if (!filePaths?.[0]) return
-            const categoryFolder = path.join(filePaths[0], this.props.name)
-            mkdir(categoryFolder, {}, () => {
-              const medias = Utilities.loadData(config.name, this.props.type, { medias: [] }).medias.filter(m => m.category_id === this.props.id).map(m => { return this.props.type === 'audio' ? m : { ...m, ext: getUrlExt(m.url) } })
-              Promise.all(medias.map(m => new Promise((resolve, reject) => {
-                lstat(path.join(categoryFolder, `${m.name}${m.ext}`), {}, e => {
-                  if (!e) return resolve()
-                  https.get(m.url, res => {
-                    const bufs = []
-                    res.on('data', chunk => bufs.push(chunk))
-                    res.on('end', () => writeFile(path.join(categoryFolder, `${m.name}${m.ext}`), Buffer.concat(bufs), err => err ? reject(err) : resolve()))
-                    res.on('error', err => reject(err))
-                  })
-                })
-              }))).then(() => Toasts.success(labels.category.success.download)).catch((err) => {
-                console.error(err)
-                Toasts.error(labels.category.error.download)
-              })
-            })
-          })
+          action: () => MediaPicker.downloadCategory({ type: this.props.type, name: this.props.name, categoryId: this.props.id })
         },
         {
           id: 'category-edit',
           label: labels.category.edit,
-          action: () => this.props.openCategoryModal('edit', { name: this.props.name, color: this.props.color, id: this.props.id })
+          action: () => MediaPicker.openCategoryModal(this.props.type, 'edit', { name: this.props.name, color: this.props.color, id: this.props.id })
         },
         {
           id: 'category-delete',
           label: labels.category.delete,
           danger: true,
           action: () => {
-            deleteCategory(this.props.type, this.props.id)
-            this.props.setCategory()
+            const deleteCategories = () => {
+              deleteCategory(this.props.type, this.props.id)
+              this.props.setCategory()
+            }
+            if (MediaPicker.categoryHasSubcategories(this.props.type, this.props.id)) {
+              Modals.showConfirmationModal(labels.category.delete, labels.category.deleteConfirm, {
+                danger: true,
+                onConfirm: () => deleteCategories(),
+                confirmText: labels.category.delete,
+                cancelText: Strings.Messages.CANCEL
+              })
+            } else {
+              deleteCategories()
+            }
           }
         }
       ]
@@ -653,13 +798,14 @@ module.exports = (Plugin, Library) => {
           items: moveItems
         })
       }
-      ContextMenu.openContextMenu(e, ContextMenu.buildMenu([
-        {
-          type: 'group',
-          items
+      ContextMenu.openContextMenu(e, ContextMenu.buildMenu([{
+        type: 'group',
+        items
+      }]), {
+        onClose: () => {
+          canClosePicker.context = 'contextmenu'
+          canClosePicker.value = true
         }
-      ]), {
-        onClose: () => { canClosePicker = true }
       })
     }
 
@@ -669,11 +815,16 @@ module.exports = (Plugin, Library) => {
       try {
         media = JSON.parse(data)
       } catch (err) {
-        console.error(err)
+        console.error('[FavoriteMedia]', err)
       }
       if (!media) return
-      this.props.changeMediaCategory(media.id, this.props.id)
+      MediaPicker.changeMediaCategory(this.props.type, media.url, this.props.id)
       this.refs.category.classList.remove('category-dragover')
+    }
+
+    onError (e) {
+      console.warn('[FavoriteMedia]', 'Could not load media:', this.props.thumbnail)
+      e.target.src = MediaLoadFailImg
     }
 
     render () {
@@ -689,7 +840,7 @@ module.exports = (Plugin, Library) => {
           height: '110px'
         },
         ref: 'category',
-        onClick: () => this.props.setCategory({ name: this.props.name, color: this.props.color, id: this.props.id }),
+        onClick: () => this.props.setCategory({ name: this.props.name, color: this.props.color, id: this.props.id, category_id: this.props.category_id }),
         onContextMenu: this.onContextMenu,
         onDragEnter: e => { e.preventDefault(); this.refs.category.classList.add('category-dragover') },
         onDragLeave: e => { e.preventDefault(); this.refs.category.classList.remove('category-dragover') },
@@ -707,12 +858,16 @@ module.exports = (Plugin, Library) => {
         }, this.props.name)
       ),
       this.props.thumbnail && !Utilities.loadSettings(config.name).hideThumbnail
-        ? React.createElement('img', {
+        ? React.createElement(this.isGIF && !this.props.thumbnail.endsWith('.gif') ? 'video' : 'img', {
           className: classes.result.gif,
           preload: 'auto',
+          autoplay: this.isGIF ? '' : undefined,
+          loop: this.isGIF ? 'true' : undefined,
+          muted: this.isGIF ? 'true' : undefined,
           src: this.props.thumbnail,
           height: '110px',
-          width: '100%'
+          width: '100%',
+          onError: this.onError
         })
         : null
       )
@@ -733,10 +888,27 @@ module.exports = (Plugin, Library) => {
       this.sendMedia = this.sendMedia.bind(this)
       this.handleVisible = this.handleVisible.bind(this)
       this.onDragStart = this.onDragStart.bind(this)
+      this.onError = this.onError.bind(this)
     }
 
     get isPlayable () {
       return ['video', 'audio'].includes(this.props.type)
+    }
+
+    get isGIF () {
+      return this.props.type === 'gif'
+    }
+
+    get elementTag () {
+      if (this.props.type === 'audio') return 'audio'
+      else if (this.state.showControls || (this.isGIF && !this.props.src.endsWith('.gif'))) return 'video'
+      return 'img'
+    }
+
+    get elementSrc () {
+      if (this.props.type === 'video' && !this.state.showControls) return this.props.poster
+      if (this.isGIF) return this.props.src
+      return this.props.url
     }
 
     handleVisible ({ scroll }) {
@@ -745,7 +917,7 @@ module.exports = (Plugin, Library) => {
 
     componentDidMount () {
       this.url = this.props.url
-      if (this.isPlayable) this.tooltipControls = Tooltip.create(this.refs.tooltipControls, this.state.showControls ? labels.media.controls.hide : labels.media.controls.show)
+      if (this.isPlayable) this.tooltipControls = Tooltip.create(this.refs.tooltipControls, this.state.showControls ? labels.media.controls.hide : labels.media.controls.show, { style: 'primary' })
       Dispatcher.subscribe('TOGGLE_CONTROLS', this.hideControls)
       Dispatcher.subscribe('SCROLLING_MEDIAS', this.handleVisible)
       Dispatcher.subscribe('SEND_MEDIA', this.sendMedia)
@@ -759,9 +931,9 @@ module.exports = (Plugin, Library) => {
 
     componentDidUpdate () {
       if (this.url !== this.props.url && this.state.showControls) this.changeControls(false)
-      if (this.isPlayable && !this.tooltipControls) this.tooltipControls = Tooltip.create(this.refs.tooltipControls, this.state.showControls ? labels.media.controls.hide : labels.media.controls.show)
+      if (this.isPlayable && !this.tooltipControls) this.tooltipControls = Tooltip.create(this.refs.tooltipControls, this.state.showControls ? labels.media.controls.hide : labels.media.controls.show, { style: 'primary' })
       this.url = this.props.url
-      if (this.state.showControls) this.refs.media.volume = this.props.volume / 100 || 0.1
+      if (this.state.showControls) this.refs.media.volume = this.props.settings.mediaVolume / 100 || 0.1
     }
 
     changeControls (force) {
@@ -796,44 +968,30 @@ module.exports = (Plugin, Library) => {
       }
       if (['path', 'svg'].includes(e.target.tagName)) return
       const shiftPressed = e.shiftKey
-      if (!sendMedia && (this.props.alwaysUploadFile || this.props.type === 'audio')) {
-        https.get(this.props.url, res => {
-          const bufs = []
-          res.on('data', chunk => bufs.push(chunk))
-          res.on('end', () => {
-            if (!shiftPressed) EPS.closeExpressionPicker()
-            try {
-              const content = DraftStore.getDraft(SelectedChannelStore.getChannelId(), 0)
-              const fileName = this.props.name + (this.props.ext ?? getUrlExt(this.props.url))
-              uploadFiles({
-                channelId: SelectedChannelStore.getChannelId(),
-                hasSpoiler: false,
-                draftType: 0,
-                parsedMessage: { content: content || '' },
-                uploads: [
-                  new UploadObject({
-                    file: new File([Buffer.concat(bufs)], fileName),
-                    platform: 1
-                  }, SelectedChannelStore.getChannelId(), false, 0)
-                ]
-              })
-              ComponentDispatch.dispatchToLastSubscribed('CLEAR_TEXT')
-            } catch (e) { console.error(e.message) }
-          })
-          res.on('error', err => console.error(err))
-        })
+      if (!sendMedia && (this.props.settings.alwaysUploadFile || this.props.type === 'audio')) {
+        const media = { url: this.props.url, name: this.props.name }
+        fetchMedia(media).then((buffer) => {
+          uploadFile(this.props.type, buffer, media)
+          if (['both', 'file'].includes(this.props.settings.alwaysSendUpload)) {
+            sendInTextarea().then(() => ComponentDispatch.dispatchToLastSubscribed('CLEAR_TEXT'))
+          }
+          if (!shiftPressed) EPS.closeExpressionPicker()
+        }).catch((err) => console.error('[FavoriteMedia]', err))
       } else {
         if (!shiftPressed) {
           ComponentDispatch.dispatchToLastSubscribed('INSERT_TEXT', { content: this.props.url, plainText: this.props.url })
-          const textarea = document.querySelector(`.${classes.textarea.textAreaSlate}`)
-          const input = textarea?.querySelector('[role="textbox"]')
-          const enterEvent = new KeyboardEvent('keydown', { charCode: 13, keyCode: 13, bubbles: true })
-          if (input) setTimeout(() => input?.dispatchEvent(enterEvent), 0)
-          else EPS.toggleExpressionPicker(this.props.type, EPSConstants)
+          if (['both', 'link'].includes(this.props.settings.alwaysSendUpload)) sendInTextarea().catch((err) => console.error('[FavoriteMedia]', err))
+          EPS.closeExpressionPicker()
         } else {
-          WebpackModules.getByProps('sendMessage').sendMessage(SelectedChannelStore.getChannelId(), { content: this.props.url, validNonShortcutEmojis: [] })
+          MessagesManager.sendMessage(currentChannelId, { content: this.props.url, validNonShortcutEmojis: [] })
         }
       }
+    }
+
+    onError (e) {
+      if (e.target.tagName !== 'IMG') return
+      console.warn('[FavoriteMedia]', 'Could not load media:', this.props.url)
+      e.target.src = MediaLoadFailImg
     }
 
     render () {
@@ -880,17 +1038,21 @@ module.exports = (Plugin, Library) => {
         fromPicker: true
       }),
       this.state.visible
-        ? React.createElement(this.props.type === 'audio' ? 'audio' : this.state.showControls ? 'video' : 'img', {
+        ? React.createElement(this.elementTag, {
           className: classes.result.gif,
           preload: 'auto',
-          src: this.props.type === 'video' && !this.state.showControls ? this.props.poster : this.props.url,
+          autoplay: this.isGIF ? '' : undefined,
+          loop: this.isGIF ? 'true' : undefined,
+          muted: this.isGIF ? 'true' : undefined,
+          src: this.elementSrc,
           poster: this.props.poster,
           width: this.props.positions.width,
           height: this.props.positions.height,
           ref: 'media',
           controls: this.state.showControls,
           style: this.props.type === 'audio' ? { position: 'absolute', bottom: '0', left: '0', 'z-index': '2' } : null,
-          onDragStart: this.onDragStart
+          onDragStart: this.onDragStart,
+          onError: this.onError
         })
         : null,
       this.props.type === 'audio'
@@ -951,13 +1113,10 @@ module.exports = (Plugin, Library) => {
       this.setCategory = this.setCategory.bind(this)
       this.onContextMenu = this.onContextMenu.bind(this)
       this.onMediaContextMenu = this.onMediaContextMenu.bind(this)
-      this.openCategoryModal = this.openCategoryModal.bind(this)
       this.categoriesItems = this.categoriesItems.bind(this)
-      this.changeMediaCategory = this.changeMediaCategory.bind(this)
-      this.removeMediaCategory = this.removeMediaCategory.bind(this)
-      this.isInCategory = this.isInCategory.bind(this)
       this.loadMedias = this.loadMedias.bind(this)
       this.loadCategories = this.loadCategories.bind(this)
+      this.backCategory = this.backCategory.bind(this)
       this.uploadMedia = this.uploadMedia.bind(this)
       this.setContentHeight = this.setContentHeight.bind(this)
       this.sendMedia = this.sendMedia.bind(this)
@@ -968,7 +1127,7 @@ module.exports = (Plugin, Library) => {
       this.setState({ contentWidth: this.refs.content.clientWidth })
       Dispatcher.subscribe('UPDATE_MEDIAS', this.loadMedias)
       Dispatcher.subscribe('UPDATE_CATEGORIES', this.loadCategories)
-      Dispatcher.dispatch({ type: 'PICKER_BUTTON_ACTIVE', mediaType: this.props.type })
+      Dispatcher.dispatch({ type: 'PICKER_BUTTON_ACTIVE' })
     }
 
     componentDidUpdate () {
@@ -977,7 +1136,7 @@ module.exports = (Plugin, Library) => {
         this.setState({ category: null })
         this.loadCategories()
         this.loadMedias()
-        Dispatcher.dispatch({ type: 'PICKER_BUTTON_ACTIVE', mediaType: this.props.type })
+        Dispatcher.dispatch({ type: 'PICKER_BUTTON_ACTIVE' })
       }
       if (this.state.contentWidth !== this.refs.content.clientWidth) this.setState({ contentWidth: this.refs.content.clientWidth })
     }
@@ -989,7 +1148,7 @@ module.exports = (Plugin, Library) => {
     }
 
     clearSearch () {
-      this.refs.input.value = ''
+      if (this.refs.input) this.refs.input.value = ''
       this.setState({ textFilter: '' })
     }
 
@@ -1006,7 +1165,6 @@ module.exports = (Plugin, Library) => {
     get heights () {
       const cols = this.numberOfColumns
       const heights = new Array(cols).fill(0)
-      if (this.state.category) return heights
       const categoriesLen = this.filteredCategories.length
       const rows = Math.ceil(categoriesLen / cols)
       const max = (categoriesLen % cols) || 999
@@ -1015,8 +1173,12 @@ module.exports = (Plugin, Library) => {
     }
 
     setCategory (category) {
-      if (!category) { this.loadCategories(); this.loadMedias() }
-      this.setState({ category })
+      if (!category) {
+        this.loadCategories()
+        this.loadMedias()
+      } else {
+        this.setState({ category })
+      }
       this.clearSearch()
     }
 
@@ -1033,8 +1195,14 @@ module.exports = (Plugin, Library) => {
 
     get filteredCategories () {
       const filter = this.state.textFilter
-      if (!filter) return this.state.categories
+      if (!filter) return this.categoriesInCategory()
       return this.state.categories.filter(c => this.filterCondition(c.name.toLowerCase(), filter.toString().toLowerCase()))
+    }
+
+    get filteredMedias () {
+      const filter = this.state.textFilter
+      if (!filter) return this.mediasInCategory
+      return this.listWithId(this.state.medias).filter(m => this.filterCondition(m.name.toLowerCase(), filter.toString().toLowerCase()))
     }
 
     get positionedCategories () {
@@ -1058,7 +1226,7 @@ module.exports = (Plugin, Library) => {
       const heights = this.heights
       const width = this.state.contentWidth || 200
       const n = Math.floor(width / 200)
-      const offset = this.state.textFilter ? this.filteredCategories.length : !this.state.category ? this.state.categories.length : 0
+      const offset = this.state.textFilter ? this.filteredCategories.length : this.state.categories.length
       const placed = new Array(n)
       placed.fill(false)
       placed.fill(true, 0, offset % n)
@@ -1106,13 +1274,12 @@ module.exports = (Plugin, Library) => {
       return medias
     }
 
-    get filteredMedias () {
-      const filter = this.state.textFilter
-      if (!filter) return this.mediasInCategory()
-      return this.listWithId(this.state.medias).filter(m => this.filterCondition(m.name.toLowerCase(), filter.toString().toLowerCase()))
+    categoriesInCategory () {
+      if (!this.state.category) return this.state.categories.filter(m => m.category_id === undefined)
+      return this.state.categories.filter(m => m.category_id === this.state.category.id)
     }
 
-    mediasInCategory () {
+    get mediasInCategory () {
       if (!this.state.category) {
         if (!Utilities.loadSettings(config.name).hideUnsortedMedias) return this.listWithId(this.state.medias)
         else return this.listWithId(this.state.medias).filter(m => m.category_id === undefined)
@@ -1120,11 +1287,16 @@ module.exports = (Plugin, Library) => {
       return this.listWithId(this.state.medias).filter(m => m.category_id === this.state.category.id)
     }
 
-    openCategoryModal (op, values) {
+    static categoryHasSubcategories (type, categoryId) {
+      return Utilities.loadData(config.name, type, { categories: [] }).categories.some((c) => c.category_id === categoryId)
+    }
+
+    static openCategoryModal (type, op, values, categoryId) {
+      let modal
       Modals.showModal(op === 'create' ? labels.category.create : labels.category.edit,
         React.createElement(CategoryModal, {
           ...values,
-          modalRef: ref => { this.modal = ref }
+          modalRef: ref => { modal = ref }
         }),
         {
           danger: false,
@@ -1132,27 +1304,65 @@ module.exports = (Plugin, Library) => {
           cancelText: Strings.Messages.CANCEL,
           onConfirm: () => {
             let res = false
-            if (op === 'create') res = createCategory(this.props.type, this.modal.getValues())
-            else res = editCategory(this.props.type, this.modal.getValues(), values.id)
-            if (res) this.loadCategories()
+            if (op === 'create') res = createCategory(type, modal.getValues(), categoryId)
+            else res = editCategory(type, modal.getValues(), values.id)
+            if (res) Dispatcher.dispatch({ type: 'UPDATE_CATEGORIES' })
           }
         }
       )
     }
 
+    static downloadCategory (props) {
+      BdApi.openDialog({ openDirectory: true }).then(({ filePaths }) => {
+        if (!filePaths?.[0]) return
+        const categoryFolder = path.join(filePaths[0], props.name ?? '')
+        mkdir(categoryFolder, {}, () => {
+          const medias = Utilities.loadData(config.name, props.type, { medias: [] }).medias.filter(m => m.category_id === props.categoryId).map(m => { return props.type === 'audio' ? m : { ...m, ext: props.type === 'gif' ? '.gif' : getUrlExt(m.url) } })
+          Promise.allSettled(medias.map((media) => new Promise((resolve, reject) => {
+            const mediaFileName = `${media.name.replace(/ /g, '_')}${media.ext}`
+            const mediaPath = path.join(categoryFolder, mediaFileName)
+            lstat(mediaPath, {}, (err) => {
+              // checking if the file already exists -> err is not null if that's the case
+              if (!err) return resolve()
+              fetchMedia(media).then((buffer) => {
+                writeFile(mediaPath, buffer, (err) => {
+                  if (err) reject(err)
+                  else resolve()
+                })
+              }).catch((err) => reject(err))
+            })
+          }))).then((results) => {
+            Toasts.success(labels.category.success.download)
+            results.forEach((res) => {
+              if (res.status === 'rejected') console.error('[FavoriteMedia]', 'Failed to download media:', res.reason)
+            })
+          })
+        })
+      })
+    }
+
     onContextMenu (e) {
-      if (this.state.category) return
-      canClosePicker = false
+      canClosePicker.context = 'contextmenu'
+      canClosePicker.value = false
       ContextMenu.openContextMenu(e,
         ContextMenu.buildMenu([{
           type: 'group',
-          items: [{
-            id: 'category-create',
-            label: labels.category.create,
-            action: () => this.openCategoryModal('create')
-          }]
+          items: [
+            {
+              id: 'category-create',
+              label: labels.category.create,
+              action: () => MediaPicker.openCategoryModal(this.props.type, 'create', null, this.state.category?.id)
+            }, {
+              id: 'category-download',
+              label: labels.category.download,
+              action: () => MediaPicker.downloadCategory({ type: this.props.type, name: this.state.category?.name, categoryId: this.state.category?.id })
+            }
+          ]
         }]), {
-          onClose: () => { canClosePicker = true }
+          onClose: () => {
+            canClosePicker.context = 'contextmenu'
+            canClosePicker.value = true
+          }
         })
     }
 
@@ -1160,36 +1370,40 @@ module.exports = (Plugin, Library) => {
       Dispatcher.dispatch({ type: 'SCROLLING_MEDIAS', scroll: e.target.scrollTop + 350 })
     }
 
-    changeMediaCategory (mediaId, categoryId) {
-      const typeData = Utilities.loadData(config.name, this.props.type)
-      typeData.medias[mediaId].category_id = categoryId
-      Utilities.saveData(config.name, this.props.type, typeData)
-      Toasts.success(labels.media.success.move[this.props.type])
-      this.loadMedias()
+    static changeMediaCategory (type, url, categoryId) {
+      const typeData = Utilities.loadData(config.name, type, { medias: [] })
+      const index = typeData.medias.findIndex(m => m.url === url)
+      if (index < 0) return
+      typeData.medias[index].category_id = categoryId
+      Utilities.saveData(config.name, type, typeData)
+      Toasts.success(labels.media.success.move[type])
+      Dispatcher.dispatch({ type: 'UPDATE_MEDIAS' })
     }
 
-    removeMediaCategory (mediaId) {
-      const typeData = Utilities.loadData(config.name, this.props.type)
+    static removeMediaCategory (type, mediaId) {
+      const typeData = Utilities.loadData(config.name, type)
       delete typeData.medias[mediaId].category_id
-      Utilities.saveData(config.name, this.props.type, typeData)
-      Toasts.success(labels.media.success.remove[this.props.type])
-      this.loadMedias()
+      Utilities.saveData(config.name, type, typeData)
+      Toasts.success(labels.media.success.remove[type])
+      Dispatcher.dispatch({ type: 'UPDATE_MEDIAS' })
     }
 
-    categoriesItems (mediaId) {
-      return this.state.categories.map(c => {
-        return {
-          id: `category-menu-${c.id}`,
-          label: c.name,
-          key: c.id,
-          action: () => this.changeMediaCategory(mediaId, c.id),
-          render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })
-        }
-      }).filter(c => c.key !== (this.state.category && this.state.category.id) && c.key !== this.isInCategory(mediaId))
+    categoriesItems (media) {
+      return this.state.categories
+        .filter(c => c.id !== (this.state.category?.id) && c.id !== MediaPicker.isMediaInCategory(this.props.type, media.id))
+        .map(c => {
+          return {
+            id: `category-menu-${c.id}`,
+            label: c.name,
+            key: c.id,
+            action: () => MediaPicker.changeMediaCategory(this.props.type, media.url, c.id),
+            render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })
+          }
+        })
     }
 
-    isInCategory (mediaId) {
-      const media = Utilities.loadData(config.name, this.props.type, { medias: [] }).medias[mediaId]
+    static isMediaInCategory (type, mediaId) {
+      const media = Utilities.loadData(config.name, type, { medias: [] }).medias[mediaId]
       if (!media) return undefined
       return media.category_id
     }
@@ -1203,7 +1417,7 @@ module.exports = (Plugin, Library) => {
         if (medias.length === 0) continue
         else if (medias.length === 1) media = medias[0]
         else media = medias[Math.floor(Math.random() * medias.length)]
-        thumbnails[id] = media.poster || media.url
+        thumbnails[id] = media.poster || media.src || media.url
       }
       return thumbnails
     }
@@ -1216,36 +1430,25 @@ module.exports = (Plugin, Library) => {
       this.setState({ medias: Utilities.loadData(config.name, this.props.type, { medias: [] }).medias })
     }
 
-    uploadMedia (mediaId, spoiler) {
+    backCategory () {
+      const prevCategory = this.state.categories.find((c) => c.id === this.state.category.category_id)
+      this.setState({ category: prevCategory })
+    }
+
+    uploadMedia (mediaId, spoiler = false) {
       loadComponentDispatch()
       const media = this.state.medias[mediaId]
       if (!media) return
-      https.get(media.url, res => {
-        const bufs = []
-        res.on('data', chunk => bufs.push(chunk))
-        res.on('end', () => {
-          try {
-            const content = DraftStore.getDraft(SelectedChannelStore.getChannelId(), 0)
-            const fileName = (media.name || 'unknown') + '.' + (media.url.split('.').pop().split('?').shift() || 'png')
-            const file = new File([Buffer.concat(bufs)], fileName)
-            uploadFiles({
-              channelId: SelectedChannelStore.getChannelId(),
-              hasSpoiler: spoiler,
-              draftType: 0,
-              parsedMessage: { content: content || '' },
-              uploads: [
-                new UploadObject({
-                  file,
-                  platform: 1
-                }, SelectedChannelStore.getChannelId(), false, 0)
-              ]
-            })
-            ComponentDispatch.dispatchToLastSubscribed('CLEAR_TEXT')
-            EPS.closeExpressionPicker()
-          } catch (e) { console.error(e) }
-        })
-        res.on('error', err => console.error(err))
-      })
+      fetchMedia(media).then((buffer) => {
+        uploadFile(this.props.type, buffer, media)
+        setTimeout(() => {
+          if (spoiler) findSpoilerButton()?.click()
+          if (['both', 'file'].includes(this.props.settings.alwaysSendUpload)) {
+            sendInTextarea().then(() => ComponentDispatch.dispatchToLastSubscribed('CLEAR_TEXT'))
+          }
+        }, 50)
+        EPS.closeExpressionPicker()
+      }).catch((err) => console.error('[FavoriteMedia]', err))
     }
 
     sendMedia (e, mediaId) {
@@ -1253,11 +1456,31 @@ module.exports = (Plugin, Library) => {
     }
 
     onMediaContextMenu (e, mediaId) {
+      const media = Utilities.loadData(config.name, this.props.type, { medias: [] }).medias[mediaId]
       const items = [{
         id: 'media-input',
         label: 'media-input',
         render: () => React.createElement(MediaMenuItemInput, { id: mediaId, type: this.props.type, loadMedias: this.loadMedias })
       }, {
+        id: 'media-copy-url',
+        label: Strings.Messages.COPY_MEDIA_LINK,
+        action: () => ElectronModule.copy(media.url)
+      }]
+      if (media.message != null) {
+        items.push({
+          id: 'media-copy-message',
+          label: Strings.Messages.COPY_MESSAGE_LINK,
+          action: () => ElectronModule.copy(media.message ?? '')
+        })
+      }
+      if (media.source != null) {
+        items.push({
+          id: 'media-copy-source',
+          label: labels.media.copySource,
+          action: () => ElectronModule.copy(media.source ?? '')
+        })
+      }
+      items.push({
         id: 'media-send-title',
         label: Strings.Messages.USER_POPOUT_MESSAGE,
         action: (e) => this.sendMedia(e, mediaId)
@@ -1278,53 +1501,55 @@ module.exports = (Plugin, Library) => {
         id: 'media-download',
         label: Strings.Messages.DOWNLOAD,
         action: () => {
-          const media = Utilities.loadData(config.name, this.props.type, { medias: [] }).medias[mediaId]
-          const ext = getUrlExt(media.url)
+          const ext = this.props.type === 'gif' ? '.gif' : getUrlExt(media.url)
+          media.name = media.name.replace(/ /g, '_')
           BdApi.openDialog({ mode: 'save', defaultPath: media.name + ext }).then(({ filePath }) => {
-            https.get(media.url, res => {
-              const bufs = []
-              res.on('data', chunk => bufs.push(chunk))
-              res.on('end', () => writeFile(filePath, Buffer.concat(bufs), err => {
+            if (filePath === '') return
+            fetchMedia(media).then((buffer) => {
+              writeFile(filePath, buffer, (err) => {
                 if (err) {
-                  console.error(err)
+                  console.error('[FavoriteMedia]', err)
                   Toasts.error(labels.media.error.download[this.props.type])
-                  return
+                } else {
+                  Toasts.success(labels.media.success.download[this.props.type])
                 }
-                Toasts.success(labels.media.success.download[this.props.type])
-              }))
-              res.on('error', (err) => {
-                console.error(err)
-                Toasts.error(labels.media.error.download[this.props.type])
               })
+            }).catch((err) => {
+              console.error('[FavoriteMedia]', err)
+              Toasts.error(labels.media.error.download[this.props.type])
             })
           })
         }
-      }]
-      const itemsCategories = this.categoriesItems(mediaId)
+      })
+      const itemsCategories = this.categoriesItems(media)
       if (itemsCategories.length > 0) {
         items.splice(1, 0, {
           id: 'media-moveAddTo',
-          label: this.state.category || this.isInCategory(mediaId) !== undefined ? labels.media.moveTo : labels.media.addTo,
+          label: this.state.category || MediaPicker.isMediaInCategory(this.props.type, mediaId) !== undefined ? labels.media.moveTo : labels.media.addTo,
           type: 'submenu',
           items: itemsCategories
         })
       }
-      if (this.isInCategory(mediaId) !== undefined) {
+      if (MediaPicker.isMediaInCategory(this.props.type, mediaId) !== undefined) {
         items.push({
           id: 'media-removeFrom',
           label: labels.media.removeFrom,
           danger: true,
-          action: () => this.removeMediaCategory(mediaId)
+          action: () => MediaPicker.removeMediaCategory(this.props.type, mediaId)
         })
       }
-      canClosePicker = false
+      canClosePicker.context = 'contextmenu'
+      canClosePicker.value = false
       ContextMenu.openContextMenu(e, ContextMenu.buildMenu([
         {
           type: 'group',
           items
         }
       ]), {
-        onClose: () => { canClosePicker = true }
+        onClose: () => {
+          canClosePicker.context = 'contextmenu'
+          canClosePicker.value = true
+        }
       })
     }
 
@@ -1339,6 +1564,9 @@ module.exports = (Plugin, Library) => {
         className: `${classes.gutter.header} fm-header`
       },
       React.createElement('div', {
+        className: `${classes.h5} fm-mediasCounter`
+      }, this.filteredMedias.length),
+      React.createElement('div', {
         className: `${classes.flex.flex} ${classes.flex.horizontal} ${classes.flex.justifyStart} ${classes.flex.alignCenter} ${classes.flex.noWrap}`,
         style: { flex: '1 1 auto' }
       },
@@ -1347,7 +1575,7 @@ module.exports = (Plugin, Library) => {
           className: classes.gutter.backButton,
           role: 'button',
           tabindex: '0',
-          onClick: () => this.setState({ category: null })
+          onClick: () => this.backCategory()
         },
         React.createElement('svg', {
           'aria-hidden': false,
@@ -1365,7 +1593,7 @@ module.exports = (Plugin, Library) => {
         : null,
       this.state.category
         ? React.createElement('h5', {
-          className: `${classes.colorStandard} ${classes.size14} ${classes.h5} ${classes.gutter.searchHeader}`
+          className: `${classes.h5} ${classes.gutter.searchHeader}`
         }, this.state.category.name)
         : null,
       this.state.textFilter && !this.state.category
@@ -1463,15 +1691,13 @@ module.exports = (Plugin, Library) => {
       !this.state.category && (this.state.categories.length + this.state.medias.length === 0)
         ? React.createElement(EmptyFavorites, { type: this.props.type })
         : null,
-      this.state.categories.length > 0 && !this.state.category && this.state.contentWidth
+      this.state.categories.length > 0 && this.state.contentWidth
         ? React.createElement(RenderList, {
           component: CategoryCard,
           items: this.positionedCategories,
           componentProps: {
             type: this.props.type,
             setCategory: this.setCategory,
-            openCategoryModal: this.openCategoryModal,
-            changeMediaCategory: this.changeMediaCategory,
             length: this.state.categories.length
           }
         })
@@ -1482,9 +1708,8 @@ module.exports = (Plugin, Library) => {
           items: this.positionedMedias,
           componentProps: {
             type: this.props.type,
-            volume: this.props.volume,
             onMediaContextMenu: this.onMediaContextMenu,
-            alwaysUploadFile: this.props.alwaysUploadFile
+            settings: this.props.settings
           }
         })
         : null
@@ -1531,12 +1756,23 @@ module.exports = (Plugin, Library) => {
       this.checkPicker = this.checkPicker.bind(this)
     }
 
-    changeActive ({ mediaType }) {
-      this.setState({ active: mediaType === this.props.type })
+    get isActive () {
+      const EPSState = EPS.useExpressionPickerStore.getState()
+      return EPSState.activeView === this.props.type && EPSState.activeViewType?.analyticsName === this.props.pickerType?.analyticsName
+    }
+
+    changeActive () {
+      if (this.isActive) {
+        currentChannelId = this.props.channelId
+        currentTextareaInput = findTextareaInput(this.refs.button)
+      }
+      this.setState({ active: this.isActive })
     }
 
     checkPicker () {
-      canClosePicker = this.props.type !== EPS.useExpressionPickerStore.getState().activeView
+      const EPSState = EPS.useExpressionPickerStore.getState()
+      canClosePicker.context = 'mediabutton'
+      canClosePicker.value = EPSState.activeView == null
     }
 
     componentDidMount () {
@@ -1550,8 +1786,15 @@ module.exports = (Plugin, Library) => {
     render () {
       return React.createElement('div', {
         onMouseDown: this.checkPicker,
-        onClick: () => EPS.toggleExpressionPicker(this.props.type, EPSConstants),
-        className: `${classes.textarea.buttonContainer} fm-buttonContainer`
+        onClick: () => {
+          const EPSState = EPS.useExpressionPickerStore.getState()
+          if (EPSState.activeView === this.props.type && EPSState.activeViewType?.analyticsName !== this.props.pickerType?.analyticsName) {
+            EPS.toggleExpressionPicker(this.props.type, this.props.pickerType ?? EPSState.activeViewType)
+          }
+          EPS.toggleExpressionPicker(this.props.type, this.props.pickerType ?? EPSConstants.NORMAL)
+        },
+        className: `${classes.textarea.buttonContainer} fm-buttonContainer fm-${this.props.type}`,
+        ref: 'button'
       },
       React.createElement('button', {
         className: `${classes.look.button} ${classes.look.lookBlank} ${classes.look.colorBrand} ${classes.look.grow}${this.state.active ? ` ${classes.icon.active}` : ''} fm-button`,
@@ -1584,15 +1827,15 @@ module.exports = (Plugin, Library) => {
     return typeData
   }
 
-  function createCategory (type, { name, color }) {
+  function createCategory (type, { name, color }, categoryId) {
     const res = categoryValidator(type, name, color)
     if (res.error) {
-      console.error(res.error)
+      console.error('[FavoriteMedia]', res.error)
       Toasts.error(res.message)
       return false
     }
 
-    res.categories.push({ id: ((res.categories.slice(-1)[0] && res.categories.slice(-1)[0].id) || 0) + 1, name, color })
+    res.categories.push({ id: ((res.categories.slice(-1)[0] && res.categories.slice(-1)[0].id) || 0) + 1, name, color, category_id: categoryId })
     Utilities.saveData(config.name, type, res)
 
     Toasts.success(labels.category.success.create)
@@ -1602,7 +1845,7 @@ module.exports = (Plugin, Library) => {
   function editCategory (type, { name, color }, id) {
     const res = categoryValidator(type, name, color, id)
     if (res.error) {
-      console.error(res.error)
+      console.error('[FavoriteMedia]', res.error)
       Toasts.error(res.message)
       return false
     }
@@ -1626,8 +1869,13 @@ module.exports = (Plugin, Library) => {
   function deleteCategory (type, id) {
     const typeData = Utilities.loadData(config.name, type, { categories: [], medias: [] })
     if (typeData.categories.find(c => c.id === id) === undefined) { Toasts.error(labels.category.error.invalidCategory); return false }
-    typeData.categories = typeData.categories.filter(c => c.id !== id)
-    typeData.medias = typeData.medias.map(m => { if (m.category_id === id) delete m.category_id; return m })
+    const deleteCategoryId = (id) => {
+      typeData.categories = typeData.categories.filter(c => c.id !== id)
+      typeData.medias = typeData.medias.map(m => { if (m.category_id === id) delete m.category_id; return m })
+      const categoriesToDelete = typeData.categories.filter((c) => c.category_id === id)
+      categoriesToDelete.forEach((c) => deleteCategoryId(c.id))
+    }
+    deleteCategoryId(id)
     Utilities.saveData(config.name, type, typeData)
 
     Toasts.success(labels.category.success.delete)
@@ -1637,12 +1885,13 @@ module.exports = (Plugin, Library) => {
   return class FavoriteMedia extends Plugin {
     onStart () {
       loadModules()
-      this.patchExpressionPicker()
       this.patchChannelTextArea()
-      this.patchMedias()
-      this.patchClosePicker()
-      this.patchGIFTab()
+      this.patchExpressionPicker()
       this.patchMessageContextMenu()
+      this.patchGIFTab()
+      this.patchClosePicker()
+      this.patchMedias()
+      this.preloadMedias()
       DOMTools.addStyle(this.getName() + '-css', `
         .category-input-color > input[type='color'] {
           opacity: 0;
@@ -1656,11 +1905,12 @@ module.exports = (Plugin, Library) => {
         .category-input-color:hover {
           transform: scale(1.1);
         }
-        .video-favbtn:not(.fm-uploaded) {
+        .fm-favBtn.fm-video:not(.fm-uploaded) {
           top: calc(50% - 1em);
         }
-        .audio-favbtn {
-          margin-right: 12%;
+        .fm-favBtn.fm-audio {
+          right: 0;
+          margin-right: 10%;
         }
         .show-controls {
           position: absolute;
@@ -1716,10 +1966,24 @@ module.exports = (Plugin, Library) => {
           -webkit-transform: translateY(0);f
           transform: translateY(0);
         }
+        .fm-pickerContainer {
+          height: 100%
+        }
+        #gif-picker-tab-panel .fm-header {
+          padding-top: 16px;
+        }
+        .fm-header .fm-mediasCounter {
+          height: 100%;
+          display: flex;
+          float: right;
+          align-items: center;
+          margin: 0 4px 0 16px;
+        }
       `)
     }
 
     onStop () {
+      document.head.querySelector('fm-head')?.remove()
       DOMTools.removeStyle(this.getName() + '-css')
       Patcher.unpatchAll()
       this.contextMenu?.()
@@ -1731,6 +1995,29 @@ module.exports = (Plugin, Library) => {
 
     getSettingsPanel () {
       return this.buildSettingsPanel().getElement()
+    }
+
+    preloadMedias () {
+      const mediaTypes = {
+        gif: ['url', 'src'],
+        image: ['url'],
+        video: ['url', 'poster'],
+        audio: ['url']
+      }
+      const fmHead = document.createElement('fm-head')
+      Object.entries(mediaTypes).forEach(([type, hrefs]) => {
+        const medias = Utilities.loadData(config.name, type, { medias: [] }).medias
+        medias.forEach((media) => {
+          hrefs.forEach((href) => {
+            if (media[href] == null) return
+            const link = document.createElement('link')
+            link.rel = 'preload'
+            link.href = media[href]
+            fmHead.appendChild(link)
+          })
+        })
+      })
+      document.head.appendChild(fmHead)
     }
 
     MediaTab (mediaType, elementType) {
@@ -1764,12 +2051,11 @@ module.exports = (Plugin, Library) => {
             if (['image', 'video', 'audio'].includes(activeMediaPicker)) {
               body.push(React.createElement(MediaPicker, {
                 type: activeMediaPicker,
-                volume: this.settings.mediaVolume,
-                alwaysUploadFile: this.settings.alwaysUploadFile
+                settings: this.settings
               }))
             }
           } catch (err) {
-            console.error('[FavoriteMedia] Error in ExpressionPicker\n', err)
+            console.error('[FavoriteMedia]', '[FavoriteMedia] Error in ExpressionPicker\n', err)
           }
           return childrenReturn
         }
@@ -1781,9 +2067,10 @@ module.exports = (Plugin, Library) => {
       if (ChannelTextAreaButtons == null) return
       this.patchedCTA = true
 
-      Patcher.after(ChannelTextAreaButtons, 'type', (_, __, returnValue) => {
+      Patcher.after(ChannelTextAreaButtons, 'type', (_, [props], returnValue) => {
         if (Utilities.getNestedProp(returnValue, 'props.children.1.props.type') === 'sidebar') return
-        const channel = ChannelStore.getChannel(SelectedChannelStore.getChannelId())
+        currentChannelId = SelectedChannelStore.getChannelId()
+        const channel = ChannelStore.getChannel(currentChannelId)
         const perms = Permissions.can({
           permission: PermissionsConstants.SEND_MESSAGES,
           user: UserStore.getCurrentUser(),
@@ -1793,13 +2080,16 @@ module.exports = (Plugin, Library) => {
         const buttons = returnValue.props.children
         if (!buttons || !Array.isArray(buttons)) return
         const fmButtons = []
-        if (this.settings.image.showBtn && this.settings.image.enabled) fmButtons.push(React.createElement(MediaButton, { type: 'image' }))
-        if (this.settings.video.showBtn && this.settings.video.enabled) fmButtons.push(React.createElement(MediaButton, { type: 'video' }))
-        if (this.settings.audio.showBtn && this.settings.audio.enabled) fmButtons.push(React.createElement(MediaButton, { type: 'audio' }))
+        if (this.settings.image.showBtn && this.settings.image.enabled) fmButtons.push(React.createElement(MediaButton, { type: 'image', pickerType: props.type, channelId: props.channel.id }))
+        if (this.settings.video.showBtn && this.settings.video.enabled) fmButtons.push(React.createElement(MediaButton, { type: 'video', pickerType: props.type, channelId: props.channel.id }))
+        if (this.settings.audio.showBtn && this.settings.audio.enabled) fmButtons.push(React.createElement(MediaButton, { type: 'audio', pickerType: props.type, channelId: props.channel.id }))
         let index = (buttons.findIndex((b) => b.key === this.settings.position.btnsPositionKey) + (this.settings.position.btnsPosition === 'right' ? 1 : 0))
         if (index < 0) index = buttons.length - 1
         buttons.splice(index, 0, ...fmButtons)
         buttons.forEach((b) => { if (['image', 'video', 'audio'].includes(b.props?.type)) b.key = b.props.type })
+        setTimeout(() => {
+          currentTextareaInput = findTextareaInput()
+        }, 50)
       })
     }
 
@@ -1820,44 +2110,65 @@ module.exports = (Plugin, Library) => {
           poster: props.poster,
           width: props.width,
           height: props.height,
-          uploaded: returnValue.props.children[0] != null
+          uploaded: returnValue.props.children[0] != null,
+          target: returnValue.props.children[1]?.ref
         }))
       })
       Patcher.after(Image.prototype, 'render', (_, __, returnValue) => {
         if (!this.settings.image.enabled || !this.settings.image.showStar) return
-        const propsDiv = returnValue.props?.children?.props
-        if (!propsDiv) return
-        const propsButton = propsDiv.children?.[1]?.props
-        if (!propsButton) return
+        const propsButton = returnValue.props?.children?.props?.children?.[1]?.props
+        if (propsButton == null) return
         const propsImg = propsButton.children?.props
-        if (!propsImg?.src || propsImg.className?.includes('embedVideo')) return
-        if (new URL(propsImg.src).pathname.endsWith('.gif')) return
+        if (propsImg == null) return
+        const url = returnValue.props?.children?.props?.children?.[0]?.props?.href || propsImg.src
+        if (!url) return
         const onclick = propsButton.onClick
         propsButton.onClick = e => {
           if (e.target?.alt === undefined) e.preventDefault()
           else onclick(e)
         }
+        if (returnValue.props.children.props.children[2] != null) return
         returnValue.props.children.props.children.push(React.createElement(MediaFavButton, {
           type: 'image',
-          url: propsImg.src.replace('media.discordapp.net', 'cdn.discordapp.com').replace(/\?width=([\d]*)&height=([\d]*)/, ''),
+          url: url.replace('media.discordapp.net', 'cdn.discordapp.com').replace(/\?width=([\d]*)&height=([\d]*)/, ''),
           width: propsImg.style?.maxWidth ?? propsImg.style?.width,
-          height: propsImg.style?.maxHeight ?? propsImg.style?.height
+          height: propsImg.style?.maxHeight ?? propsImg.style?.height,
+          target: returnValue.props.ringTarget
         }))
       })
     }
 
     patchClosePicker () {
-      Patcher.instead(EPS, 'closeExpressionPicker', (_, __, originalFunction) => {
-        if (canClosePicker) originalFunction()
+      Patcher.instead(EPSModules, closeExpressionPickerKey, (_, __, originalFunction) => {
+        if (canClosePicker.value) originalFunction()
+        if (canClosePicker.context === 'mediabutton') canClosePicker.value = true
       })
     }
 
     async patchGIFTab () {
       const GIFPicker = await ReactComponents.getComponent('GIFPicker', '#gif-picker-tab-panel')
       if (GIFPicker == null) return
-      Patcher.after(GIFPicker.component.prototype, 'render', (_this, _, __) => {
-        if (!this.settings.forceShowFavoritesGIFs) return
-        _this.setState({ resultType: 'Favorites' })
+      Patcher.after(GIFPicker.component.prototype, 'renderContent', (_this, _, returnValue) => {
+        if (!this.settings.gif.enabled || _this.state.resultType !== 'Favorites') return
+        if (!Array.isArray(returnValue.props.data)) return
+        const favorites = returnValue.props.data.reverse()
+        const savedGIFs = Utilities.loadData(config.name, 'gif', { medias: [] })
+        const newGIFs = []
+        // keep only favorited GIFs
+        favorites.forEach((props) => {
+          const data = MediaFavButton.getMediaDataFromProps({ ...props, type: 'gif' })
+          if (data == null) return
+          const foundGIF = savedGIFs.medias.find((g) => g.url === data.url)
+          newGIFs.push(foundGIF ?? data)
+        })
+        savedGIFs.medias = newGIFs
+        Utilities.saveData(config.name, 'gif', savedGIFs)
+
+        returnValue.type = MediaPicker
+        returnValue.props = {
+          type: 'gif',
+          settings: this.settings
+        }
       })
     }
 
@@ -1865,153 +2176,230 @@ module.exports = (Plugin, Library) => {
       this.contextMenu = BdApi.ContextMenu.patch('message', (returnValue, props) => {
         if (props == null) return
         if (returnValue.props?.children?.find(e => e?.props?.id === 'favoriteMedia')) return
-        if (!this.settings.showContextMenuFavorite) return
-        if (!(
-          ((props.target.tagName === 'A' && props.target.nextSibling?.firstChild?.tagName !== 'VIDEO') || (props.target.tagName === 'svg' && props.target.className && props.target.className.baseVal === classes.gif.icon) || props.target.tagName === 'path') || // image
-          (props.target.tagName === 'VIDEO' && props.target.className?.includes('video')) || // video
-          (props.target.tagName === 'A' && props.target.className && props.target.className.includes('metadataName')) // audio
-        )) return
-        if (new URL(String(props.target.href ?? props.target.src)).pathname.endsWith('.gif')) return
-        let target = props.target
-        if (target.tagName === 'svg') target = props.target.parentElement?.parentElement?.previousSibling
-        if (target.tagName === 'path') target = props.target.parentElement?.parentElement?.parentElement?.previousSibling
-        if (!target) return
-        const data = {
-          type: 'image',
-          url: target.src || target.href,
-          poster: target.poster,
-          width: Number(target.clientWidth),
-          height: Number(target.clientHeight),
-          favorited: undefined
-        }
-        data.url = data.url.replace('media.discordapp.net', 'cdn.discordapp.com')
-        if (props.target.tagName === 'VIDEO') data.type = 'video'
-        if (target.className.includes('metadataName')) data.type = 'audio'
-        data.favorited = this.isFavorited(data.type, data.url)
-        const menuItems = []
-        if (data.favorited) {
-          const categoryId = Utilities.loadData(this._config.name, data.type, { medias: [] }).medias.find(m => m.url === data.url)?.category_id
-          const categories = Utilities.loadData(this._config.name, data.type, { categories: [] }).categories.filter(c => categoryId !== undefined ? c.id !== categoryId : true)
-          const buttonCategories = categories.map(c => ({
-            id: `category-edit-${c.id}`,
-            label: c.name,
-            key: c.id,
+
+        const getMediaContextMenuItems = () => {
+          if (props.target == null) return []
+          if (!(
+            (props.target.tagName === 'A' && props.target.nextSibling?.firstChild?.tagName === 'IMG') || // image
+            (props.target.tagName === 'A' && props.target.nextSibling?.firstChild?.tagName === 'VIDEO') || // gif
+            (props.target.tagName === 'VIDEO' && props.target.className?.includes('video')) || // video
+            (props.target.parentElement?.firstElementChild?.className?.includes('audioMetadata')) // audio
+          )) return []
+
+          const data = {
+            type: 'image',
+            url: props.target.getAttribute('href') || props.target.src,
+            poster: props.target.poster,
+            width: props.target.width,
+            height: props.target.height,
+            favorited: undefined,
+            message: null,
+            source: null
+          }
+          if (props.target.nextSibling?.firstChild?.tagName === 'IMG' && !data.url) data.url = props.target.nextSibling.firstChild.src
+          if (props.target.nextSibling?.firstChild?.tagName === 'VIDEO') data.type = 'gif'
+          if (props.target.tagName === 'VIDEO') data.type = 'video'
+          if (props.target.parentElement?.firstElementChild?.className?.includes('audioMetadata')) {
+            data.url = props.target.parentElement?.querySelector('audio')?.firstElementChild?.src
+            data.type = 'audio'
+          }
+          data.url = data.url.replace('media.discordapp.net', 'cdn.discordapp.com')
+          data.favorited = this.isFavorited(data.type, data.url)
+          data.message = findMessageLink(props.target)
+          data.source = findSourceLink(props.target, data.url)
+          const menuItems = [{
+            id: `media-${data.favorited ? 'un' : ''}favorite`,
+            label: data.favorited ? Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES,
+            icon: () => React.createElement(StarSVG, { filled: !data.favorited }),
             action: () => {
-              this.moveMediaCategory(data.type, data.url, c.id)
-            },
-            render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })
-          }))
-          menuItems.push({
-            id: 'unfavorite-gif',
-            label: Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES,
-            icon: () => React.createElement(StarSVG, { filled: true }),
-            action: () => {
-              this.unfavoriteMedia(data)
+              if (data.favorited) MediaFavButton.unfavoriteMedia(data)
+              else MediaFavButton.favoriteMedia(data)
               Dispatcher.dispatch({ type: 'FAVORITE_MEDIA', url: data.url })
             }
+          }]
+          menuItems.push({
+            id: 'media-copy-url',
+            label: Strings.Messages.COPY_MEDIA_LINK,
+            action: () => ElectronModule.copy(data.url)
           })
-          if (categories.length) {
+          if (data.message != null) {
             menuItems.push({
-              id: 'category-edit',
-              label: categoryId !== undefined ? labels.media.moveTo : labels.media.addTo,
-              type: 'submenu',
-              items: buttonCategories
+              id: 'media-copy-message',
+              label: Strings.Messages.COPY_MESSAGE_LINK,
+              action: () => ElectronModule.copy(data.message ?? '')
             })
           }
-        } else {
-          const categories = Utilities.loadData(this._config.name, data.type, { categories: [] }).categories
-          const buttonCategories = categories.map(c => ({
-            id: `category-name-${c.id}`,
-            label: c.name,
-            key: c.id,
-            action: () => {
-              this.favoriteMedia(data)
-              this.moveMediaCategory(data.type, data.url, c.id)
-              Dispatcher.dispatch({ type: 'FAVORITE_MEDIA', url: data.url })
-            },
-            render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })
-          }))
+          if (data.source != null) {
+            menuItems.push({
+              id: 'media-copy-source',
+              label: labels.media.copySource,
+              action: () => ElectronModule.copy(data.source ?? '')
+            })
+          }
           menuItems.push({
-            id: 'favorite-gif',
-            label: Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES,
-            icon: () => React.createElement(StarSVG, { filled: true }),
+            id: 'media-download',
+            label: Strings.Messages.DOWNLOAD,
             action: () => {
-              this.favoriteMedia(data)
-              Dispatcher.dispatch({ type: 'FAVORITE_MEDIA', url: data.url })
+              const media = { url: data.url, name: getUrlName(data.url) }
+              const ext = data.type === 'gif' ? '.gif' : getUrlExt(media.url)
+              media.name = media.name.replace(/ /g, '_')
+              BdApi.openDialog({ mode: 'save', defaultPath: media.name + ext }).then(({ filePath }) => {
+                if (filePath === '') return
+                fetchMedia(media).then((buffer) => {
+                  writeFile(filePath, buffer, (err) => {
+                    if (err) {
+                      console.error('[FavoriteMedia]', err)
+                      Toasts.error(labels.media.error.download[data.type])
+                    } else {
+                      Toasts.success(labels.media.success.download[data.type])
+                    }
+                  })
+                }).catch((err) => {
+                  console.error('[FavoriteMedia]', err)
+                  Toasts.error(labels.media.error.download[data.type])
+                })
+              })
             }
           })
-          if (categories.length) {
-            menuItems.push({
-              id: 'media-addTo',
-              label: labels.media.addTo,
-              type: 'submenu',
-              items: buttonCategories
-            })
+          if (data.favorited) {
+            const medias = Utilities.loadData(this._config.name, data.type, { medias: [] }).medias
+            const mediaId = medias.findIndex(m => m.url === data.url)
+            const categoryId = medias[mediaId]?.category_id
+            const categories = Utilities.loadData(this._config.name, data.type, { categories: [] }).categories
+            const category = categories.find((c) => c.id === categoryId)
+            const buttonCategories = categories.filter(c => categoryId != null ? c.id !== categoryId : true)
+            if (buttonCategories.length) {
+              const moveAddToItems = []
+              if (MediaPicker.isMediaInCategory(data.type, mediaId)) {
+                moveAddToItems.push({
+                  id: 'media-removeFrom',
+                  label: `${labels.media.removeFrom} (${category?.name})`,
+                  danger: true,
+                  action: () => MediaPicker.removeMediaCategory(data.type, mediaId)
+                })
+              }
+              moveAddToItems.push(...buttonCategories.map(c => ({
+                id: `category-edit-${c.id}`,
+                label: c.name,
+                key: c.id,
+                action: () => {
+                  MediaPicker.changeMediaCategory(data.type, data.url, c.id)
+                },
+                render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })
+              })))
+              menuItems.push({
+                id: 'media-moveAddTo',
+                label: categoryId !== undefined ? labels.media.moveTo : labels.media.addTo,
+                type: 'submenu',
+                items: moveAddToItems
+              })
+            }
+          } else {
+            const categories = Utilities.loadData(this._config.name, data.type, { categories: [] }).categories
+            if (categories.length) {
+              menuItems.push({
+                id: 'media-addTo',
+                label: labels.media.addTo,
+                type: 'submenu',
+                items: categories.map(c => ({
+                  id: `category-name-${c.id}`,
+                  label: c.name,
+                  key: c.id,
+                  action: () => {
+                    MediaFavButton.favoriteMedia(data)
+                    MediaPicker.changeMediaCategory(data.type, data.url, c.id)
+                    Dispatcher.dispatch({ type: 'FAVORITE_MEDIA', url: data.url })
+                  },
+                  render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })
+                }))
+              })
+            }
           }
+          return menuItems
         }
-        const contextMenu = ContextMenu.buildMenuItem({
-          id: 'favoriteMedia',
+
+        const getCategoryContextMenuItems = () => {
+          const getCategories = (type) => Utilities.loadData(this._config.name, type, { categories: [] }).categories
+          const mediaTypes = ['gif', 'image', 'video', 'audio']
+          return [
+            {
+              id: 'category-list',
+              label: labels.category.list,
+              type: 'submenu',
+              items: mediaTypes.map((type) => ({
+                id: `category-create-${type}`,
+                label: type === 'gif' ? Strings.Messages.GIF : labels.tabName[type],
+                type: 'submenu',
+                items: (() => {
+                  const items = [{
+                    id: `category-create-${type}`,
+                    label: labels.category.create,
+                    action: () => MediaPicker.openCategoryModal(type, 'create')
+                  }]
+                  if (getCategories(type).length > 0) {
+                    items.push({
+                      id: 'category-edit',
+                      label: labels.category.edit,
+                      type: 'submenu',
+                      items: getCategories(type).map((c) => ({
+                        id: `category-edit-${c.id}`,
+                        label: c.name,
+                        key: c.id,
+                        action: () => MediaPicker.openCategoryModal(type, 'edit', { name: c.name, color: c.color, id: c.id }),
+                        render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })
+                      }))
+                    }, {
+                      id: 'category-delete',
+                      label: labels.category.delete,
+                      type: 'submenu',
+                      danger: true,
+                      items: getCategories(type).map((c) => ({
+                        id: `category-delete-${c.id}`,
+                        label: c.name,
+                        key: c.id,
+                        action: () => {
+                          const deleteCategories = () => deleteCategory(type, c.id)
+                          if (MediaPicker.categoryHasSubcategories(type, c.id)) {
+                            Modals.showConfirmationModal(labels.category.delete, labels.category.deleteConfirm, {
+                              danger: true,
+                              onConfirm: () => deleteCategories(),
+                              confirmText: labels.category.delete,
+                              cancelText: Strings.Messages.CANCEL
+                            })
+                          } else {
+                            deleteCategories()
+                          }
+                        },
+                        render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })
+                      }))
+                    })
+                  }
+                  return items
+                })()
+              }))
+            }
+          ]
+        }
+
+        const separator = ContextMenu.buildMenuItem({ type: 'separator' })
+        const mediaItems = getMediaContextMenuItems()
+        const categoryItems = getCategoryContextMenuItems()
+        const menuItems = [...mediaItems]
+        menuItems.push(...categoryItems)
+        const fmContextMenu = ContextMenu.buildMenuItem({
+          id: 'favoriteMediaMenu',
           label: this._config.name,
           type: 'submenu',
           items: menuItems
         })
-        returnValue.props.children.splice(returnValue.props.children.length, 0, contextMenu)
+        const fmIndex = returnValue.props.children.findIndex((i) => i?.props?.children?.props?.id === 'devmode-copy-id')
+        if (fmIndex > -1) returnValue.props.children.splice(fmIndex, 0, separator, fmContextMenu)
+        else returnValue.props.children.push(separator, fmContextMenu)
       })
     }
 
     isFavorited (type, url) {
       return Utilities.loadData(this._config.name, type, { medias: [] }).medias.find(e => e.url === url) !== undefined
-    }
-
-    favoriteMedia (props) {
-      const typeData = Utilities.loadData(this._config.name, props.type, { medias: [] })
-      if (typeData.medias.find(m => m.url === props.url)) return
-      let data = null
-      switch (props.type) {
-        case 'video':
-          data = {
-            url: props.url,
-            poster: props.poster,
-            width: props.width,
-            height: props.height,
-            name: getUrlName(props.url)
-          }
-          break
-        case 'audio':
-          data = {
-            url: props.url,
-            name: getUrlName(props.url),
-            ext: getUrlExt(props.url)
-          }
-          break
-        default: // image
-          data = {
-            url: props.url,
-            width: props.width,
-            height: props.height,
-            name: getUrlName(props.url)
-          }
-      }
-      if (!data) return
-      typeData.medias.push(data)
-      Utilities.saveData(this._config.name, props.type, typeData)
-    }
-
-    unfavoriteMedia (props) {
-      const typeData = Utilities.loadData(this._config.name, props.type, { medias: [] })
-      if (!typeData.medias.length) return
-      typeData.medias = typeData.medias.filter(e => e.url !== props.url)
-      Utilities.saveData(this._config.name, props.type, typeData)
-      if (props.fromPicker) Dispatcher.dispatch({ type: 'UPDATE_MEDIAS' })
-    }
-
-    moveMediaCategory (type, url, categoryId) {
-      const typeData = Utilities.loadData(this._config.name, type, { medias: [] })
-      const index = typeData.medias.findIndex(m => m.url === url)
-      if (index < 0) return
-      typeData.medias[index].category_id = categoryId
-      Utilities.saveData(this._config.name, type, typeData)
-      Toasts.success(labels.media.success.move[type])
     }
   }
 
@@ -2026,10 +2414,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Създайте',
           category: {
+            list: 'Категории',
             unsorted: 'Не са сортирани',
             create: 'Създайте категория',
             edit: 'Редактиране на категорията',
             delete: 'Изтриване на категорията',
+            deleteConfirm: 'Тази категория съдържа подкатегории. Всички те ще бъдат изтрити. Сигурни ли сте, че искате да изтриете категории?',
             download: 'Изтеглете мултимедия',
             placeholder: 'Име на категория',
             move: 'Ход',
@@ -2037,7 +2427,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Преди',
             color: 'Цвят',
             copyColor: 'Копиране на цвят',
-            copiedColor: 'Цветът е копиран!',
             error: {
               needName: 'Името не може да бъде празно',
               invalidNameLength: 'Името трябва да съдържа максимум 20 знака',
@@ -2064,6 +2453,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Добавяне',
             moveTo: 'Ход',
             removeFrom: 'Премахване от категорията',
+            copySource: 'Копиране на медийния източник',
             upload: {
               title: 'Качване',
               normal: 'Нормално',
@@ -2071,16 +2461,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'GIF е преместен!',
                 image: 'Изображението е преместено!',
                 video: 'Видеото е преместено!',
                 audio: 'Аудиото е преместено!'
               },
               remove: {
+                gif: 'GIF-ът е премахнат от категориите!',
                 image: 'Изображението е премахнато от категориите!',
                 video: 'Видеото е премахнато от категориите!',
                 audio: 'Аудиото е премахнато от категориите!'
               },
               download: {
+                gif: 'GIF е качен!',
                 image: 'Изображението е качено!',
                 video: 'Видеото е качено!',
                 audio: 'Аудиото е изтеглено!'
@@ -2088,6 +2481,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'Неуспешно изтегляне на GIF',
                 image: 'Качването на изображението не бе успешно',
                 video: 'Изтеглянето на видеоклипа не бе успешно',
                 audio: 'Изтеглянето на аудио не бе успешно'
@@ -2098,12 +2492,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Скриване на поръчките'
             },
             placeholder: {
+              gif: 'Име на GIF',
               image: 'Име на изображението',
               video: 'Име на видеоклипа',
               audio: 'Име на звука'
             }
           },
           searchItem: {
+            gif: 'Търсете GIF файлове или категории',
             image: 'Търсене на изображения или категории',
             video: 'Търсете видеоклипове или категории',
             audio: 'Търсене на аудио или категории'
@@ -2118,10 +2514,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'skab',
           category: {
+            list: 'Kategorier',
             unsorted: 'Ikke sorteret',
             create: 'Opret en kategori',
             edit: 'Rediger kategori',
             delete: 'Slet kategori',
+            deleteConfirm: 'Denne kategori indeholder underkategorier. De vil alle blive slettet. Er du sikker på, at du vil slette kategorier?',
             download: 'Download medier',
             placeholder: 'Kategorinavn',
             move: 'Bevæge sig',
@@ -2129,7 +2527,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Før',
             color: 'Farve',
             copyColor: 'Kopier farve',
-            copiedColor: 'Farve kopieret!',
             error: {
               needName: 'Navnet kan ikke være tomt',
               invalidNameLength: 'Navnet skal maksimalt indeholde 20 tegn',
@@ -2156,6 +2553,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Tilføje',
             moveTo: 'Bevæge sig',
             removeFrom: 'Fjern fra kategori',
+            copySource: 'Kopier mediekilde',
             upload: {
               title: 'Upload',
               normal: 'Normal',
@@ -2163,6 +2561,7 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'GIF\'en er blevet flyttet!',
                 image: 'Billedet er flyttet!',
                 video: 'Videoen er flyttet!',
                 audio: 'Lyden er flyttet!',
@@ -2173,11 +2572,13 @@ module.exports = (Plugin, Library) => {
                 }
               },
               remove: {
+                gif: 'GIF\'en er blevet fjernet fra kategorierne!',
                 image: 'Billedet er fjernet fra kategorierne!',
                 video: 'Videoen er fjernet fra kategorierne!',
                 audio: 'Lyd er fjernet fra kategorier!'
               },
               download: {
+                gif: 'GIF\'en er blevet uploadet!',
                 image: 'Billedet er uploadet!',
                 video: 'Videoen er blevet uploadet!',
                 audio: 'Lyden er downloadet!'
@@ -2185,6 +2586,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'Kunne ikke downloade GIF',
                 image: 'Billedet kunne ikke uploades',
                 video: 'Videoen kunne ikke downloades',
                 audio: 'Kunne ikke downloade lyd'
@@ -2195,12 +2597,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Skjul ordrer'
             },
             placeholder: {
+              gif: 'GIF navn',
               image: 'Billednavn',
               video: 'Video navn',
               audio: 'Audio navn'
             }
           },
           searchItem: {
+            gif: 'Søg efter GIF\'er eller kategorier',
             image: 'Søg efter billeder eller kategorier',
             video: 'Søg efter videoer eller kategorier',
             audio: 'Søg efter lydbånd eller kategorier'
@@ -2215,10 +2619,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Erstellen',
           category: {
+            list: 'Kategorien',
             unsorted: 'Nicht sortiert',
             create: 'Erstellen Sie eine Kategorie',
             edit: 'Kategorie bearbeiten',
             delete: 'Kategorie löschen',
+            deleteConfirm: 'Diese Kategorie enthält Unterkategorien. Sie werden alle gelöscht. Möchten Sie Kategorien wirklich löschen?',
             download: 'Medien herunterladen',
             placeholder: 'Kategoriename',
             move: 'Bewegung',
@@ -2226,7 +2632,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Vor',
             color: 'Farbe',
             copyColor: 'Farbe kopieren',
-            copiedColor: 'Farbe kopiert!',
             error: {
               needName: 'Name darf nicht leer sein',
               invalidNameLength: 'Der Name darf maximal 20 Zeichen lang sein',
@@ -2253,6 +2658,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Hinzufügen',
             moveTo: 'Bewegung',
             removeFrom: 'Aus Kategorie entfernen',
+            copySource: 'Medienquelle kopieren',
             upload: {
               title: 'Hochladen',
               normal: 'Normal',
@@ -2260,16 +2666,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'Das GIF wurde verschoben!',
                 image: 'Das Bild wurde verschoben!',
                 video: 'Das Video wurde verschoben!',
                 audio: 'Der Ton wurde verschoben!'
               },
               remove: {
+                gif: 'Das GIF wurde aus den Kategorien entfernt!',
                 image: 'Das Bild wurde aus den Kategorien entfernt!',
                 video: 'Das Video wurde aus den Kategorien entfernt!',
                 audio: 'Audio wurde aus den Kategorien entfernt!'
               },
               download: {
+                gif: 'Das GIF wurde hochgeladen!',
                 image: 'Das Bild wurde hochgeladen!',
                 video: 'Das Video wurde hochgeladen!',
                 audio: 'Die Audiodatei wurde heruntergeladen!'
@@ -2277,6 +2686,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'GIF konnte nicht heruntergeladen werden',
                 image: 'Fehler beim Hochladen des Bildes',
                 video: 'Video konnte nicht heruntergeladen werden',
                 audio: 'Audio konnte nicht heruntergeladen werden'
@@ -2287,12 +2697,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Bestellungen ausblenden'
             },
             placeholder: {
+              gif: 'GIF-Name',
               image: 'Bildname',
               video: 'Videoname',
               audio: 'Audioname'
             }
           },
           searchItem: {
+            gif: 'Nach GIFs oder Kategorien suchen',
             image: 'Nach Bildern oder Kategorien suchen',
             video: 'Nach Videos oder Kategorien suchen',
             audio: 'Nach Audios oder Kategorien suchen'
@@ -2307,10 +2719,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Δημιουργώ',
           category: {
+            list: 'Κατηγορίες',
             unsorted: 'Χωρίς ταξινόμηση',
             create: 'Δημιουργήστε μια κατηγορία',
             edit: 'Επεξεργασία κατηγορίας',
             delete: 'Διαγραφή κατηγορίας',
+            deleteConfirm: 'Αυτή η κατηγορία περιέχει υποκατηγορίες. Θα διαγραφούν όλα. Είστε βέβαιοι ότι θέλετε να διαγράψετε κατηγορίες;',
             download: 'Λήψη μέσων',
             placeholder: 'Ονομα κατηγορίας',
             move: 'Κίνηση',
@@ -2318,7 +2732,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Πριν',
             color: 'Χρώμα',
             copyColor: 'Αντιγραφή χρώματος',
-            copiedColor: 'Το χρώμα αντιγράφηκε!',
             error: {
               needName: 'Το όνομα δεν μπορεί να είναι κενό',
               invalidNameLength: 'Το όνομα πρέπει να περιέχει έως και 20 χαρακτήρες',
@@ -2345,6 +2758,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Προσθήκη',
             moveTo: 'Κίνηση',
             removeFrom: 'Κατάργηση από την κατηγορία',
+            copySource: 'Αντιγραφή πηγής πολυμέσων',
             upload: {
               title: 'Μεταφόρτωση',
               normal: 'Κανονικός',
@@ -2352,16 +2766,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'Το GIF έχει μετακινηθεί!',
                 image: 'Η εικόνα μετακινήθηκε!',
                 video: 'Το βίντεο μετακινήθηκε!',
                 audio: 'Ο ήχος μετακινήθηκε!'
               },
               remove: {
+                gif: 'Το GIF έχει αφαιρεθεί από τις κατηγορίες!',
                 image: 'Η εικόνα έχει αφαιρεθεί από τις κατηγορίες!',
                 video: 'Το βίντεο καταργήθηκε από τις κατηγορίες!',
                 audio: 'Ο ήχος καταργήθηκε από κατηγορίες!'
               },
               download: {
+                gif: 'Το GIF έχει ανέβει!',
                 image: 'Η εικόνα ανέβηκε!',
                 video: 'Το βίντεο ανέβηκε!',
                 audio: 'Ο ήχος έχει γίνει λήψη!'
@@ -2369,6 +2786,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'Αποτυχία λήψης GIF',
                 image: 'Αποτυχία μεταφόρτωσης εικόνας',
                 video: 'Αποτυχία λήψης βίντεο',
                 audio: 'Αποτυχία λήψης ήχου'
@@ -2379,12 +2797,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Απόκρυψη παραγγελιών'
             },
             placeholder: {
+              gif: 'Όνομα GIF',
               image: 'Όνομα εικόνας',
               video: 'Όνομα βίντεο',
               audio: 'Όνομα ήχου'
             }
           },
           searchItem: {
+            gif: 'Αναζήτηση για GIF ή κατηγορίες',
             image: 'Αναζήτηση εικόνων ή κατηγοριών',
             video: 'Αναζήτηση βίντεο ή κατηγοριών',
             audio: 'Αναζήτηση ήχων ή κατηγοριών'
@@ -2399,10 +2819,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Crear',
           category: {
+            list: 'Categorías',
             unsorted: 'No ordenado',
             create: 'Crea una categoria',
             edit: 'Editar categoria',
             delete: 'Eliminar categoría',
+            deleteConfirm: 'Esta categoría contiene subcategorías. Todos serán eliminados. ¿Seguro que quieres eliminar categorías?',
             download: 'Descargar medios',
             placeholder: 'Nombre de la categoría',
             move: 'Moverse',
@@ -2410,7 +2832,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Antes',
             color: 'Color',
             copyColor: 'Copiar color',
-            copiedColor: '¡Color copiado!',
             error: {
               needName: 'El nombre no puede estar vacío',
               invalidNameLength: 'El nombre debe contener un máximo de 20 caracteres.',
@@ -2437,6 +2858,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Agregar',
             moveTo: 'Moverse',
             removeFrom: 'Quitar de la categoría',
+            copySource: 'Copiar fuente multimedia',
             upload: {
               title: 'Subir',
               normal: 'normal',
@@ -2444,16 +2866,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: '¡El GIF ha sido movido!',
                 image: '¡La imagen se ha movido!',
                 video: '¡El video se ha movido!',
                 audio: '¡El audio se ha movido!'
               },
               remove: {
+                gif: '¡El GIF ha sido eliminado de las categorías!',
                 image: '¡La imagen ha sido eliminada de las categorías!',
                 video: '¡El video ha sido eliminado de las categorías!',
                 audio: '¡El audio ha sido eliminado de las categorías!'
               },
               download: {
+                gif: '¡El GIF ha sido subido!',
                 image: '¡La imagen ha sido cargada!',
                 video: '¡El video ha sido subido!',
                 audio: '¡El audio se ha descargado!'
@@ -2461,6 +2886,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'No se pudo descargar del GIF',
                 image: 'No se pudo cargar la imagen.',
                 video: 'No se pudo descargar el video',
                 audio: 'No se pudo descargar el audio'
@@ -2471,12 +2897,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Ocultar pedidos'
             },
             placeholder: {
+              gif: 'Nombre del GIF',
               image: 'Nombre de la imágen',
               video: 'Nombre del video',
               audio: 'Nombre de audio'
             }
           },
           searchItem: {
+            gif: 'Buscar GIFs o categorías',
             image: 'Buscar imágenes o categorías',
             video: 'Buscar videos o categorías',
             audio: 'Busque audios o categorías'
@@ -2491,10 +2919,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Luoda',
           category: {
+            list: 'Luokat',
             unsorted: 'Ei lajiteltu',
             create: 'Luo luokka',
             edit: 'Muokkaa kategoriaa',
             delete: 'Poista luokka',
+            deleteConfirm: 'Tämä luokka sisältää alaluokkia. Ne kaikki poistetaan. Haluatko varmasti poistaa luokkia?',
             download: 'Lataa media',
             placeholder: 'Kategorian nimi',
             move: 'Liikkua',
@@ -2502,7 +2932,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Ennen',
             color: 'Väri',
             copyColor: 'Kopioi väri',
-            copiedColor: 'Väri kopioitu!',
             error: {
               needName: 'Nimi ei voi olla tyhjä',
               invalidNameLength: 'Nimi saa sisältää enintään 20 merkkiä',
@@ -2529,6 +2958,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Lisätä',
             moveTo: 'Liikkua',
             removeFrom: 'Poista luokasta',
+            copySource: 'Kopioi medialähde',
             upload: {
               title: 'Lähetä',
               normal: 'Normaali',
@@ -2536,16 +2966,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'GIF on siirretty!',
                 image: 'Kuva on siirretty!',
                 video: 'Video on siirretty!',
                 audio: 'Ääni on siirretty!'
               },
               remove: {
+                gif: 'GIF on poistettu luokista!',
                 image: 'Kuva on poistettu luokista!',
                 video: 'Video on poistettu luokista!',
                 audio: 'Ääni on poistettu luokista!'
               },
               download: {
+                gif: 'GIF on ladattu!',
                 image: 'Kuva on ladattu!',
                 video: 'Video on ladattu!',
                 audio: 'Ääni on ladattu!'
@@ -2553,6 +2986,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'GIF:n lataaminen epäonnistui',
                 image: 'Kuvan lataaminen epäonnistui',
                 video: 'Videon lataaminen epäonnistui',
                 audio: 'Äänen lataaminen epäonnistui'
@@ -2563,12 +2997,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Piilota tilaukset'
             },
             placeholder: {
+              gif: 'GIF-nimi',
               image: 'Kuvan nimi',
               video: 'Videon nimi',
               audio: 'Äänen nimi'
             }
           },
           searchItem: {
+            gif: 'Hae GIF-tiedostoja tai luokkia',
             image: 'Hae kuvia tai luokkia',
             video: 'Hae videoita tai luokkia',
             audio: 'Hae ääniä tai luokkia'
@@ -2583,10 +3019,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Créer',
           category: {
+            list: 'Catégories',
             unsorted: 'Non trié',
             create: 'Créer une catégorie',
             edit: 'Modifier la catégorie',
             delete: 'Supprimer la catégorie',
+            deleteConfirm: 'Cette catégorie contient des sous-catégories. Elles vont toutes être supprimées. Voulez-vous vraiment supprimer les catégories ?',
             download: 'Télécharger les médias',
             placeholder: 'Nom de la catégorie',
             move: 'Déplacer',
@@ -2594,7 +3032,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Avant',
             color: 'Couleur',
             copyColor: 'Copier la couleur',
-            copiedColor: 'Couleur copiée !',
             error: {
               needName: 'Le nom ne peut être vide',
               invalidNameLength: 'Le nom doit contenir au maximum 20 caractères',
@@ -2608,7 +3045,7 @@ module.exports = (Plugin, Library) => {
               delete: 'La catégorie a été supprimée !',
               edit: 'La catégorie a été modifiée !',
               move: 'La catégorie a été déplacée !',
-              download: 'Les médias ont été téléchargées !'
+              download: 'Les médias ont été téléchargés !'
             },
             emptyHint: 'Fais un clique-droit pour créer une catégorie !'
           },
@@ -2621,6 +3058,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Ajouter',
             moveTo: 'Déplacer',
             removeFrom: 'Retirer de la catégorie',
+            copySource: 'Copier la source du média',
             upload: {
               title: 'Uploader',
               normal: 'Normal',
@@ -2628,23 +3066,27 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'Le GIF a été déplacé !',
                 image: 'L\'image a été déplacée !',
                 video: 'La vidéo a été déplacée !',
                 audio: 'L\'audio a été déplacé !'
               },
               remove: {
+                gif: 'Le GIF a été enlevé des catégories !',
                 image: 'L\'image a été enlevée des catégories !',
                 video: 'La vidéo a été enlevée des catégories !',
                 audio: 'L\'audio a été enlevé des catégories !'
               },
               download: {
+                gif: 'Le GIF a été téléchargé !',
                 image: 'L\'image a été téléchargée !',
                 video: 'La vidéo a été téléchargée !',
-                audio: 'L\'audio a été téléchargée !'
+                audio: 'L\'audio a été téléchargé !'
               }
             },
             error: {
               download: {
+                gif: 'Échec lors du téléchargement du GIF',
                 image: 'Échec lors du téléchargement de l\'image',
                 video: 'Échec lors du téléchargement de la vidéo',
                 audio: 'Échec lors du téléchargement de l\'audio'
@@ -2655,12 +3097,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Cacher les commandes'
             },
             placeholder: {
+              gif: 'Nom du GIF',
               image: 'Nom de l\'image',
               video: 'Nom de la vidéo',
               audio: 'Nom de l\'audio'
             }
           },
           searchItem: {
+            gif: 'Recherche des GIFs ou des catégories',
             image: 'Recherche des images ou des catégories',
             video: 'Recherche des vidéos ou des catégories',
             audio: 'Recherche des audios ou des catégories'
@@ -2675,10 +3119,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Stvoriti',
           category: {
+            list: 'Kategorije',
             unsorted: 'Nije sortirano',
             create: 'Stvorite kategoriju',
             edit: 'Uredi kategoriju',
             delete: 'Izbriši kategoriju',
+            deleteConfirm: 'Ova kategorija sadrži potkategorije. Svi će biti izbrisani. Jeste li sigurni da želite izbrisati kategorije?',
             download: 'Preuzmite medije',
             placeholder: 'Ime kategorije',
             move: 'Potez',
@@ -2686,7 +3132,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Prije',
             color: 'Boja',
             copyColor: 'Kopiraj u boji',
-            copiedColor: 'Kopirana boja!',
             error: {
               needName: 'Ime ne može biti prazno',
               invalidNameLength: 'Ime mora sadržavati najviše 20 znakova',
@@ -2713,6 +3158,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Dodati',
             moveTo: 'Potez',
             removeFrom: 'Ukloni iz kategorije',
+            copySource: 'Kopiraj izvor medija',
             upload: {
               title: 'Učitaj',
               normal: 'Normalan',
@@ -2720,16 +3166,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'GIF je premješten!',
                 image: 'Slika je premještena!',
                 video: 'Video je premješten!',
                 audio: 'Zvuk je premješten!'
               },
               remove: {
+                gif: 'GIF je uklonjen iz kategorija!',
                 image: 'Slika je uklonjena iz kategorija!',
                 video: 'Videozapis je uklonjen iz kategorija!',
                 audio: 'Audio je uklonjen iz kategorija!'
               },
               download: {
+                gif: 'GIF je učitan!',
                 image: 'Slika je učitana!',
                 video: 'Video je postavljen!',
                 audio: 'Zvuk je preuzet!'
@@ -2737,6 +3186,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'Preuzimanje GIF-a nije uspjelo',
                 image: 'Učitavanje slike nije uspjelo',
                 video: 'Preuzimanje videozapisa nije uspjelo',
                 audio: 'Preuzimanje zvuka nije uspjelo'
@@ -2747,12 +3197,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Sakrij narudžbe'
             },
             placeholder: {
+              gif: 'Naziv GIF-a',
               image: 'Naziv slike',
               video: 'Naziv videozapisa',
               audio: 'Naziv zvuka'
             }
           },
           searchItem: {
+            gif: 'Potražite GIF-ove ili kategorije',
             image: 'Potražite slike ili kategorije',
             video: 'Potražite videozapise ili kategorije',
             audio: 'Potražite audio ili kategorije'
@@ -2767,10 +3219,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Teremt',
           category: {
+            list: 'Kategóriák',
             unsorted: 'Nincs rendezve',
             create: 'Hozzon létre egy kategóriát',
             edit: 'Kategória szerkesztése',
             delete: 'Kategória törlése',
+            deleteConfirm: 'Ez a kategória alkategóriákat tartalmaz. Mindegyik törlődik. Biztosan törölni szeretné a kategóriákat?',
             download: 'Média letöltése',
             placeholder: 'Kategória név',
             move: 'Mozog',
@@ -2778,7 +3232,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Előtt',
             color: 'Szín',
             copyColor: 'Szín másolása',
-            copiedColor: 'Szín másolva!',
             error: {
               needName: 'A név nem lehet üres',
               invalidNameLength: 'A név legfeljebb 20 karakterből állhat',
@@ -2805,6 +3258,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Hozzáadás',
             moveTo: 'Mozog',
             removeFrom: 'Törlés a kategóriából',
+            copySource: 'Médiaforrás másolása',
             upload: {
               title: 'Feltöltés',
               normal: 'Normál',
@@ -2812,16 +3266,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'A GIF át lett helyezve!',
                 image: 'A kép áthelyezve!',
                 video: 'A videó áthelyezve!',
                 audio: 'A hang áthelyezve!'
               },
               remove: {
+                gif: 'A GIF eltávolítva a kategóriákból!',
                 image: 'A képet eltávolítottuk a kategóriákból!',
                 video: 'A videót eltávolítottuk a kategóriákból!',
                 audio: 'A hangot eltávolítottuk a kategóriákból!'
               },
               download: {
+                gif: 'A GIF feltöltve!',
                 image: 'A kép feltöltve!',
                 video: 'A videó feltöltve!',
                 audio: 'A hanganyag letöltve!'
@@ -2829,6 +3286,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'A GIF letöltése sikertelen',
                 image: 'Nem sikerült feltölteni a képet',
                 video: 'Nem sikerült letölteni a videót',
                 audio: 'Nem sikerült letölteni a hangot'
@@ -2839,12 +3297,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Parancsok elrejtése'
             },
             placeholder: {
+              gif: 'GIF név',
               image: 'Kép neve',
               video: 'Videó neve',
               audio: 'Hang neve'
             }
           },
           searchItem: {
+            gif: 'Keressen GIF-eket vagy kategóriákat',
             image: 'Képek vagy kategóriák keresése',
             video: 'Videók vagy kategóriák keresése',
             audio: 'Audió vagy kategória keresése'
@@ -2859,10 +3319,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Creare',
           category: {
+            list: 'Categorie',
             unsorted: 'Non ordinato',
             create: 'Crea una categoria',
             edit: 'Modifica categoria',
             delete: 'Elimina categoria',
+            deleteConfirm: 'Questa categoria contiene sottocategorie. Saranno tutti cancellati. Sei sicuro di voler eliminare le categorie?',
             download: 'Scarica file multimediali',
             placeholder: 'Nome della categoria',
             move: 'Spostare',
@@ -2870,7 +3332,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Prima',
             color: 'Colore',
             copyColor: 'Copia colore',
-            copiedColor: 'Colore copiato!',
             error: {
               needName: 'Il nome non può essere vuoto',
               invalidNameLength: 'Il nome deve contenere un massimo di 20 caratteri',
@@ -2897,6 +3358,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Inserisci',
             moveTo: 'Spostare',
             removeFrom: 'Rimuovi dalla categoria',
+            copySource: 'Copia la fonte multimediale',
             upload: {
               title: 'Caricare',
               normal: 'Normale',
@@ -2904,16 +3366,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'La GIF è stata spostata!',
                 image: 'L\'immagine è stata spostata!',
                 video: 'Il video è stato spostato!',
                 audio: 'L\'audio è stato spostato!'
               },
               remove: {
+                gif: 'La GIF è stata rimossa dalle categorie!',
                 image: 'L\'immagine è stata rimossa dalle categorie!',
                 video: 'Il video è stato rimosso dalle categorie!',
                 audio: 'L\'audio è stato rimosso dalle categorie!'
               },
               download: {
+                gif: 'La GIF è stata caricata!',
                 image: 'L\'immagine è stata caricata!',
                 video: 'Il video è stato caricato!',
                 audio: 'L\'audio è stato scaricato!'
@@ -2921,6 +3386,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'Impossibile scaricare la GIF',
                 image: 'Impossibile caricare l\'immagine',
                 video: 'Impossibile scaricare il video',
                 audio: 'Impossibile scaricare l\'audio'
@@ -2931,12 +3397,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Nascondi ordini'
             },
             placeholder: {
+              gif: 'Nome GIF',
               image: 'Nome immagine',
               video: 'Nome del video',
               audio: 'Nome dell\'audio'
             }
           },
           searchItem: {
+            gif: 'Cerca GIF o categorie',
             image: 'Cerca immagini o categorie',
             video: 'Cerca video o categorie',
             audio: 'Cerca audio o categorie'
@@ -2951,10 +3419,12 @@ module.exports = (Plugin, Library) => {
           },
           create: '作成する',
           category: {
+            list: 'カテゴリー',
             unsorted: 'ソートされていません',
             create: 'カテゴリを作成する',
             edit: 'カテゴリを編集',
             delete: 'カテゴリを削除',
+            deleteConfirm: 'このカテゴリにはサブカテゴリが含まれています。 それらはすべて削除されます。 カテゴリを削除してもよろしいですか?',
             download: 'メディアをダウンロード',
             placeholder: '種別名',
             move: '移動',
@@ -2962,7 +3432,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: '前',
             color: '色',
             copyColor: 'コピーカラー',
-            copiedColor: 'カラーコピー！',
             error: {
               needName: '名前を空にすることはできません',
               invalidNameLength: '名前には最大20文字を含める必要があります',
@@ -2989,6 +3458,7 @@ module.exports = (Plugin, Library) => {
             addTo: '追加',
             moveTo: '移動',
             removeFrom: 'カテゴリから削除',
+            copySource: 'メディア ソースのコピー',
             upload: {
               title: 'アップロード',
               normal: '正常',
@@ -2996,16 +3466,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'GIFを移動しました！',
                 image: '画像が移動しました！',
                 video: 'ビデオが移動しました！',
                 audio: '音声が移動しました！'
               },
               remove: {
+                gif: 'GIF はカテゴリから削除されました。',
                 image: '画像はカテゴリから削除されました！',
                 video: '動画はカテゴリから削除されました！',
                 audio: 'オーディオはカテゴリから削除されました！'
               },
               download: {
+                gif: 'GIFをアップしました！',
                 image: '画像をアップしました！',
                 video: '動画がアップしました！',
                 audio: '音声がダウンロードされました！'
@@ -3013,6 +3486,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'GIF のダウンロードに失敗しました',
                 image: '画像のアップロードに失敗しました',
                 video: 'ビデオのダウンロードに失敗しました',
                 audio: 'オーディオのダウンロードに失敗しました'
@@ -3023,12 +3497,14 @@ module.exports = (Plugin, Library) => {
               hide: '注文を非表示'
             },
             placeholder: {
+              gif: 'GIF名',
               image: '画像名',
               video: 'ビデオ名',
               audio: '音声名'
             }
           },
           searchItem: {
+            gif: 'GIF またはカテゴリを検索する',
             image: '画像やカテゴリを検索する',
             video: 'ビデオまたはカテゴリを検索する',
             audio: 'オーディオまたはカテゴリを検索する'
@@ -3043,10 +3519,12 @@ module.exports = (Plugin, Library) => {
           },
           create: '창조하다',
           category: {
+            list: '카테고리',
             unsorted: '정렬되지 않음',
             create: '카테고리 생성',
             edit: '카테고리 수정',
             delete: '카테고리 삭제',
+            deleteConfirm: '이 범주에는 하위 범주가 포함되어 있습니다. 모두 삭제됩니다. 카테고리를 삭제하시겠습니까?',
             download: '미디어 다운로드',
             placeholder: '카테고리 이름',
             move: '움직임',
@@ -3054,7 +3532,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: '전에',
             color: '색깔',
             copyColor: '색상 복사',
-            copiedColor: '색상이 복사되었습니다!',
             error: {
               needName: '이름은 비워 둘 수 없습니다.',
               invalidNameLength: '이름은 최대 20 자 여야합니다.',
@@ -3081,6 +3558,7 @@ module.exports = (Plugin, Library) => {
             addTo: '더하다',
             moveTo: '움직임',
             removeFrom: '카테고리에서 제거',
+            copySource: '미디어 소스 복사',
             upload: {
               title: '업로드',
               normal: '표준',
@@ -3088,16 +3566,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'GIF가 이동되었습니다!',
                 image: '이미지가 이동되었습니다!',
                 video: '동영상이 이동되었습니다!',
                 audio: '오디오가 이동되었습니다!'
               },
               remove: {
+                gif: 'GIF가 카테고리에서 제거되었습니다!',
                 image: '카테고리에서 이미지가 제거되었습니다!',
                 video: '비디오가 카테고리에서 제거되었습니다!',
                 audio: '카테고리에서 오디오가 제거되었습니다!'
               },
               download: {
+                gif: 'GIF가 업로드되었습니다!',
                 image: '이미지가 업로드되었습니다!',
                 video: '영상이 업로드 되었습니다!',
                 audio: '오디오가 다운로드되었습니다!'
@@ -3105,6 +3586,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'GIF 다운로드 실패',
                 image: '이미지를 업로드하지 못했습니다.',
                 video: '동영상 다운로드 실패',
                 audio: '오디오 다운로드 실패'
@@ -3115,12 +3597,14 @@ module.exports = (Plugin, Library) => {
               hide: '주문 숨기기'
             },
             placeholder: {
+              gif: 'GIF 이름',
               image: '이미지 이름',
               video: '비디오 이름',
               audio: '오디오 이름'
             }
           },
           searchItem: {
+            gif: 'GIF 또는 카테고리 검색',
             image: '이미지 또는 카테고리 검색',
             video: '비디오 또는 카테고리 검색',
             audio: '오디오 또는 카테고리 검색'
@@ -3135,10 +3619,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Kurti',
           category: {
+            list: 'Kategorijos',
             unsorted: 'Nerūšiuota',
             create: 'Sukurkite kategoriją',
             edit: 'Redaguoti kategoriją',
             delete: 'Ištrinti kategoriją',
+            deleteConfirm: 'Šioje kategorijoje yra subkategorijų. Jie visi bus ištrinti. Ar tikrai norite ištrinti kategorijas?',
             download: 'Parsisiųsti mediją',
             placeholder: 'Kategorijos pavadinimas',
             move: 'Perkelti',
@@ -3146,7 +3632,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Anksčiau',
             color: 'Spalva',
             copyColor: 'Kopijuoti spalvą',
-            copiedColor: 'Spalva nukopijuota!',
             error: {
               needName: 'Pavadinimas negali būti tuščias',
               invalidNameLength: 'Pavadinime gali būti ne daugiau kaip 20 simbolių',
@@ -3173,6 +3658,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Papildyti',
             moveTo: 'Perkelti',
             removeFrom: 'Pašalinti iš kategorijos',
+            copySource: 'Nukopijuokite medijos šaltinį',
             upload: {
               title: 'Įkelti',
               normal: 'Normalus',
@@ -3180,16 +3666,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'GIF buvo perkeltas!',
                 image: 'Vaizdas perkeltas!',
                 video: 'Vaizdo įrašas perkeltas!',
                 audio: 'Garso įrašas perkeltas!'
               },
               remove: {
+                gif: 'GIF buvo pašalintas iš kategorijų!',
                 image: 'Vaizdas pašalintas iš kategorijų!',
                 video: 'Vaizdo įrašas pašalintas iš kategorijų!',
                 audio: 'Garso įrašas pašalintas iš kategorijų!'
               },
               download: {
+                gif: 'GIF failas įkeltas!',
                 image: 'Vaizdas įkeltas!',
                 video: 'Vaizdo įrašas įkeltas!',
                 audio: 'Garso įrašas atsisiųstas!'
@@ -3197,6 +3686,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'Nepavyko atsisiųsti GIF',
                 image: 'Nepavyko įkelti vaizdo',
                 video: 'Nepavyko atsisiųsti vaizdo įrašo',
                 audio: 'Nepavyko atsisiųsti garso įrašo'
@@ -3207,12 +3697,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Slėpti užsakymus'
             },
             placeholder: {
+              gif: 'GIF pavadinimas',
               image: 'Paveikslėlio pavadinimas',
               video: 'Vaizdo įrašo pavadinimas',
               audio: 'Garso įrašo pavadinimas'
             }
           },
           searchItem: {
+            gif: 'Ieškokite GIF arba kategorijų',
             image: 'Ieškokite vaizdų ar kategorijų',
             video: 'Ieškokite vaizdo įrašų ar kategorijų',
             audio: 'Ieškokite garso įrašų ar kategorijų'
@@ -3227,10 +3719,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'scheppen',
           category: {
+            list: 'Kategorier',
             unsorted: 'Niet gesorteerd',
             create: 'Maak een categorie',
             edit: 'Categorie bewerken',
             delete: 'Categorie verwijderen',
+            deleteConfirm: 'Deze categorie bevat subcategorieën. Ze worden allemaal verwijderd. Weet u zeker dat u categorieën wilt verwijderen?',
             download: 'Media downloaden',
             placeholder: 'Categorie naam',
             move: 'Verplaatsen, verschuiven',
@@ -3238,7 +3732,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Voordat',
             color: 'Kleur',
             copyColor: 'Kopieer kleur',
-            copiedColor: 'Kleur gekopieerd!',
             error: {
               needName: 'Naam mag niet leeg zijn',
               invalidNameLength: 'De naam mag maximaal 20 tekens bevatten',
@@ -3265,6 +3758,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Toevoegen',
             moveTo: 'Verplaatsen, verschuiven',
             removeFrom: 'Verwijderen uit categorie',
+            copySource: 'Mediabron kopiëren',
             upload: {
               title: 'Uploaden',
               normal: 'normaal',
@@ -3272,16 +3766,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'GIF\'en er blevet flyttet!',
                 image: 'De afbeelding is verplaatst!',
                 video: 'De video is verplaatst!',
                 audio: 'Het geluid is verplaatst!'
               },
               remove: {
+                gif: 'GIF\'en er blevet fjernet fra kategorierne!',
                 image: 'De afbeelding is verwijderd uit de categorieën!',
                 video: 'De video is verwijderd uit de categorieën!',
                 audio: 'Audio is verwijderd uit categorieën!'
               },
               download: {
+                gif: 'GIF\'en er blevet uploadet!',
                 image: 'De afbeelding is geüpload!',
                 video: 'De video is geüpload!',
                 audio: 'De audio is gedownload!'
@@ -3289,6 +3786,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'Kunne ikke downloade GIF',
                 image: 'Kan afbeelding niet uploaden',
                 video: 'Kan video niet downloaden',
                 audio: 'Kan audio niet downloaden'
@@ -3299,12 +3797,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Verberg bestellingen'
             },
             placeholder: {
+              gif: 'GIF navn',
               image: 'Naam afbeelding',
               video: 'Videonaam',
               audio: 'Audionaam'
             }
           },
           searchItem: {
+            gif: 'Søg efter GIF\'er eller kategorier',
             image: 'Zoeken naar afbeeldingen of categorieën',
             video: 'Zoeken naar video\'s of categorieën',
             audio: 'Zoeken naar audio of categorieën'
@@ -3319,10 +3819,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Skape',
           category: {
+            list: 'Kategorier',
             unsorted: 'Ikke sortert',
             create: 'Opprett en kategori',
             edit: 'Rediger kategori',
             delete: 'Slett kategori',
+            deleteConfirm: 'Denne kategorien inneholder underkategorier. De vil alle bli slettet. Er du sikker på at du vil slette kategorier?',
             download: 'Last ned media',
             placeholder: 'Kategori navn',
             move: 'Bevege seg',
@@ -3330,7 +3832,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Før',
             color: 'Farge',
             copyColor: 'Kopier farge',
-            copiedColor: 'Farge kopiert!',
             error: {
               needName: 'Navnet kan ikke være tomt',
               invalidNameLength: 'Navnet må inneholde maksimalt 20 tegn',
@@ -3357,6 +3858,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Legge til',
             moveTo: 'Bevege seg',
             removeFrom: 'Fjern fra kategori',
+            copySource: 'Kopier mediekilde',
             upload: {
               title: 'Laste opp',
               normal: 'Vanlig',
@@ -3364,16 +3866,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'GIF-en er flyttet!',
                 image: 'Bildet er flyttet!',
                 video: 'Videoen er flyttet!',
                 audio: 'Lyden er flyttet!'
               },
               remove: {
+                gif: 'GIF-en er fjernet fra kategoriene!',
                 image: 'Bildet er fjernet fra kategoriene!',
                 video: 'Videoen er fjernet fra kategoriene!',
                 audio: 'Lyd er fjernet fra kategorier!'
               },
               download: {
+                gif: 'GIF-en er lastet opp!',
                 image: 'Bildet er lastet opp!',
                 video: 'Videoen er lastet opp!',
                 audio: 'Lyden er lastet ned!'
@@ -3381,6 +3886,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'Kunne ikke laste ned GIF',
                 image: 'Kunne ikke laste opp bildet',
                 video: 'Kunne ikke laste ned video',
                 audio: 'Kunne ikke laste ned lyd'
@@ -3391,12 +3897,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Skjul ordrer'
             },
             placeholder: {
+              gif: 'GIF-navn',
               image: 'Bilde navn',
               video: 'Video navn',
               audio: 'Lydnavn'
             }
           },
           searchItem: {
+            gif: 'Søk etter GIF-er eller kategorier',
             image: 'Søk etter bilder eller kategorier',
             video: 'Søk etter videoer eller kategorier',
             audio: 'Søk etter lyd eller kategorier'
@@ -3411,10 +3919,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Stwórz',
           category: {
+            list: 'Kategorie',
             unsorted: 'Nie posortowane',
             create: 'Utwórz kategorię',
             edit: 'Edytuj kategorię',
             delete: 'Usuń kategorię',
+            deleteConfirm: 'Ta kategoria zawiera podkategorie. Wszystkie zostaną usunięte. Czy na pewno chcesz usunąć kategorie?',
             download: 'Pobierz multimedia',
             placeholder: 'Nazwa Kategorii',
             move: 'Ruszaj się',
@@ -3422,7 +3932,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Przed',
             color: 'Kolor',
             copyColor: 'Kopiuj kolor',
-            copiedColor: 'Kolor skopiowany!',
             error: {
               needName: 'Nazwa nie może być pusta',
               invalidNameLength: 'Nazwa musi zawierać maksymalnie 20 znaków',
@@ -3449,6 +3958,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Dodaj',
             moveTo: 'Ruszaj się',
             removeFrom: 'Usuń z kategorii',
+            copySource: 'Kopiuj źródło multimediów',
             upload: {
               title: 'Przekazać plik',
               normal: 'Normalna',
@@ -3456,16 +3966,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'GIF został przeniesiony!',
                 image: 'Obraz został przeniesiony!',
                 video: 'Film został przeniesiony!',
                 audio: 'Dźwięk został przeniesiony!'
               },
               remove: {
+                gif: 'GIF został usunięty z kategorii!',
                 image: 'Obraz został usunięty z kategorii!',
                 video: 'Film został usunięty z kategorii!',
                 audio: 'Dźwięk został usunięty z kategorii!'
               },
               download: {
+                gif: 'GIF został przesłany!',
                 image: 'Obraz został przesłany!',
                 video: 'Film został przesłany!',
                 audio: 'Dźwięk został pobrany!'
@@ -3473,6 +3986,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'Nie udało się pobrać GIF-a',
                 image: 'Nie udało się przesłać obrazu',
                 video: 'Nie udało się pobrać wideo',
                 audio: 'Nie udało się pobrać dźwięku'
@@ -3483,12 +3997,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Ukryj zamówienia'
             },
             placeholder: {
+              gif: 'Nazwa GIF-a',
               image: 'Nazwa obrazu',
               video: 'Nazwa wideo',
               audio: 'Nazwa dźwięku'
             }
           },
           searchItem: {
+            gif: 'Wyszukaj GIF-y lub kategorie',
             image: 'Wyszukaj obrazy lub kategorie',
             video: 'Wyszukaj filmy lub kategorie',
             audio: 'Wyszukaj audio lub kategorie'
@@ -3503,10 +4019,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Crio',
           category: {
+            list: 'Categorias',
             unsorted: 'Não classificado',
             create: 'Crie uma categoria',
             edit: 'Editar categoria',
             delete: 'Apagar categoria',
+            deleteConfirm: 'Esta categoria contém subcategorias. Todos eles serão excluídos. Tem certeza de que deseja excluir as categorias?',
             download: 'Baixar mídia',
             placeholder: 'Nome da Categoria',
             move: 'Mover',
@@ -3514,7 +4032,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Antes',
             color: 'Cor',
             copyColor: 'Cor da cópia',
-            copiedColor: 'Cor copiada!',
             error: {
               needName: 'O nome não pode estar vazio',
               invalidNameLength: 'O nome deve conter no máximo 20 caracteres',
@@ -3541,6 +4058,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Adicionar',
             moveTo: 'Mover',
             removeFrom: 'Remover da categoria',
+            copySource: 'Copiar fonte de mídia',
             upload: {
               title: 'Envio',
               normal: 'Normal',
@@ -3548,16 +4066,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'O GIF foi movido!',
                 image: 'A imagem foi movida!',
                 video: 'O vídeo foi movido!',
                 audio: 'O áudio foi movido!'
               },
               remove: {
+                gif: 'O GIF foi removido das categorias!',
                 image: 'A imagem foi removida das categorias!',
                 video: 'O vídeo foi removido das categorias!',
                 audio: 'O áudio foi removido das categorias!'
               },
               download: {
+                gif: 'O GIF foi carregado!',
                 image: 'A imagem foi carregada!',
                 video: 'O vídeo foi carregado!',
                 audio: 'O áudio foi baixado!'
@@ -3565,6 +4086,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'Falha ao baixar o GIF',
                 image: 'Falha ao carregar imagem',
                 video: 'Falha ao baixar o vídeo',
                 audio: 'Falha ao baixar áudio'
@@ -3575,12 +4097,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Ocultar pedidos'
             },
             placeholder: {
+              gif: 'Nome do GIF',
               image: 'Nome da imagem',
               video: 'Nome do vídeo',
               audio: 'Nome de áudio'
             }
           },
           searchItem: {
+            gif: 'Pesquise GIFs ou categorias',
             image: 'Pesquise imagens ou categorias',
             video: 'Pesquise vídeos ou categorias',
             audio: 'Pesquise áudios ou categorias'
@@ -3595,10 +4119,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Crea',
           category: {
+            list: 'Categorii',
             unsorted: 'Nu sunt sortate',
             create: 'Creați o categorie',
             edit: 'Editați categoria',
             delete: 'Ștergeți categoria',
+            deleteConfirm: 'Această categorie conține subcategorii. Toate vor fi șterse. Sigur doriți să ștergeți categoriile?',
             download: 'Descărcați conținut media',
             placeholder: 'Numele categoriei',
             move: 'Mișcare',
@@ -3606,7 +4132,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Inainte de',
             color: 'Culoare',
             copyColor: 'Copiați culoarea',
-            copiedColor: 'Culoare copiată!',
             error: {
               needName: 'Numele nu poate fi gol',
               invalidNameLength: 'Numele trebuie să conțină maximum 20 de caractere',
@@ -3633,6 +4158,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Adăuga',
             moveTo: 'Mișcare',
             removeFrom: 'Eliminați din categorie',
+            copySource: 'Copiați sursa media',
             upload: {
               title: 'Încărcare',
               normal: 'Normal',
@@ -3640,16 +4166,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'GIF-ul a fost mutat!',
                 image: 'Imaginea a fost mutată!',
                 video: 'Videoclipul a fost mutat!',
                 audio: 'Sunetul a fost mutat!'
               },
               remove: {
+                gif: 'GIF-ul a fost eliminat din categorii!',
                 image: 'Imaginea a fost eliminată din categorii!',
                 video: 'Videoclipul a fost eliminat din categorii!',
                 audio: 'Sunetul a fost eliminat din categorii!'
               },
               download: {
+                gif: 'GIF-ul a fost încărcat!',
                 image: 'Imaginea a fost încărcată!',
                 video: 'Videoclipul a fost încărcat!',
                 audio: 'Sunetul a fost descărcat!'
@@ -3657,6 +4186,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'Nu s-a putut descărca GIF',
                 image: 'Nu s-a încărcat imaginea',
                 video: 'Descărcarea videoclipului nu a reușit',
                 audio: 'Descărcarea audio nu a reușit'
@@ -3667,12 +4197,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Ascundeți comenzile'
             },
             placeholder: {
+              gif: 'Nume GIF',
               image: 'Numele imaginii',
               video: 'Numele videoclipului',
               audio: 'Numele audio'
             }
           },
           searchItem: {
+            gif: 'Căutați GIF-uri sau categorii',
             image: 'Căutați imagini sau categorii',
             video: 'Căutați videoclipuri sau categorii',
             audio: 'Căutați audio sau categorii'
@@ -3687,10 +4219,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Создавать',
           category: {
+            list: 'Категории',
             unsorted: 'Не отсортировано',
             create: 'Создать категорию',
             edit: 'Изменить категорию',
             delete: 'Удалить категорию',
+            deleteConfirm: 'Эта категория содержит подкатегории. Все они будут удалены. Вы уверены, что хотите удалить категории?',
             download: 'Скачать медиа',
             placeholder: 'Название категории',
             move: 'Двигаться',
@@ -3698,7 +4232,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Перед',
             color: 'Цвет',
             copyColor: 'Цвет копии',
-            copiedColor: 'Цвет скопирован!',
             error: {
               needName: 'Имя не может быть пустым',
               invalidNameLength: 'Имя должно содержать не более 20 символов.',
@@ -3725,6 +4258,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Добавлять',
             moveTo: 'Двигаться',
             removeFrom: 'Удалить из категории',
+            copySource: 'Копировать медиа-источник',
             upload: {
               title: 'Загрузить',
               normal: 'Обычный',
@@ -3732,16 +4266,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'Гифку перенесли!',
                 image: 'Изображение было перемещено!',
                 video: 'Видео перемещено!',
                 audio: 'Звук был перемещен!'
               },
               remove: {
+                gif: 'Гифка удалена из категорий!',
                 image: 'Изображение удалено из категорий!',
                 video: 'Видео удалено из категорий!',
                 audio: 'Аудио удалено из категорий!'
               },
               download: {
+                gif: 'Гифка загружена!',
                 image: 'Изображение загружено!',
                 video: 'Видео загружено!',
                 audio: 'Аудио скачано!'
@@ -3749,6 +4286,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'Не удалось скачать GIF',
                 image: 'Не удалось загрузить изображение',
                 video: 'Не удалось скачать видео',
                 audio: 'Не удалось скачать аудио'
@@ -3759,12 +4297,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Скрыть заказы'
             },
             placeholder: {
+              gif: 'Имя GIF',
               image: 'Имя изображения',
               video: 'Название видео',
               audio: 'Название аудио'
             }
           },
           searchItem: {
+            gif: 'Поиск GIF-файлов или категорий',
             image: 'Поиск изображений или категорий',
             video: 'Поиск видео или категорий',
             audio: 'Поиск аудио или категорий'
@@ -3779,10 +4319,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Skapa',
           category: {
+            list: 'Kategorier',
             unsorted: 'Inte sorterat',
             create: 'Skapa en kategori',
             edit: 'Redigera kategori',
             delete: 'Ta bort kategori',
+            deleteConfirm: 'Denna kategori innehåller underkategorier. De kommer alla att raderas. Är du säker på att du vill ta bort kategorier?',
             download: 'Ladda ner media',
             placeholder: 'Kategori namn',
             move: 'Flytta',
@@ -3790,7 +4332,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Innan',
             color: 'Färg',
             copyColor: 'Kopiera färg',
-            copiedColor: 'Färg kopieras!',
             error: {
               needName: 'Namnet kan inte vara tomt',
               invalidNameLength: 'Namnet måste innehålla högst 20 tecken',
@@ -3817,6 +4358,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Lägg till',
             moveTo: 'Flytta',
             removeFrom: 'Ta bort från kategori',
+            copySource: 'Kopiera mediakälla',
             upload: {
               title: 'Ladda upp',
               normal: 'Vanligt',
@@ -3824,16 +4366,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'GIF:en har flyttats!',
                 image: 'Bilden har flyttats!',
                 video: 'Videon har flyttats!',
                 audio: 'Ljudet har flyttats!'
               },
               remove: {
+                gif: 'GIF har tagits bort från kategorierna!',
                 image: 'Bilden har tagits bort från kategorierna!',
                 video: 'Videon har tagits bort från kategorierna!',
                 audio: 'Ljud har tagits bort från kategorier!'
               },
               download: {
+                gif: 'GIF-filen har laddats upp!',
                 image: 'Bilden har laddats upp!',
                 video: 'Videon har laddats upp!',
                 audio: 'Ljudet har laddats ner!'
@@ -3841,6 +4386,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'Det gick inte att ladda ner GIF',
                 image: 'Det gick inte att ladda upp bilden',
                 video: 'Det gick inte att ladda ner videon',
                 audio: 'Det gick inte att ladda ner ljudet'
@@ -3851,12 +4397,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Dölj beställningar'
             },
             placeholder: {
+              gif: 'GIF-namn',
               image: 'Bildnamn',
               video: 'Videonamn',
               audio: 'Ljudnamn'
             }
           },
           searchItem: {
+            gif: 'Sök efter GIF-filer eller kategorier',
             image: 'Sök efter bilder eller kategorier',
             video: 'Sök efter videor eller kategorier',
             audio: 'Sök efter ljud eller kategorier'
@@ -3871,10 +4419,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'สร้าง',
           category: {
+            list: 'หมวดหมู่',
             unsorted: 'ไม่เรียง',
             create: 'สร้างหมวดหมู่',
             edit: 'แก้ไขหมวดหมู่',
             delete: 'ลบหมวดหมู่',
+            deleteConfirm: 'หมวดหมู่นี้มีหมวดหมู่ย่อย พวกเขาทั้งหมดจะถูกลบ คุณแน่ใจหรือไม่ว่าต้องการลบหมวดหมู่',
             download: 'ดาวน์โหลดสื่อ',
             placeholder: 'ชื่อหมวดหมู่',
             move: 'ย้าย',
@@ -3882,7 +4432,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'ก่อน',
             color: 'สี',
             copyColor: 'คัดลอกสี',
-            copiedColor: 'คัดลอกสี!',
             error: {
               needName: 'ชื่อไม่สามารถเว้นว่างได้',
               invalidNameLength: 'ชื่อต้องมีอักขระไม่เกิน 20 ตัว',
@@ -3909,6 +4458,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'เพิ่ม',
             moveTo: 'ย้าย',
             removeFrom: 'ลบออกจากหมวดหมู่',
+            copySource: 'คัดลอกแหล่งที่มาของสื่อ',
             upload: {
               title: 'ที่อัพโหลด',
               normal: 'ปกติ',
@@ -3916,16 +4466,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'ย้าย GIF แล้ว!',
                 image: 'ย้ายภาพแล้ว!',
                 video: 'วีดีโอถูกย้าย!',
                 audio: 'ย้ายเสียงแล้ว!'
               },
               remove: {
+                gif: 'GIF ถูกลบออกจากหมวดหมู่แล้ว!',
                 image: 'รูปภาพถูกลบออกจากหมวดหมู่!',
                 video: 'วิดีโอถูกลบออกจากหมวดหมู่แล้ว!',
                 audio: 'เสียงถูกลบออกจากหมวดหมู่!'
               },
               download: {
+                gif: 'อัปโหลด GIF แล้ว!',
                 image: 'อัปโหลดรูปภาพแล้ว!',
                 video: 'อัปโหลดวิดีโอแล้ว!',
                 audio: 'ดาวน์โหลดไฟล์เสียงแล้ว!'
@@ -3933,6 +4486,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'ดาวน์โหลด GIF ไม่สำเร็จ',
                 image: 'ไม่สามารถอัปโหลดภาพ',
                 video: 'ไม่สามารถดาวน์โหลดวิดีโอ',
                 audio: 'ไม่สามารถดาวน์โหลดเสียง'
@@ -3943,12 +4497,14 @@ module.exports = (Plugin, Library) => {
               hide: 'ซ่อนคำสั่งซื้อ'
             },
             placeholder: {
+              gif: 'ชื่อ GIF',
               image: 'ชื่อภาพ',
               video: 'ชื่อวิดีโอ',
               audio: 'ชื่อเสียง'
             }
           },
           searchItem: {
+            gif: 'ค้นหา GIF หรือหมวดหมู่',
             image: 'ค้นหารูปภาพหรือหมวดหมู่',
             video: 'ค้นหาวิดีโอหรือหมวดหมู่',
             audio: 'ค้นหาไฟล์เสียงหรือหมวดหมู่'
@@ -3963,10 +4519,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Oluşturmak',
           category: {
+            list: 'Kategoriler',
             unsorted: 'Sıralanmamış',
             create: 'Kategori oluştur',
             edit: 'Kategoriyi düzenle',
             delete: 'Kategoriyi sil',
+            deleteConfirm: 'Bu kategori alt kategorileri içerir. Hepsi silinecek. Kategorileri silmek istediğinizden emin misiniz?',
             download: 'Medyayı indir',
             placeholder: 'Kategori adı',
             move: 'Hareket',
@@ -3974,7 +4532,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Önce',
             color: 'Renk',
             copyColor: 'rengi kopyala',
-            copiedColor: 'Renk kopyalandı!',
             error: {
               needName: 'Ad boş olamaz',
               invalidNameLength: 'Ad en fazla 20 karakter içermelidir',
@@ -4001,6 +4558,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Ekle',
             moveTo: 'Hareket',
             removeFrom: 'Kategoriden kaldır',
+            copySource: 'Medya kaynağını kopyala',
             upload: {
               title: 'Yükle',
               normal: 'Normal',
@@ -4008,16 +4566,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'GIF taşındı!',
                 image: 'Resim taşındı!',
                 video: 'Video taşındı!',
                 audio: 'Ses taşındı!'
               },
               remove: {
+                gif: 'GIF kategorilerden kaldırıldı!',
                 image: 'Resim kategorilerden kaldırıldı!',
                 video: 'Video kategorilerden kaldırıldı!',
                 audio: 'Ses kategorilerden kaldırıldı!'
               },
               download: {
+                gif: 'GIF yüklendi!',
                 image: 'Resim yüklendi!',
                 video: 'Video yüklendi!',
                 audio: 'Ses indirildi!'
@@ -4025,6 +4586,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'GIF indirilemedi',
                 image: 'Resim yüklenemedi',
                 video: 'Video indirilemedi',
                 audio: 'Ses indirilemedi'
@@ -4035,12 +4597,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Siparişleri gizle'
             },
             placeholder: {
+              gif: 'GIF Adı',
               image: 'Resim adı',
               video: 'video adı',
               audio: 'Ses adı'
             }
           },
           searchItem: {
+            gif: 'GIF\'leri veya kategorileri arayın',
             image: 'Resim veya kategori arayın',
             video: 'Videoları veya kategorileri arayın',
             audio: 'Sesleri veya kategorileri arayın'
@@ -4055,10 +4619,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Створити',
           category: {
+            list: 'Категорії',
             unsorted: 'Не сортується',
             create: 'Створіть категорію',
             edit: 'Редагувати категорію',
             delete: 'Видалити категорію',
+            deleteConfirm: 'Ця категорія містить підкатегорії. Усі вони будуть видалені. Ви впевнені, що хочете видалити категорії?',
             download: 'Завантажити медіафайли',
             placeholder: 'Назва категорії',
             move: 'Рухайся',
@@ -4066,7 +4632,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Раніше',
             color: 'Колір',
             copyColor: 'Копіювати кольорові',
-            copiedColor: 'Колір скопійовано!',
             error: {
               needName: 'Ім\'я не може бути порожнім',
               invalidNameLength: 'Назва повинна містити максимум 20 символів',
@@ -4093,6 +4658,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Додати',
             moveTo: 'Рухайся',
             removeFrom: 'Вилучити з категорії',
+            copySource: 'Копіювати медіа-джерело',
             upload: {
               title: 'Завантажити',
               normal: 'Звичайний',
@@ -4100,16 +4666,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'GIF переміщено!',
                 image: 'Зображення переміщено!',
                 video: 'Відео переміщено!',
                 audio: 'Аудіо переміщено!'
               },
               remove: {
+                gif: 'GIF видалено з категорій!',
                 image: 'Зображення видалено з категорій!',
                 video: 'Відео видалено з категорій!',
                 audio: 'Аудіо вилучено з категорій!'
               },
               download: {
+                gif: 'GIF завантажено!',
                 image: 'Зображення завантажено!',
                 video: 'Відео завантажено!',
                 audio: 'Аудіо завантажено!'
@@ -4117,6 +4686,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'Не вдалося завантажити GIF',
                 image: 'Не вдалося завантажити зображення',
                 video: 'Не вдалося завантажити відео',
                 audio: 'Не вдалося завантажити аудіо'
@@ -4127,12 +4697,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Сховати замовлення'
             },
             placeholder: {
+              gif: 'Назва GIF',
               image: 'Назва зображення',
               video: 'Назва відео',
               audio: 'Назва аудіо'
             }
           },
           searchItem: {
+            gif: 'Шукайте GIF-файли або категорії',
             image: 'Шукайте зображення або категорії',
             video: 'Шукайте відео або категорії',
             audio: 'Шукайте аудіо чи категорії'
@@ -4147,10 +4719,12 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Tạo nên',
           category: {
+            list: 'Thể loại',
             unsorted: 'Không được sắp xếp',
             create: 'Tạo một danh mục',
             edit: 'Chỉnh sửa danh mục',
             delete: 'Xóa danh mục',
+            deleteConfirm: 'Thể loại này chứa các thể loại con. Tất cả chúng sẽ bị xóa. Bạn có chắc chắn muốn xóa danh mục không?',
             download: 'Завантажити медіафайли',
             placeholder: 'Tên danh mục',
             move: 'Di chuyển',
@@ -4158,7 +4732,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: 'Trước',
             color: 'Màu sắc',
             copyColor: 'Sao chép màu',
-            copiedColor: 'Đã sao chép màu!',
             error: {
               needName: 'Tên không được để trống',
               invalidNameLength: 'Tên phải chứa tối đa 20 ký tự',
@@ -4185,6 +4758,7 @@ module.exports = (Plugin, Library) => {
             addTo: 'Thêm vào',
             moveTo: 'Di chuyển',
             removeFrom: 'Xóa khỏi danh mục',
+            copySource: 'Sao chép nguồn phương tiện',
             upload: {
               title: 'Tải lên',
               normal: 'Bình thường',
@@ -4192,16 +4766,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'GIF đã được di chuyển!',
                 image: 'Hình ảnh đã được di chuyển!',
                 video: 'Video đã được chuyển đi!',
                 audio: 'Âm thanh đã được di chuyển!'
               },
               remove: {
+                gif: 'GIF đã bị xóa khỏi danh mục!',
                 image: 'Hình ảnh đã bị xóa khỏi danh mục!',
                 video: 'Video đã bị xóa khỏi danh mục!',
                 audio: 'Âm thanh đã bị xóa khỏi danh mục!'
               },
               download: {
+                gif: 'GIF đã được tải lên!',
                 image: 'Зображення завантажено!',
                 video: 'Відео завантажено!',
                 audio: 'Аудіо завантажено!'
@@ -4209,6 +4786,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'Không thể tải xuống GIF',
                 image: 'Не вдалося завантажити зображення',
                 video: 'Не вдалося завантажити відео',
                 audio: 'Не вдалося завантажити аудіо'
@@ -4219,12 +4797,14 @@ module.exports = (Plugin, Library) => {
               hide: 'Ẩn đơn đặt hàng'
             },
             placeholder: {
+              gif: 'Tên GIF',
               image: 'Tên Hình ảnh',
               video: 'Tên video',
               audio: 'Tên âm thanh'
             }
           },
           searchItem: {
+            gif: 'Tìm kiếm GIF hoặc danh mục',
             image: 'Tìm kiếm hình ảnh hoặc danh mục',
             video: 'Tìm kiếm video hoặc danh mục',
             audio: 'Tìm kiếm âm thanh hoặc danh mục'
@@ -4239,10 +4819,12 @@ module.exports = (Plugin, Library) => {
           },
           create: '创造',
           category: {
+            list: '类别',
             unsorted: '未排序',
             create: '创建一个类别',
             edit: '编辑类别',
             delete: '删除类别',
+            deleteConfirm: '此类别包含子类别。 它们都将被删除。 您确定要删除类别吗？',
             download: '下载媒体',
             placeholder: '分类名称',
             move: '移动',
@@ -4250,7 +4832,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: '前',
             color: '颜色',
             copyColor: '复印颜色',
-            copiedColor: '颜色复制！',
             error: {
               needName: '名称不能为空',
               invalidNameLength: '名称必须最多包含 20 个字符',
@@ -4277,6 +4858,7 @@ module.exports = (Plugin, Library) => {
             addTo: '添加',
             moveTo: '移动',
             removeFrom: '从类别中删除',
+            copySource: '复制媒体源',
             upload: {
               title: '上传',
               normal: '普通的',
@@ -4284,16 +4866,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'GIF已被移动！',
                 image: '图片已移动！',
                 video: '视频已移！',
                 audio: '音频已移动！'
               },
               remove: {
+                gif: 'GIF 已从类别中删除！',
                 image: '该图片已从类别中删除！',
                 video: '该视频已从类别中删除！',
                 audio: '音频已从类别中删除！'
               },
               download: {
+                gif: 'GIF已上传！',
                 image: '图片已上传！',
                 video: '视频已上传！',
                 audio: '音频已下载！'
@@ -4301,6 +4886,7 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: '无法下载 GIF',
                 image: '上传图片失败',
                 video: '下载视频失败',
                 audio: '无法下载音频'
@@ -4311,12 +4897,14 @@ module.exports = (Plugin, Library) => {
               hide: '隐藏订单'
             },
             placeholder: {
+              gif: '动图名称',
               image: '图片名称',
               video: '视频名称',
               audio: '音频名称'
             }
           },
           searchItem: {
+            gif: '搜索 GIF 或类别',
             image: '搜索图像或类别',
             video: '搜索视频或类别',
             audio: '搜索音频或类别'
@@ -4331,10 +4919,12 @@ module.exports = (Plugin, Library) => {
           },
           create: '創建',
           category: {
+            list: '類別',
             unsorted: '未排序',
             create: '創建一個分類',
             edit: '編輯分類',
             delete: '刪除分類',
+            deleteConfirm: '此類別包含子類別。 它們都將被刪除。 您確定要刪除類別嗎？',
             download: '下載媒體',
             placeholder: '分類名稱',
             move: '移動',
@@ -4342,7 +4932,6 @@ module.exports = (Plugin, Library) => {
             movePrevious: '上一個',
             color: '顏色',
             copyColor: '複製顏色',
-            copiedColor: '顏色已複製！',
             error: {
               needName: '名稱不能為空',
               invalidNameLength: '名稱需少於20個字符',
@@ -4369,6 +4958,7 @@ module.exports = (Plugin, Library) => {
             addTo: '添加',
             moveTo: '移動',
             removeFrom: '從分類中刪除',
+            copySource: '複製媒體源',
             upload: {
               title: '上傳',
               normal: '正常',
@@ -4376,22 +4966,26 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'GIF已被移動！',
                 image: '圖片已移動！',
                 video: '影片已移動！',
                 audio: '音訊已移動！'
               },
               remove: {
+                gif: 'GIF 已從類別中刪除！',
                 image: '該圖片已從分類中刪除！',
                 video: '該影片已從分類中刪除！',
                 audio: '該音訊已從分類中刪除！'
               },
               download: {
+                gif: 'GIF已上傳！',
                 image: '圖片已上傳！',
                 video: '視頻已上傳！',
                 audio: '音頻已下載！'
               }
             },
             download: {
+              gif: '無法下載 GIF',
               image: '上傳圖片失敗',
               video: '下載視頻失敗',
               audio: '無法下載音頻'
@@ -4401,12 +4995,14 @@ module.exports = (Plugin, Library) => {
               hide: '隱藏控制選單'
             },
             placeholder: {
+              gif: '動圖名稱',
               image: '圖片名稱',
               video: '影片名稱',
               audio: '音訊名稱'
             }
           },
           searchItem: {
+            gif: '搜索 GIF 或類別',
             image: '搜索圖片或分類',
             video: '搜索影片或分類',
             audio: '搜索音訊或分類'
@@ -4421,18 +5017,19 @@ module.exports = (Plugin, Library) => {
           },
           create: 'Create',
           category: {
+            list: 'Categories',
             unsorted: 'Unsorted',
-            create: 'Create category',
-            edit: 'Edit category',
-            delete: 'Delete category',
-            download: 'Download medias',
-            placeholder: 'Category name',
+            create: 'Create Category',
+            edit: 'Edit Category',
+            delete: 'Delete Category',
+            deleteConfirm: 'This category contains sub-categories. They will all get deleted. Are you sure you want to delete the categories?',
+            download: 'Download Medias',
+            placeholder: 'Category Name',
             move: 'Move',
             moveNext: 'Next',
             movePrevious: 'Previous',
             color: 'Color',
-            copyColor: 'Copy color',
-            copiedColor: 'Copied color!',
+            copyColor: 'Copy Color',
             error: {
               needName: 'Name cannot be empty',
               invalidNameLength: 'Name must contain less than 20 characters',
@@ -4458,7 +5055,8 @@ module.exports = (Plugin, Library) => {
             },
             addTo: 'Add',
             moveTo: 'Move',
-            removeFrom: 'Remove from category',
+            removeFrom: 'Remove From Category',
+            copySource: 'Copy Source Link',
             upload: {
               title: 'Upload',
               normal: 'Normal',
@@ -4466,16 +5064,19 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
+                gif: 'GIF moved!',
                 image: 'Image moved!',
                 video: 'Video moved!',
                 audio: 'Audio moved!'
               },
               remove: {
+                gif: 'GIF removed from categories!',
                 image: 'Image removed from categories!',
                 video: 'Video removed from categories!',
                 audio: 'Audio removed from categories!'
               },
               download: {
+                gif: 'GIF downloaded!',
                 image: 'Image downloaded!',
                 video: 'Video downloaded!',
                 audio: 'Audio downloaded!'
@@ -4483,25 +5084,28 @@ module.exports = (Plugin, Library) => {
             },
             error: {
               download: {
+                gif: 'Failed to download GIF',
                 image: 'Failed to download image',
                 video: 'Failed to download video',
                 audio: 'Failed to download audio'
               }
             },
             controls: {
-              show: 'Show controls',
-              hide: 'Hide controls'
+              show: 'Show Controls',
+              hide: 'Hide Controls'
             },
             placeholder: {
-              image: 'Image name',
-              video: 'Video name',
-              audio: 'Audio name'
+              gif: 'GIF Name',
+              image: 'Image Name',
+              video: 'Video Name',
+              audio: 'Audio Name'
             }
           },
           searchItem: {
-            image: 'Search for images or categories',
-            video: 'Search for videos or categories',
-            audio: 'Search for audios or categories'
+            gif: 'Search for GIFs or Categories',
+            image: 'Search for Images or Categories',
+            video: 'Search for Videos or Categories',
+            audio: 'Search for Audios or Categories'
           }
         }
     }
