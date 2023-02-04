@@ -194,17 +194,6 @@ module.exports = (Plugin, Library) => {
     return url.match(/\.([0-9a-z]+)(?=[?#])|(\.)(?:[\w]+)$/gmi)?.[0] ?? ''
   }
 
-  // https://stackoverflow.com/a/5306832/13314290
-  function arrayMove (arr, oldIndex, newIndex) {
-    while (oldIndex < 0) oldIndex += arr.length
-    while (newIndex < 0) newIndex += arr.length
-    if (newIndex >= arr.length) {
-      let k = newIndex - arr.length + 1
-      while (k--) arr.push(undefined)
-    }
-    arr.splice(newIndex, 0, arr.splice(oldIndex, 1)[0])
-  }
-
   async function sendInTextarea () {
     return await new Promise((resolve, reject) => {
       try {
@@ -716,6 +705,7 @@ module.exports = (Plugin, Library) => {
       super(props)
 
       this.onContextMenu = this.onContextMenu.bind(this)
+      this.onDragStart = this.onDragStart.bind(this)
       this.onDrop = this.onDrop.bind(this)
       this.onError = this.onError.bind(this)
     }
@@ -743,14 +733,14 @@ module.exports = (Plugin, Library) => {
         moveItems.push({
           id: 'category-movePrevious',
           label: labels.category.movePrevious,
-          action: () => moveCategory(this.props.type, this.props.index, this.props.index - 1)
+          action: () => moveCategory(this.props.type, this.props.id, -1)
         })
       }
       if (this.props.index < this.props.length - 1) {
         moveItems.push({
           id: 'category-moveNext',
           label: labels.category.moveNext,
-          action: () => moveCategory(this.props.type, this.props.index, this.props.index + 1)
+          action: () => moveCategory(this.props.type, this.props.id, 1)
         })
       }
       const items = [
@@ -768,29 +758,37 @@ module.exports = (Plugin, Library) => {
           id: 'category-edit',
           label: labels.category.edit,
           action: () => MediaPicker.openCategoryModal(this.props.type, 'edit', { name: this.props.name, color: this.props.color, id: this.props.id })
-        },
-        {
-          id: 'category-delete',
-          label: labels.category.delete,
-          danger: true,
-          action: () => {
-            const deleteCategories = () => {
-              deleteCategory(this.props.type, this.props.id)
-              this.props.setCategory()
-            }
-            if (MediaPicker.categoryHasSubcategories(this.props.type, this.props.id)) {
-              Modals.showConfirmationModal(labels.category.delete, labels.category.deleteConfirm, {
-                danger: true,
-                onConfirm: () => deleteCategories(),
-                confirmText: labels.category.delete,
-                cancelText: Strings.Messages.CANCEL
-              })
-            } else {
-              deleteCategories()
-            }
-          }
         }
       ]
+      if (this.props.category_id != null) {
+        items.push({
+          id: 'category-removeFrom',
+          label: labels.media.removeFrom,
+          danger: true,
+          action: () => MediaPicker.removeCategoryCategory(this.props.type, this.props.id)
+        })
+      }
+      items.push({
+        id: 'category-delete',
+        label: labels.category.delete,
+        danger: true,
+        action: () => {
+          const deleteCategories = () => {
+            deleteCategory(this.props.type, this.props.id)
+            this.props.setCategory()
+          }
+          if (MediaPicker.categoryHasSubcategories(this.props.type, this.props.id)) {
+            Modals.showConfirmationModal(labels.category.delete, labels.category.deleteConfirm, {
+              danger: true,
+              onConfirm: () => deleteCategories(),
+              confirmText: labels.category.delete,
+              cancelText: Strings.Messages.CANCEL
+            })
+          } else {
+            deleteCategories()
+          }
+        }
+      })
       if (moveItems.length > 0) {
         items.unshift({
           id: 'category-move',
@@ -810,16 +808,24 @@ module.exports = (Plugin, Library) => {
       })
     }
 
+    onDragStart (e) {
+      e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'category', id: this.props.id }))
+      e.dataTransfer.effectAllowed = 'move'
+    }
+
     onDrop (e) {
-      const data = e.dataTransfer.getData('card-data')
-      let media
+      let data = e.dataTransfer.getData('text/plain')
       try {
-        media = JSON.parse(data)
+        data = JSON.parse(data)
       } catch (err) {
         console.error('[FavoriteMedia]', err)
       }
-      if (!media) return
-      MediaPicker.changeMediaCategory(this.props.type, media.url, this.props.id)
+      if (data == null) return
+      if (data.type === 'media') {
+        MediaPicker.changeMediaCategory(this.props.type, data.url, this.props.id)
+      } else if (data.type === 'category') {
+        if (data.id !== this.props.id) MediaPicker.changeCategoryCategory(this.props.type, data.id, this.props.id)
+      }
       this.refs.category.classList.remove('category-dragover')
     }
 
@@ -846,7 +852,9 @@ module.exports = (Plugin, Library) => {
         onDragEnter: e => { e.preventDefault(); this.refs.category.classList.add('category-dragover') },
         onDragLeave: e => { e.preventDefault(); this.refs.category.classList.remove('category-dragover') },
         onDragOver: e => { e.stopPropagation(); e.preventDefault() },
-        onDrop: this.onDrop
+        onDragStart: this.onDragStart,
+        onDrop: this.onDrop,
+        draggable: true
       },
       React.createElement('div', {
         className: classes.category.categoryFade,
@@ -956,7 +964,7 @@ module.exports = (Plugin, Library) => {
     }
 
     onDragStart (e) {
-      e.dataTransfer.setData('card-data', JSON.stringify(this.props))
+      e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'media', url: this.props.url }))
       e.dataTransfer.effectAllowed = 'move'
     }
 
@@ -1009,7 +1017,9 @@ module.exports = (Plugin, Library) => {
           'background-color': DEFAULT_BACKGROUND_COLOR
         },
         onContextMenu: e => this.props.onMediaContextMenu(e, this.props.id),
-        onClick: this.sendMedia
+        onClick: this.sendMedia,
+        onDragStart: this.onDragStart,
+        draggable: true
       },
       this.isPlayable
         ? React.createElement('div', {
@@ -1052,7 +1062,7 @@ module.exports = (Plugin, Library) => {
           ref: 'media',
           controls: this.state.showControls,
           style: this.props.type === 'audio' ? { position: 'absolute', bottom: '0', left: '0', 'z-index': '2' } : null,
-          onDragStart: this.onDragStart,
+          draggable: false,
           onError: this.onError
         })
         : null,
@@ -1227,7 +1237,7 @@ module.exports = (Plugin, Library) => {
       const heights = this.heights
       const width = this.state.contentWidth || 200
       const n = Math.floor(width / 200)
-      const offset = this.state.textFilter ? this.filteredCategories.length : this.state.categories.length
+      const offset = this.filteredCategories.length
       const placed = new Array(n)
       placed.fill(false)
       placed.fill(true, 0, offset % n)
@@ -1371,6 +1381,16 @@ module.exports = (Plugin, Library) => {
       Dispatcher.dispatch({ type: 'SCROLLING_MEDIAS', scroll: e.target.scrollTop + 350 })
     }
 
+    static changeCategoryCategory (type, id, categoryId) {
+      const typeData = Utilities.loadData(config.name, type, { medias: [] })
+      const index = typeData.categories.findIndex(m => m.id === id)
+      if (index < 0) return
+      typeData.categories[index].category_id = categoryId
+      Utilities.saveData(config.name, type, typeData)
+      Toasts.success(labels.category.success.move)
+      Dispatcher.dispatch({ type: 'UPDATE_CATEGORIES' })
+    }
+
     static changeMediaCategory (type, url, categoryId) {
       const typeData = Utilities.loadData(config.name, type, { medias: [] })
       const index = typeData.medias.findIndex(m => m.url === url)
@@ -1379,6 +1399,16 @@ module.exports = (Plugin, Library) => {
       Utilities.saveData(config.name, type, typeData)
       Toasts.success(labels.media.success.move[type])
       Dispatcher.dispatch({ type: 'UPDATE_MEDIAS' })
+    }
+
+    static removeCategoryCategory (type, categoryId) {
+      const typeData = Utilities.loadData(config.name, type)
+      const index = typeData.categories.findIndex(m => m.id === categoryId)
+      if (index < 0) return
+      delete typeData.categories[index].category_id
+      Utilities.saveData(config.name, type, typeData)
+      Toasts.success(labels.category.success.move)
+      Dispatcher.dispatch({ type: 'UPDATE_CATEGORIES' })
     }
 
     static removeMediaCategory (type, mediaId) {
@@ -1699,7 +1729,7 @@ module.exports = (Plugin, Library) => {
           componentProps: {
             type: this.props.type,
             setCategory: this.setCategory,
-            length: this.state.categories.length
+            length: this.filteredCategories.length
           }
         })
         : null,
@@ -1858,9 +1888,21 @@ module.exports = (Plugin, Library) => {
     return true
   }
 
-  function moveCategory (type, oldIndex, newIndex) {
+  function moveCategory (type, id, inc) {
     const typeData = Utilities.loadData(config.name, type, { categories: [], medias: [] })
-    arrayMove(typeData.categories, oldIndex, newIndex)
+    const oldCategory = typeData.categories.find((c) => c.id === id)
+    if (oldCategory == null) return
+    const categories = typeData.categories.filter((c) => c.category_id === oldCategory.category_id)
+    const oldCategoryLocalIndex = categories.findIndex((c) => c.id === id)
+    if (oldCategoryLocalIndex < 0) return
+    const newCategory = categories[oldCategoryLocalIndex + inc]
+    if (newCategory == null) return
+    const oldCategoryIndex = typeData.categories.findIndex((c) => c.id === oldCategory.id)
+    if (oldCategoryIndex < 0) return
+    const newCategoryIndex = typeData.categories.findIndex((c) => c.id === newCategory.id)
+    if (newCategoryIndex < 0) return
+    typeData.categories[oldCategoryIndex] = newCategory
+    typeData.categories[newCategoryIndex] = oldCategory
     Utilities.saveData(config.name, type, typeData)
 
     Toasts.success(labels.category.success.move)
@@ -1893,6 +1935,7 @@ module.exports = (Plugin, Library) => {
       this.patchClosePicker()
       this.patchMedias()
       this.preloadMedias()
+      if (this.settings.alwaysDeleteDeadMedias) this.deleteDeadMedias()
       DOMTools.addStyle(this.getName() + '-css', `
         .category-input-color > input[type='color'] {
           opacity: 0;
@@ -2007,13 +2050,26 @@ module.exports = (Plugin, Library) => {
       }
       const fmHead = document.createElement('fm-head')
       Object.entries(mediaTypes).forEach(([type, hrefs]) => {
-        const medias = Utilities.loadData(config.name, type, { medias: [] }).medias
-        medias.forEach((media) => {
+        const data = Utilities.loadData(config.name, type, { medias: [] })
+        data.medias.forEach((media) => {
           hrefs.forEach((href) => {
             if (media[href] == null) return
             const link = document.createElement('link')
             link.rel = 'preload'
             link.href = media[href]
+            let mime = type
+            if (type === 'gif') {
+              mime = media.src.endsWith('.gif') ? 'image' : 'video'
+            } else if (type === 'video' && href === 'poster') {
+              mime = 'image'
+            }
+            link.as = mime
+            link.onerror = () => {
+              if (!media.dead) {
+                media.dead = true
+                Utilities.saveData(config.name, type, data)
+              }
+            }
             fmHead.appendChild(link)
           })
         })
@@ -2401,6 +2457,15 @@ module.exports = (Plugin, Library) => {
 
     isFavorited (type, url) {
       return Utilities.loadData(this._config.name, type, { medias: [] }).medias.find(e => e.url === url) !== undefined
+    }
+
+    deleteDeadMedias () {
+      const types = ['image', 'video', 'audio']
+      types.forEach((type) => {
+        const typeData = Utilities.loadData(this._config.name, type, { medias: [] })
+        typeData.medias = typeData.medias.filter((m) => !m.dead)
+        Utilities.saveData(this._config.name, type, typeData)
+      })
     }
   }
 

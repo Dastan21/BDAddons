@@ -5,8 +5,8 @@
   "author": "Dastan",
   "authorId": "310450863845933057",
   "authorLink": "",
-  "version": "1.7.0",
-  "description": "Allows to favorite images, videos and audios.",
+  "version": "1.7.1",
+  "description": "Allows to favorite GIFs, images, videos and audios.",
   "website": "",
   "source": "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
   "patreon": "",
@@ -32,6 +32,13 @@
       "id": "alwaysUploadFile",
       "name": "Always upload as file",
       "note": "Uploads media as file instead of sending a link",
+      "value": false
+    },
+    {
+      "type": "switch",
+      "id": "alwaysDeleteDeadMedias",
+      "name": "Always delete dead medias",
+      "note": "Automatically remove no longer available medias",
       "value": false
     },
     {
@@ -229,29 +236,19 @@
   ],
   "changelog": [
     {
-      "title": "Features",
+      "title": "Feature",
       "type": "added",
       "items": [
-        "Remade the GIF tab (toggle in the settings)",
-        "Added setting to not instantly send/upload media in chat",
-        "Added medias options: message link & source link",
-        "it is now possible to create sub-categories"
-      ]
-    },
-    {
-      "title": "Improvements",
-      "type": "improved",
-      "items": [
-        "Added a lot more controls on messages context menu: media & categories managing",
-        "Medias are now preloaded, they should be displayed way faster in their tab",
-        "You can now download medias that are not in categories"
+        "Added setting to automatically remove dead medias (no longer available ones)",
+        "Categories can now be drag-n-drop in other categories"
       ]
     },
     {
       "title": "Bugs",
       "type": "fixed",
       "items": [
-        "Split view & VC chat buttons/tabs now work properly"
+        "Every type of media can be moved into categories again",
+        "Fixed floating/clipping medias position"
       ]
     }
   ]
