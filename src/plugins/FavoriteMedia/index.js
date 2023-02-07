@@ -2253,8 +2253,16 @@ module.exports = (Plugin, Library) => {
             message: null,
             source: null
           }
-          if (props.target.nextSibling?.firstChild?.tagName === 'IMG' && !data.url) data.url = props.target.nextSibling.firstChild.src
-          if (props.target.nextSibling?.firstChild?.tagName === 'VIDEO') data.type = 'gif'
+          if (props.target.nextSibling?.firstChild?.tagName === 'IMG') {
+            data.url = data.url || props.target.nextSibling.firstChild.src
+            data.width = props.target.nextSibling.firstChild.width
+            data.height = props.target.nextSibling.firstChild.height
+          }
+          if (props.target.nextSibling?.firstChild?.tagName === 'VIDEO') {
+            data.type = 'gif'
+            data.width = props.target.nextSibling.firstChild.width
+            data.height = props.target.nextSibling.firstChild.height
+          }
           if (props.target.tagName === 'VIDEO') data.type = 'video'
           if (props.target.parentElement?.firstElementChild?.className?.includes('audioMetadata')) {
             data.url = props.target.parentElement?.querySelector('audio')?.firstElementChild?.src
