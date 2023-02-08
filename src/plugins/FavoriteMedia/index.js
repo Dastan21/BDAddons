@@ -186,7 +186,7 @@ module.exports = (Plugin, Library) => {
 
   function getUrlName (url) {
     // tenor case, otherwise it would always return 'tenor'
-    if (url.startsWith('https://tenor.com/view/')) return url.match(/view\/(.*)-gif-/)?.[1]
+    if (url.startsWith('https://tenor.com/view/') || url.startsWith('https://media.tenor.com/view/')) return url.match(/view\/(.*)-gif-/)?.[1]
     return url.replace(/\.([^.]*)$/gm, '').split('/').pop()
   }
 
@@ -212,7 +212,7 @@ module.exports = (Plugin, Library) => {
     // if the textarea has not been patched, file uploading will fail
     if (currentTextareaInput == null || !document.body.contains(currentTextareaInput)) return console.error('[FavoriteMedia]', 'Could not find current textarea, upload file canceled.')
     const ext = getUrlExt(media.url)
-    const fileName = `${getUrlName(media.name).replace(/ /g, '_')}${ext}`
+    const fileName = `${getUrlName(media.url).replace(/ /g, '_')}${ext}`
     const mime = `${type === 'gif' ? 'image' : type}/${ext.slice(1)}`
     const file = new File([buffer], fileName, { type: mime })
     FilesUpload.addFiles({
