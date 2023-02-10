@@ -4889,96 +4889,96 @@ module.exports = (Plugin, Library) => {
           tabName: {
             image: '图片',
             video: '视频',
-            audio: '声音的'
+            audio: '音频'
           },
-          create: '创造',
+          create: '创建',
           category: {
             list: '类别',
             unsorted: '未排序',
-            create: '创建一个类别',
+            create: '创建类别',
             edit: '编辑类别',
-            delete: '删除类别',
-            deleteConfirm: '此类别包含子类别。 它们都将被删除。 您确定要删除类别吗？',
+            delete: '移除类别',
+            deleteConfirm: '此类别内包含子类别。它们都将被移除。您确定要移除类别吗？',
             download: '下载媒体',
             placeholder: '分类名称',
             move: '移动',
-            moveNext: '后',
-            movePrevious: '前',
+            moveNext: '向后移动',
+            movePrevious: '向前移动',
             color: '颜色',
-            copyColor: '复印颜色',
+            copyColor: '复制颜色',
             error: {
               needName: '名称不能为空',
-              invalidNameLength: '名称必须最多包含 20 个字符',
-              wrongColor: '颜色无效',
-              nameExists: '这个名字已经存在',
+              invalidNameLength: '名称需小于20个字符',
+              wrongColor: '无效颜色',
+              nameExists: '该名称已经存在',
               invalidCategory: '该类别不存在',
               download: '无法下载媒体'
             },
             success: {
               create: '该类别已创建！',
-              delete: '该分类已被删除！',
+              delete: '该类别已移除！',
               edit: '类别已更改！',
               move: '类别已移动！',
-              download: '媒体已上传！'
+              download: '媒体已下载！'
             },
-            emptyHint: '右键创建一个类别！'
+            emptyHint: '右击以创建一个类别！'
           },
           media: {
             emptyHint: {
-              image: '单击图像角落的星星将其放入您的收藏夹',
-              video: '点击视频角落的星星，将其放入您的收藏夹',
-              audio: '单击音频一角的星星将其放入您的收藏夹'
+              image: '点击图像角落的星星将其放入收藏项目',
+              video: '点击视频角落的星星将其放入收藏项目',
+              audio: '点击音频角落的星星将其放入收藏项目'
             },
-            addTo: '添加',
-            moveTo: '移动',
-            removeFrom: '从类别中删除',
-            copySource: '复制媒体源',
+            addTo: '移动至...',
+            moveTo: '移动至...',
+            removeFrom: '移出类别',
+            copySource: '复制链接',
             upload: {
               title: '上传',
-              normal: '普通的',
+              normal: '正常',
               spoiler: '剧透'
             },
             success: {
               move: {
-                gif: 'GIF已被移动！',
+                gif: 'GIF已移动！',
                 image: '图片已移动！',
-                video: '视频已移！',
+                video: '视频已移动！',
                 audio: '音频已移动！'
               },
               remove: {
-                gif: 'GIF 已从类别中删除！',
-                image: '该图片已从类别中删除！',
-                video: '该视频已从类别中删除！',
-                audio: '音频已从类别中删除！'
+                gif: '该GIF已从类别中移除！',
+                image: '该图片已从类别中移除！',
+                video: '该视频已从类别中移除！',
+                audio: '该音频已从类别中移除！'
               },
               download: {
                 gif: 'GIF已上传！',
                 image: '图片已上传！',
                 video: '视频已上传！',
-                audio: '音频已下载！'
+                audio: '音频已上传！'
               }
             },
             error: {
               download: {
-                gif: '无法下载 GIF',
-                image: '上传图片失败',
-                video: '下载视频失败',
+                gif: '无法下载GIF',
+                image: '无法下载图片',
+                video: '无法下载视频',
                 audio: '无法下载音频'
               }
             },
             controls: {
-              show: '显示订单',
-              hide: '隐藏订单'
+              show: '显示控制项',
+              hide: '隐藏控制项'
             },
             placeholder: {
-              gif: '动图名称',
+              gif: 'GIF名称',
               image: '图片名称',
               video: '视频名称',
               audio: '音频名称'
             }
           },
           searchItem: {
-            gif: '搜索 GIF 或类别',
+            gif: '搜索GIF或类别',
             image: '搜索图像或类别',
             video: '搜索视频或类别',
             audio: '搜索音频或类别'
@@ -4995,11 +4995,11 @@ module.exports = (Plugin, Library) => {
           category: {
             list: '類別',
             unsorted: '未排序',
-            create: '創建一個分類',
+            create: '創建分類',
             edit: '編輯分類',
             delete: '刪除分類',
-            deleteConfirm: '此類別包含子類別。 它們都將被刪除。 您確定要刪除類別嗎？',
-            download: '下載媒體',
+            deleteConfirm: '此類別內包含子類別。它們都將被刪除。您確定要刪除類別嗎？',
+            download: '下載分類',
             placeholder: '分類名稱',
             move: '移動',
             moveNext: '下一個',
@@ -5010,29 +5010,29 @@ module.exports = (Plugin, Library) => {
               needName: '名稱不能為空',
               invalidNameLength: '名稱需少於20個字符',
               wrongColor: '無效的顏色',
-              nameExists: '這個名稱已經存在',
+              nameExists: '該名稱已經存在',
               invalidCategory: '該分類不存在',
-              download: '無法下載媒體'
+              download: '下載時發生錯誤'
             },
             success: {
-              create: '該分類已創建！',
-              delete: '該分類已刪除！',
+              create: '分類已創建！',
+              delete: '分類已刪除！',
               edit: '分類已更改！',
               move: '分類已移動！',
-              download: '媒體已上傳！'
+              download: '媒體已下載！'
             },
-            emptyHint: '右鍵創建一個新分類！'
+            emptyHint: '右鍵以創建新分類！'
           },
           media: {
             emptyHint: {
-              image: '點擊圖像角落的星星將其放入您的收藏夾',
-              video: '點擊影片角落的星星將其放入您的收藏夾',
-              audio: '單擊音訊角落的星星將其放入您的收藏夾'
+              image: '點擊圖片角落的星星將其放入最愛項目',
+              video: '點擊影片角落的星星將其放入最愛項目',
+              audio: '點擊音訊角落的星星將其放入最愛項目'
             },
-            addTo: '添加',
-            moveTo: '移動',
-            removeFrom: '從分類中刪除',
-            copySource: '複製媒體源',
+            addTo: '移動至...',
+            moveTo: '移動至...',
+            removeFrom: '移出分類',
+            copySource: '複製連結',
             upload: {
               title: '上傳',
               normal: '正常',
@@ -5040,43 +5040,43 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
-                gif: 'GIF已被移動！',
+                gif: 'GIF已移動！',
                 image: '圖片已移動！',
                 video: '影片已移動！',
                 audio: '音訊已移動！'
               },
               remove: {
-                gif: 'GIF 已從類別中刪除！',
+                gif: '該GIF已從分類中刪除！',
                 image: '該圖片已從分類中刪除！',
                 video: '該影片已從分類中刪除！',
                 audio: '該音訊已從分類中刪除！'
               },
               download: {
-                gif: 'GIF已上傳！',
-                image: '圖片已上傳！',
-                video: '視頻已上傳！',
-                audio: '音頻已下載！'
+                gif: 'GIF已下載！',
+                image: '圖片已下載！',
+                video: '影片已下載！',
+                audio: '音訊已下載！'
               }
             },
             download: {
               gif: '無法下載 GIF',
-              image: '上傳圖片失敗',
-              video: '下載視頻失敗',
-              audio: '無法下載音頻'
+              image: '無法上傳圖片',
+              video: '無法下載影片',
+              audio: '無法下載音訊'
             },
             controls: {
               show: '顯示控制選單',
               hide: '隱藏控制選單'
             },
             placeholder: {
-              gif: '動圖名稱',
+              gif: 'GIF名稱',
               image: '圖片名稱',
               video: '影片名稱',
               audio: '音訊名稱'
             }
           },
           searchItem: {
-            gif: '搜索 GIF 或類別',
+            gif: '搜索GIF或分類',
             image: '搜索圖片或分類',
             video: '搜索影片或分類',
             audio: '搜索音訊或分類'
