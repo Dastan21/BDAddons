@@ -2097,7 +2097,7 @@ module.exports = (Plugin, Library) => {
       const keysDown = {}
       this.onKeyDown = function (e) {
         keysDown[e.key] = true
-        if (keys.every(k => keysDown[k])) callback?.(keysDown)
+        if (keys.every(k => keysDown[k] === true)) callback?.(keysDown)
       }
       this.onKeyUp = function (e) {
         delete keysDown[e.key]
@@ -2256,7 +2256,7 @@ module.exports = (Plugin, Library) => {
           const index = returnValue.props.children.props.children[2] != null ? 2 : returnValue.props.children.props.children
           if (data.type === 'gif') {
             data.src = propsImg.src
-            data.url = returnValue.props.focusTarget.current?.parentElement.firstElementChild.getAttribute('href')
+            data.url = returnValue.props.focusTarget.current?.parentElement.firstElementChild.getAttribute('href') || data.url
           }
           returnValue.props.children.props.children.splice(index, 1, React.createElement(MediaFavButton, {
             type: data.type,
