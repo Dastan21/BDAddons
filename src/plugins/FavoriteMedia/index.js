@@ -33,7 +33,7 @@ module.exports = (Plugin, Library) => {
   const path = require('path')
   const https = require('https')
   const BdApi = new window.BdApi('FavoriteMedia')
-  const { Webpack } = BdApi
+  const { Webpack, openDialog } = BdApi
 
   const classModules = {
     icon: WebpackModules.getByProps('hoverScale', 'buttonWrapper', 'button'),
@@ -54,7 +54,9 @@ module.exports = (Plugin, Library) => {
     container: WebpackModules.getByProps('container', 'inner', 'pointer'),
     scroller: WebpackModules.getByProps('scrollerBase', 'thin', 'fade'),
     look: WebpackModules.getByProps('lowSaturationUnderline', 'button', 'lookFilled'),
-    audio: WebpackModules.getByProps('wrapper', 'wrapperAudio', 'wrapperPaused')
+    audio: WebpackModules.getByProps('wrapper', 'wrapperAudio', 'wrapperPaused'),
+    contentWrapper: WebpackModules.getByProps('contentWrapper', 'resizeHandle', 'drawerSizingWrapper'),
+    buttons: WebpackModules.getByProps('profileBioInput', 'buttons', 'attachButton')
   }
   const classes = {
     icon: {
@@ -155,6 +157,12 @@ module.exports = (Plugin, Library) => {
     },
     audio: {
       wrapperAudio: classModules.audio.wrapperAudio
+    },
+    contentWrapper: {
+      contentWrapper: classModules.contentWrapper.contentWrapper
+    },
+    buttons: {
+      buttons: classModules.buttons.buttons
     }
   }
 
@@ -168,11 +176,13 @@ module.exports = (Plugin, Library) => {
   const EPS = {}
   const EPSModules = Webpack.getModule(m => Object.keys(m).some(key => m[key]?.toString?.().includes('isSearchSuggestion')))
   const EPSConstants = Webpack.getModule(Webpack.Filters.byProps('FORUM_CHANNEL_GUIDELINES', 'CREATE_FORUM_POST'), { searchExports: true })
-  const ExpressionPicker = Webpack.getModule(m => m.prototype?.render?.toString().includes('onUnmount'), { searchExports: true })
+  const GIFUtils = {
+    favorite: Webpack.getModule(m => m.toString?.()?.includes('updateAsync("favoriteGifs'), { searchExports: true }),
+    unfavorite: Webpack.getModule(m => m.toString?.()?.includes('delete t.gifs'), { searchExports: true })
+  }
   const PermissionsConstants = Webpack.getModule(Webpack.Filters.byProps('ADD_REACTIONS'), { searchExports: true })
   const MediaPlayer = Webpack.getModule(m => m.Types?.VIDEO, { searchExports: true })
   const Image = Webpack.getModule(m => m.defaultProps?.zoomable)
-  const FrecencyUserSettingsProto = Webpack.getModule(m => m.ProtoClass?.typeName === 'discord_protos.discord_users.v1.FrecencyUserSettings', { searchExports: true })
   const FilesUpload = Webpack.getModule(Webpack.Filters.byProps('addFiles'))
   const MessagesManager = Webpack.getModule(Webpack.Filters.byProps('sendMessage'))
 
@@ -211,9 +221,10 @@ module.exports = (Plugin, Library) => {
   function uploadFile (type, buffer, media) {
     // if the textarea has not been patched, file uploading will fail
     if (currentTextareaInput == null || !document.body.contains(currentTextareaInput)) return console.error('[FavoriteMedia]', 'Could not find current textarea, upload file canceled.')
+    const isGIF = type === 'gif'
     const ext = getUrlExt(media.url)
-    const fileName = `${getUrlName(media.url).replace(/ /g, '_')}${ext}`
-    const mime = `${type === 'gif' ? 'image' : type}/${ext.slice(1)}`
+    const fileName = `${isGIF ? getUrlName(media.url).replace(/ /g, '_') : media.name}${ext}`
+    const mime = `${isGIF ? 'image' : type}/${ext.slice(1)}`
     const file = new File([buffer], fileName, { type: mime })
     FilesUpload.addFiles({
       channelId: currentChannelId,
@@ -265,9 +276,9 @@ module.exports = (Plugin, Library) => {
   }
 
   function findMessageIds ($target) {
-    if ($target == null) return
+    if ($target == null) return [null, null]
     const ids = $target.closest('[id^="chat-messages-"]')?.getAttribute('id').split('-')?.slice(2)
-    if (ids == null) return
+    if (ids == null) return [null, null]
     return ids
   }
 
@@ -284,8 +295,6 @@ module.exports = (Plugin, Library) => {
 
   function findSourceLink ($target, url) {
     if ($target == null) return
-    const ids = $target.closest('[id^="chat-messages-"]')?.getAttribute('id').split('-')?.slice(2)
-    if (ids == null) return
     try {
       const [channelId, messageId] = findMessageIds($target)
       const embed = MessageStore.getMessage(channelId, messageId)?.embeds?.find((e) => {
@@ -328,8 +337,7 @@ module.exports = (Plugin, Library) => {
 
   // https://github.com/Strencher/BetterDiscordStuff/blob/master/InvisibleTyping/InvisibleTyping.plugin.js#L483-L494
   function loadChannelTextAreaButtons () {
-    const buttonsClassName = WebpackModules.getByProps('profileBioInput', 'buttons')?.buttons
-    const vnode = ReactTools.getReactInstance(document.querySelector(`.${buttonsClassName}`))
+    const vnode = ReactTools.getReactInstance(document.querySelector(`.${classes.buttons.buttons}`))
     if (!vnode) return
     for (let curr = vnode, max = 100; curr !== null && max--; curr = curr.return) {
       const tree = curr?.pendingProps?.children
@@ -509,11 +517,12 @@ module.exports = (Plugin, Library) => {
 
     static favoriteMedia (props) {
       // get message and source links
-      const $target = props.target?.current
+      const $target = props.target.current
       if ($target != null) {
         props.message = findMessageLink($target)
         props.source = findSourceLink($target, props.url)
       }
+      if (props.type === 'gif') MediaFavButton.favoriteGIF(props)
       const typeData = Utilities.loadData(config.name, props.type, { medias: [] })
       if (typeData.medias.find(m => m.url === props.url)) return
       const data = MediaFavButton.getMediaDataFromProps(props)
@@ -531,10 +540,12 @@ module.exports = (Plugin, Library) => {
       if (props.fromPicker) Dispatcher.dispatch({ type: 'UPDATE_MEDIAS' })
     }
 
+    static favoriteGIF (props) {
+      GIFUtils.favorite({ ...props, format: 2 })
+    }
+
     static unfavoriteGIF (props) {
-      FrecencyUserSettingsProto.updateAsync('favoriteGifs', function (t) {
-        delete t.gifs[props.url]
-      }, 0).catch((err) => console.error('[FavoriteMedia]', err))
+      GIFUtils.unfavorite(props.url)
     }
 
     favButton () {
@@ -910,7 +921,7 @@ module.exports = (Plugin, Library) => {
 
     get elementTag () {
       if (this.props.type === 'audio') return 'audio'
-      else if (this.state.showControls || (this.isGIF && !this.props.src.endsWith('.gif'))) return 'video'
+      else if (this.state.showControls || (this.isGIF && !this.props.src?.endsWith('.gif'))) return 'video'
       return 'img'
     }
 
@@ -1324,7 +1335,7 @@ module.exports = (Plugin, Library) => {
     }
 
     static downloadCategory (props) {
-      BdApi.openDialog({ openDirectory: true }).then(({ filePaths }) => {
+      openDialog({ openDirectory: true }).then(({ filePaths }) => {
         if (!filePaths?.[0]) return
         const categoryFolder = path.join(filePaths[0], props.name ?? '')
         mkdir(categoryFolder, {}, () => {
@@ -1534,7 +1545,7 @@ module.exports = (Plugin, Library) => {
         action: () => {
           const ext = this.props.type === 'gif' ? '.gif' : getUrlExt(media.url)
           media.name = media.name.replace(/ /g, '_')
-          BdApi.openDialog({ mode: 'save', defaultPath: media.name + ext }).then(({ filePath }) => {
+          openDialog({ mode: 'save', defaultPath: media.name + ext }).then(({ filePath }) => {
             if (filePath === '') return
             fetchMedia(media).then((buffer) => {
               writeFile(filePath, buffer, (err) => {
@@ -1928,13 +1939,14 @@ module.exports = (Plugin, Library) => {
   return class FavoriteMedia extends Plugin {
     onStart () {
       loadModules()
-      this.patchChannelTextArea()
+      this.openMediaTabsByKeybinds()
       this.patchExpressionPicker()
       this.patchMessageContextMenu()
       this.patchGIFTab()
       this.patchClosePicker()
       this.patchMedias()
       this.preloadMedias()
+      this.patchChannelTextArea()
       if (this.settings.alwaysDeleteDeadMedias) this.deleteDeadMedias()
       DOMTools.addStyle(this.getName() + '-css', `
         .category-input-color > input[type='color'] {
@@ -1954,6 +1966,8 @@ module.exports = (Plugin, Library) => {
         }
         .fm-favBtn.fm-audio {
           right: 0;
+          left: auto;
+          width: auto;
           margin-right: 10%;
         }
         .show-controls {
@@ -2031,6 +2045,8 @@ module.exports = (Plugin, Library) => {
       DOMTools.removeStyle(this.getName() + '-css')
       Patcher.unpatchAll()
       this.contextMenu?.()
+      window.removeEventListener('keydown', this.onKeyDown)
+      window.removeEventListener('keyup', this.onKeyUp)
     }
 
     onSwitch () {
@@ -2059,7 +2075,7 @@ module.exports = (Plugin, Library) => {
             link.href = media[href]
             let mime = type
             if (type === 'gif') {
-              mime = media.src.endsWith('.gif') ? 'image' : 'video'
+              mime = media.src?.endsWith('.gif') ? 'image' : 'video'
             } else if (type === 'video' && href === 'poster') {
               mime = 'image'
             }
@@ -2077,6 +2093,31 @@ module.exports = (Plugin, Library) => {
       document.head.appendChild(fmHead)
     }
 
+    detectMultiKeysPressing (keys, callback) {
+      const keysDown = {}
+      this.onKeyDown = function (e) {
+        keysDown[e.key] = true
+        if (keys.every(k => keysDown[k])) callback?.(keysDown)
+      }
+      this.onKeyUp = function (e) {
+        delete keysDown[e.key]
+      }
+      window.addEventListener('keydown', this.onKeyDown)
+      window.addEventListener('keyup', this.onKeyUp)
+    }
+
+    openMediaTabsByKeybinds () {
+      this.detectMultiKeysPressing(['Control', 'Alt'], (keysDown) => {
+        if (keysDown.i) {
+          EPS.toggleExpressionPicker('image', EPSConstants.NORMAL)
+        } else if (keysDown.v) {
+          EPS.toggleExpressionPicker('video', EPSConstants.NORMAL)
+        } else if (keysDown.a) {
+          EPS.toggleExpressionPicker('audio', EPSConstants.NORMAL)
+        }
+      })
+    }
+
     MediaTab (mediaType, elementType) {
       const selected = mediaType === EPS.useExpressionPickerStore.getState().activeView
       return React.createElement(elementType, {
@@ -2089,12 +2130,30 @@ module.exports = (Plugin, Library) => {
       }, labels.tabName[mediaType])
     }
 
-    patchExpressionPicker () {
+    async waitExpressionPicker () {
+      return new Promise((resolve) => {
+        const selector = `.${classes.contentWrapper.contentWrapper}`
+        const observerSubscription = DOMTools.observer.subscribeToQuerySelector(() => {
+          const $el = document.querySelector(selector)
+          if ($el == null) return
+          resolve(ReactTools.getOwnerInstance($el))
+          DOMTools.observer.unsubscribe(observerSubscription)
+        }, selector, null, true)
+      })
+    }
+
+    async patchExpressionPicker () {
+      const ExpressionPicker = await this.waitExpressionPicker()
+      if (ExpressionPicker == null) {
+        console.error('[FavoriteMedia]', 'ExpressionPicker module not found')
+        return
+      }
+      ExpressionPicker.forceUpdate()
       // https://github.com/BetterDiscord/BetterDiscord/blob/3b9ad9b75b6ac64e6740e9c2f1d19fd4615010c7/renderer/src/builtins/emotes/emotemenu.js
-      Patcher.after(ExpressionPicker.prototype, 'render', (_, __, returnValue) => {
-        const originalChildren = returnValue?.props?.children?.props?.children
+      Patcher.after(ExpressionPicker.constructor.prototype, 'render', (_, __, returnValue) => {
+        const originalChildren = returnValue.props?.children
         if (originalChildren == null) return
-        returnValue.props.children.props.children = (...args) => {
+        returnValue.props.children = (...args) => {
           const childrenReturn = originalChildren(...args)
           const head = Utilities.findInTree(childrenReturn, (e) => e?.role === 'tablist', { walkable: ['props', 'children', 'return', 'stateNode'] })?.children
           const body = Utilities.findInTree(childrenReturn, (e) => e?.[0]?.type === 'nav', { walkable: ['props', 'children', 'return', 'stateNode'] })
@@ -2112,7 +2171,7 @@ module.exports = (Plugin, Library) => {
               }))
             }
           } catch (err) {
-            console.error('[FavoriteMedia]', '[FavoriteMedia] Error in ExpressionPicker\n', err)
+            console.error('[FavoriteMedia]', 'Error in ExpressionPicker\n', err)
           }
           return childrenReturn
         }
@@ -2151,48 +2210,63 @@ module.exports = (Plugin, Library) => {
     }
 
     patchMedias () {
-      Patcher.after(MediaPlayer.prototype, 'render', ({ props }, __, returnValue) => {
-        const type = returnValue.props.children[1].type === 'audio' ? 'audio' : 'video'
-        if (!this.settings[type].enabled || !this.settings[type].showStar) return
-        let url = props.src
-        if (!url) return
-        url = url.split('https/')[1]
-        if (!url) url = props.src
-        else url = 'https://' + url
-        // force cdn link because on PC media link videos can't be played
-        url = url.replace('media.discordapp.net', 'cdn.discordapp.com')
-        returnValue.props.children.push(React.createElement(MediaFavButton, {
-          type,
-          url,
-          poster: props.poster,
-          width: props.width,
-          height: props.height,
-          uploaded: returnValue.props.children[0] != null,
-          target: returnValue.props.children[1]?.ref
-        }))
-      })
-      Patcher.after(Image.prototype, 'render', (_, __, returnValue) => {
-        if (!this.settings.image.enabled || !this.settings.image.showStar) return
-        const propsButton = returnValue.props?.children?.props?.children?.[1]?.props
-        if (propsButton == null) return
-        const propsImg = propsButton.children?.props
-        if (propsImg == null) return
-        const url = returnValue.props?.children?.props?.children?.[0]?.props?.href || propsImg.src
-        if (!url) return
-        const onclick = propsButton.onClick
-        propsButton.onClick = e => {
-          if (e.target?.alt === undefined) e.preventDefault()
-          else onclick(e)
-        }
-        if (returnValue.props.children.props.children[2] != null) return
-        returnValue.props.children.props.children.push(React.createElement(MediaFavButton, {
-          type: 'image',
-          url: url.replace('media.discordapp.net', 'cdn.discordapp.com').replace(/\?width=([\d]*)&height=([\d]*)/, ''),
-          width: propsImg.style?.maxWidth ?? propsImg.style?.width,
-          height: propsImg.style?.maxHeight ?? propsImg.style?.height,
-          target: returnValue.props.ringTarget
-        }))
-      })
+      if (MediaPlayer == null) {
+        console.error('[FavoriteMedia]', 'MediaPlayer module not found')
+      } else {
+        Patcher.after(MediaPlayer.prototype, 'render', ({ props }, __, returnValue) => {
+          const type = returnValue.props.children[1].type === 'audio' ? 'audio' : 'video'
+          if (!this.settings[type].enabled || !this.settings[type].showStar) return
+          let url = props.src
+          if (!url) return
+          url = url.split('https/')[1]
+          if (!url) url = props.src
+          else url = 'https://' + url
+          // force cdn link because on PC media link videos can't be played
+          url = url.replace('media.discordapp.net', 'cdn.discordapp.com')
+          returnValue.props.children.push(React.createElement(MediaFavButton, {
+            type,
+            url,
+            poster: props.poster,
+            width: props.width,
+            height: props.height,
+            uploaded: returnValue.props.children[0] != null,
+            target: returnValue.props.children[1]?.ref
+          }))
+        })
+      }
+      if (Image == null) {
+        console.error('[FavoriteMedia]', 'Image module not found')
+      } else {
+        Patcher.after(Image.prototype, 'render', (_, __, returnValue) => {
+          const propsButton = returnValue.props?.children?.props?.children?.[1]?.props
+          if (propsButton == null) return
+          const propsImg = propsButton.children?.props
+          if (propsImg == null) return
+          const data = {}
+          data.type = propsImg.play != null || propsImg.src?.split('?')[0].endsWith('.gif') ? 'gif' : 'image'
+          if (!this.settings[data.type].enabled || !this.settings[data.type].showStar) return
+          data.url = returnValue.props.focusTarget.current?.firstChild?.getAttribute('href') || propsImg.src
+          if (data.url == null) return
+          const onclick = propsButton.onClick
+          propsButton.onClick = e => {
+            if (e.target?.alt === undefined) e.preventDefault()
+            else onclick(e)
+          }
+          const index = returnValue.props.children.props.children[2] != null ? 2 : returnValue.props.children.props.children
+          if (data.type === 'gif') {
+            data.src = propsImg.src
+            data.url = returnValue.props.focusTarget.current?.parentElement.firstElementChild.getAttribute('href')
+          }
+          returnValue.props.children.props.children.splice(index, 1, React.createElement(MediaFavButton, {
+            type: data.type,
+            src: data.src,
+            url: data.url.replace('media.discordapp.net', 'cdn.discordapp.com').replace(/\?width=([\d]*)&height=([\d]*)/, ''),
+            width: propsImg.style?.maxWidth || (data.type === 'gif' ? propsImg.width : Number(data.url.match(/\?width=([\d]*)/, '')?.[1])) || 0,
+            height: propsImg.style?.maxHeight || (data.type === 'gif' ? propsImg.height : Number(data.url.match(/&height=([\d]*)/, '')?.[1])) || 0,
+            target: returnValue.props.focusTarget
+          }))
+        })
+      }
     }
 
     patchClosePicker () {
@@ -2204,7 +2278,10 @@ module.exports = (Plugin, Library) => {
 
     async patchGIFTab () {
       const GIFPicker = await ReactComponents.getComponent('GIFPicker', '#gif-picker-tab-panel')
-      if (GIFPicker == null) return
+      if (GIFPicker == null) {
+        console.error('[FavoriteMedia]', 'GIFPicker module not found')
+        return
+      }
       Patcher.after(GIFPicker.component.prototype, 'renderContent', (_this, _, returnValue) => {
         if (!this.settings.gif.enabled || _this.state.resultType !== 'Favorites') return
         if (!Array.isArray(returnValue.props.data)) return
@@ -2236,42 +2313,45 @@ module.exports = (Plugin, Library) => {
 
         const getMediaContextMenuItems = () => {
           if (props.target == null) return []
-          if (!(
-            (props.target.tagName === 'A' && props.target.nextSibling?.firstChild?.tagName === 'IMG') || // image
-            (props.target.tagName === 'A' && props.target.nextSibling?.firstChild?.tagName === 'VIDEO') || // gif
-            (props.target.tagName === 'VIDEO' && props.target.className?.includes('video')) || // video
-            (props.target.parentElement?.firstElementChild?.className?.includes('audioMetadata')) // audio
-          )) return []
-
+          let type = null
+          if (props.target.tagName === 'IMG') type = 'image'
+          else if (props.target.tagName === 'A' && ['IMG', 'VIDEO'].includes(props.target.nextSibling?.firstChild?.tagName)) type = 'gif'
+          else if (props.target.parentElement.firstElementChild.tagName === 'VIDEO') type = 'video'
+          else if (props.target.closest('[class*="wrapperAudio"]')) {
+            type = 'audio'
+            props.target = props.target.closest('[class*="wrapperAudio"]')
+          }
+          if (type == null) return []
           const data = {
-            type: 'image',
+            type,
             url: props.target.getAttribute('href') || props.target.src,
-            poster: props.target.poster,
-            width: props.target.width,
-            height: props.target.height,
+            poster: null,
+            width: 0,
+            height: 0,
             favorited: undefined,
-            message: null,
-            source: null
+            target: { current: props.target }
           }
-          if (props.target.nextSibling?.firstChild?.tagName === 'IMG') {
-            data.url = data.url || props.target.nextSibling.firstChild.src
-            data.width = props.target.nextSibling.firstChild.width
-            data.height = props.target.nextSibling.firstChild.height
-          }
-          if (props.target.nextSibling?.firstChild?.tagName === 'VIDEO') {
-            data.type = 'gif'
-            data.width = props.target.nextSibling.firstChild.width
-            data.height = props.target.nextSibling.firstChild.height
-          }
-          if (props.target.tagName === 'VIDEO') data.type = 'video'
-          if (props.target.parentElement?.firstElementChild?.className?.includes('audioMetadata')) {
-            data.url = props.target.parentElement?.querySelector('audio')?.firstElementChild?.src
-            data.type = 'audio'
+          if (data.type === 'image') {
+            let tmpUrl = data.url.split('https/')[1]
+            if (!tmpUrl) tmpUrl = data.url
+            else tmpUrl = 'https://' + tmpUrl
+            data.url = (tmpUrl || data.url || props.target.src).replace(/\?width=([\d]*)&height=([\d]*)/, '')
+            data.width = Number(props.target.src.match(/\?width=([\d]*)/, '')?.[1])
+            data.height = Number(props.target.src.match(/&height=([\d]*)/, '')?.[1])
+          } else if (data.type === 'gif') {
+            data.src = props.target.nextSibling.firstChild?.src
+            data.width = props.target.nextSibling.firstChild?.width
+            data.height = props.target.nextSibling.firstChild?.height
+          } else if (data.type === 'video') {
+            data.url = props.target.parentElement.firstElementChild.src
+            data.poster = props.target.parentElement.firstElementChild.poster
+            data.width = props.target.parentElement.firstElementChild.width
+            data.height = props.target.parentElement.firstElementChild.height
+          } else if (data.type === 'audio') {
+            data.url = props.target.querySelector('audio').firstElementChild?.src
           }
           data.url = data.url.replace('media.discordapp.net', 'cdn.discordapp.com')
           data.favorited = this.isFavorited(data.type, data.url)
-          data.message = findMessageLink(props.target)
-          data.source = findSourceLink(props.target, data.url)
           const menuItems = [{
             id: `media-${data.favorited ? 'un' : ''}favorite`,
             label: data.favorited ? Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES,
@@ -2308,7 +2388,7 @@ module.exports = (Plugin, Library) => {
               const media = { url: data.url, name: getUrlName(data.url) }
               const ext = data.type === 'gif' ? '.gif' : getUrlExt(media.url)
               media.name = media.name.replace(/ /g, '_')
-              BdApi.openDialog({ mode: 'save', defaultPath: media.name + ext }).then(({ filePath }) => {
+              openDialog({ mode: 'save', defaultPath: media.name + ext }).then(({ filePath }) => {
                 if (filePath === '') return
                 fetchMedia(media).then((buffer) => {
                   writeFile(filePath, buffer, (err) => {
@@ -4889,96 +4969,96 @@ module.exports = (Plugin, Library) => {
           tabName: {
             image: '图片',
             video: '视频',
-            audio: '音频'
+            audio: '声音的'
           },
-          create: '创建',
+          create: '创造',
           category: {
             list: '类别',
             unsorted: '未排序',
-            create: '创建类别',
+            create: '创建一个类别',
             edit: '编辑类别',
-            delete: '移除类别',
-            deleteConfirm: '此类别内包含子类别。它们都将被移除。您确定要移除类别吗？',
+            delete: '删除类别',
+            deleteConfirm: '此类别包含子类别。 它们都将被删除。 您确定要删除类别吗？',
             download: '下载媒体',
             placeholder: '分类名称',
             move: '移动',
-            moveNext: '向后移动',
-            movePrevious: '向前移动',
+            moveNext: '后',
+            movePrevious: '前',
             color: '颜色',
-            copyColor: '复制颜色',
+            copyColor: '复印颜色',
             error: {
               needName: '名称不能为空',
-              invalidNameLength: '名称需小于20个字符',
-              wrongColor: '无效颜色',
-              nameExists: '该名称已经存在',
+              invalidNameLength: '名称必须最多包含 20 个字符',
+              wrongColor: '颜色无效',
+              nameExists: '这个名字已经存在',
               invalidCategory: '该类别不存在',
               download: '无法下载媒体'
             },
             success: {
               create: '该类别已创建！',
-              delete: '该类别已移除！',
+              delete: '该分类已被删除！',
               edit: '类别已更改！',
               move: '类别已移动！',
-              download: '媒体已下载！'
+              download: '媒体已上传！'
             },
-            emptyHint: '右击以创建一个类别！'
+            emptyHint: '右键创建一个类别！'
           },
           media: {
             emptyHint: {
-              image: '点击图像角落的星星将其放入收藏项目',
-              video: '点击视频角落的星星将其放入收藏项目',
-              audio: '点击音频角落的星星将其放入收藏项目'
+              image: '单击图像角落的星星将其放入您的收藏夹',
+              video: '点击视频角落的星星，将其放入您的收藏夹',
+              audio: '单击音频一角的星星将其放入您的收藏夹'
             },
-            addTo: '移动至...',
-            moveTo: '移动至...',
-            removeFrom: '移出类别',
-            copySource: '复制链接',
+            addTo: '添加',
+            moveTo: '移动',
+            removeFrom: '从类别中删除',
+            copySource: '复制媒体源',
             upload: {
               title: '上传',
-              normal: '正常',
+              normal: '普通的',
               spoiler: '剧透'
             },
             success: {
               move: {
-                gif: 'GIF已移动！',
+                gif: 'GIF已被移动！',
                 image: '图片已移动！',
-                video: '视频已移动！',
+                video: '视频已移！',
                 audio: '音频已移动！'
               },
               remove: {
-                gif: '该GIF已从类别中移除！',
-                image: '该图片已从类别中移除！',
-                video: '该视频已从类别中移除！',
-                audio: '该音频已从类别中移除！'
+                gif: 'GIF 已从类别中删除！',
+                image: '该图片已从类别中删除！',
+                video: '该视频已从类别中删除！',
+                audio: '音频已从类别中删除！'
               },
               download: {
                 gif: 'GIF已上传！',
                 image: '图片已上传！',
                 video: '视频已上传！',
-                audio: '音频已上传！'
+                audio: '音频已下载！'
               }
             },
             error: {
               download: {
-                gif: '无法下载GIF',
-                image: '无法下载图片',
-                video: '无法下载视频',
+                gif: '无法下载 GIF',
+                image: '上传图片失败',
+                video: '下载视频失败',
                 audio: '无法下载音频'
               }
             },
             controls: {
-              show: '显示控制项',
-              hide: '隐藏控制项'
+              show: '显示订单',
+              hide: '隐藏订单'
             },
             placeholder: {
-              gif: 'GIF名称',
+              gif: '动图名称',
               image: '图片名称',
               video: '视频名称',
               audio: '音频名称'
             }
           },
           searchItem: {
-            gif: '搜索GIF或类别',
+            gif: '搜索 GIF 或类别',
             image: '搜索图像或类别',
             video: '搜索视频或类别',
             audio: '搜索音频或类别'
@@ -4995,11 +5075,11 @@ module.exports = (Plugin, Library) => {
           category: {
             list: '類別',
             unsorted: '未排序',
-            create: '創建分類',
+            create: '創建一個分類',
             edit: '編輯分類',
             delete: '刪除分類',
-            deleteConfirm: '此類別內包含子類別。它們都將被刪除。您確定要刪除類別嗎？',
-            download: '下載分類',
+            deleteConfirm: '此類別包含子類別。 它們都將被刪除。 您確定要刪除類別嗎？',
+            download: '下載媒體',
             placeholder: '分類名稱',
             move: '移動',
             moveNext: '下一個',
@@ -5010,29 +5090,29 @@ module.exports = (Plugin, Library) => {
               needName: '名稱不能為空',
               invalidNameLength: '名稱需少於20個字符',
               wrongColor: '無效的顏色',
-              nameExists: '該名稱已經存在',
+              nameExists: '這個名稱已經存在',
               invalidCategory: '該分類不存在',
-              download: '下載時發生錯誤'
+              download: '無法下載媒體'
             },
             success: {
-              create: '分類已創建！',
-              delete: '分類已刪除！',
+              create: '該分類已創建！',
+              delete: '該分類已刪除！',
               edit: '分類已更改！',
               move: '分類已移動！',
-              download: '媒體已下載！'
+              download: '媒體已上傳！'
             },
-            emptyHint: '右鍵以創建新分類！'
+            emptyHint: '右鍵創建一個新分類！'
           },
           media: {
             emptyHint: {
-              image: '點擊圖片角落的星星將其放入最愛項目',
-              video: '點擊影片角落的星星將其放入最愛項目',
-              audio: '點擊音訊角落的星星將其放入最愛項目'
+              image: '點擊圖像角落的星星將其放入您的收藏夾',
+              video: '點擊影片角落的星星將其放入您的收藏夾',
+              audio: '單擊音訊角落的星星將其放入您的收藏夾'
             },
-            addTo: '移動至...',
-            moveTo: '移動至...',
-            removeFrom: '移出分類',
-            copySource: '複製連結',
+            addTo: '添加',
+            moveTo: '移動',
+            removeFrom: '從分類中刪除',
+            copySource: '複製媒體源',
             upload: {
               title: '上傳',
               normal: '正常',
@@ -5040,43 +5120,43 @@ module.exports = (Plugin, Library) => {
             },
             success: {
               move: {
-                gif: 'GIF已移動！',
+                gif: 'GIF已被移動！',
                 image: '圖片已移動！',
                 video: '影片已移動！',
                 audio: '音訊已移動！'
               },
               remove: {
-                gif: '該GIF已從分類中刪除！',
+                gif: 'GIF 已從類別中刪除！',
                 image: '該圖片已從分類中刪除！',
                 video: '該影片已從分類中刪除！',
                 audio: '該音訊已從分類中刪除！'
               },
               download: {
-                gif: 'GIF已下載！',
-                image: '圖片已下載！',
-                video: '影片已下載！',
-                audio: '音訊已下載！'
+                gif: 'GIF已上傳！',
+                image: '圖片已上傳！',
+                video: '視頻已上傳！',
+                audio: '音頻已下載！'
               }
             },
             download: {
               gif: '無法下載 GIF',
-              image: '無法上傳圖片',
-              video: '無法下載影片',
-              audio: '無法下載音訊'
+              image: '上傳圖片失敗',
+              video: '下載視頻失敗',
+              audio: '無法下載音頻'
             },
             controls: {
               show: '顯示控制選單',
               hide: '隱藏控制選單'
             },
             placeholder: {
-              gif: 'GIF名稱',
+              gif: '動圖名稱',
               image: '圖片名稱',
               video: '影片名稱',
               audio: '音訊名稱'
             }
           },
           searchItem: {
-            gif: '搜索GIF或分類',
+            gif: '搜索 GIF 或類別',
             image: '搜索圖片或分類',
             video: '搜索影片或分類',
             audio: '搜索音訊或分類'

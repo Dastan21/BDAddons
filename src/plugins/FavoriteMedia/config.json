@@ -5,7 +5,7 @@
   "author": "Dastan",
   "authorId": "310450863845933057",
   "authorLink": "",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "description": "Allows to favorite GIFs, images, videos and audios.",
   "website": "",
   "source": "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -239,16 +239,15 @@
       "title": "Feature",
       "type": "added",
       "items": [
-        "Added setting to automatically remove dead medias (no longer available ones)",
-        "Categories can now be drag-n-drop in other categories"
+        "Added medias tab keybind: CTRL+ALT+ (I for image, V for video and A for audio)"
       ]
     },
     {
       "title": "Bugs",
       "type": "fixed",
       "items": [
-        "Every type of media can be moved into categories again",
-        "Fixed floating/clipping medias position"
+        "Fixed medias tab not working",
+        "Fixed floating/clipping medias"
       ]
     }
   ]

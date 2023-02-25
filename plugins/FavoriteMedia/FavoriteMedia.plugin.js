@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos and audios.
- * @version 1.7.1
+ * @version 1.7.2
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -36,7 +36,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "1.7.1",
+    version: "1.7.2",
     description: "Allows to favorite GIFs, images, videos and audios.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -282,16 +282,15 @@ const config = {
             title: "Feature",
             type: "added",
             items: [
-                "Added setting to automatically remove dead medias (no longer available ones)",
-                "Categories can now be drag-n-drop in other categories"
+                "Added medias tab keybind: CTRL+ALT+ (I for image, V for video and A for audio)"
             ]
         },
         {
             title: "Bugs",
             type: "fixed",
             items: [
-                "Every type of media can be moved into categories again",
-                "Fixed floating/clipping medias position"
+                "Fixed medias tab not working",
+                "Fixed floating/clipping medias"
             ]
         }
     ]
@@ -353,7 +352,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
   const path = require('path')
   const https = require('https')
   const BdApi = new window.BdApi('FavoriteMedia')
-  const { Webpack } = BdApi
+  const { Webpack, openDialog } = BdApi
 
   const classModules = {
     icon: WebpackModules.getByProps('hoverScale', 'buttonWrapper', 'button'),
@@ -374,7 +373,9 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     container: WebpackModules.getByProps('container', 'inner', 'pointer'),
     scroller: WebpackModules.getByProps('scrollerBase', 'thin', 'fade'),
     look: WebpackModules.getByProps('lowSaturationUnderline', 'button', 'lookFilled'),
-    audio: WebpackModules.getByProps('wrapper', 'wrapperAudio', 'wrapperPaused')
+    audio: WebpackModules.getByProps('wrapper', 'wrapperAudio', 'wrapperPaused'),
+    contentWrapper: WebpackModules.getByProps('contentWrapper', 'resizeHandle', 'drawerSizingWrapper'),
+    buttons: WebpackModules.getByProps('profileBioInput', 'buttons', 'attachButton')
   }
   const classes = {
     icon: {
@@ -475,6 +476,12 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     },
     audio: {
       wrapperAudio: classModules.audio.wrapperAudio
+    },
+    contentWrapper: {
+      contentWrapper: classModules.contentWrapper.contentWrapper
+    },
+    buttons: {
+      buttons: classModules.buttons.buttons
     }
   }
 
@@ -488,11 +495,13 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
   const EPS = {}
   const EPSModules = Webpack.getModule(m => Object.keys(m).some(key => m[key]?.toString?.().includes('isSearchSuggestion')))
   const EPSConstants = Webpack.getModule(Webpack.Filters.byProps('FORUM_CHANNEL_GUIDELINES', 'CREATE_FORUM_POST'), { searchExports: true })
-  const ExpressionPicker = Webpack.getModule(m => m.prototype?.render?.toString().includes('onUnmount'), { searchExports: true })
+  const GIFUtils = {
+    favorite: Webpack.getModule(m => m.toString?.()?.includes('updateAsync("favoriteGifs'), { searchExports: true }),
+    unfavorite: Webpack.getModule(m => m.toString?.()?.includes('delete t.gifs'), { searchExports: true })
+  }
   const PermissionsConstants = Webpack.getModule(Webpack.Filters.byProps('ADD_REACTIONS'), { searchExports: true })
   const MediaPlayer = Webpack.getModule(m => m.Types?.VIDEO, { searchExports: true })
   const Image = Webpack.getModule(m => m.defaultProps?.zoomable)
-  const FrecencyUserSettingsProto = Webpack.getModule(m => m.ProtoClass?.typeName === 'discord_protos.discord_users.v1.FrecencyUserSettings', { searchExports: true })
   const FilesUpload = Webpack.getModule(Webpack.Filters.byProps('addFiles'))
   const MessagesManager = Webpack.getModule(Webpack.Filters.byProps('sendMessage'))
 
@@ -531,9 +540,10 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
   function uploadFile (type, buffer, media) {
     // if the textarea has not been patched, file uploading will fail
     if (currentTextareaInput == null || !document.body.contains(currentTextareaInput)) return console.error('[FavoriteMedia]', 'Could not find current textarea, upload file canceled.')
+    const isGIF = type === 'gif'
     const ext = getUrlExt(media.url)
-    const fileName = `${getUrlName(media.url).replace(/ /g, '_')}${ext}`
-    const mime = `${type === 'gif' ? 'image' : type}/${ext.slice(1)}`
+    const fileName = `${isGIF ? getUrlName(media.url).replace(/ /g, '_') : media.name}${ext}`
+    const mime = `${isGIF ? 'image' : type}/${ext.slice(1)}`
     const file = new File([buffer], fileName, { type: mime })
     FilesUpload.addFiles({
       channelId: currentChannelId,
@@ -585,9 +595,9 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
   }
 
   function findMessageIds ($target) {
-    if ($target == null) return
+    if ($target == null) return [null, null]
     const ids = $target.closest('[id^="chat-messages-"]')?.getAttribute('id').split('-')?.slice(2)
-    if (ids == null) return
+    if (ids == null) return [null, null]
     return ids
   }
 
@@ -604,8 +614,6 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
   function findSourceLink ($target, url) {
     if ($target == null) return
-    const ids = $target.closest('[id^="chat-messages-"]')?.getAttribute('id').split('-')?.slice(2)
-    if (ids == null) return
     try {
       const [channelId, messageId] = findMessageIds($target)
       const embed = MessageStore.getMessage(channelId, messageId)?.embeds?.find((e) => {
@@ -648,8 +656,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
   // https://github.com/Strencher/BetterDiscordStuff/blob/master/InvisibleTyping/InvisibleTyping.plugin.js#L483-L494
   function loadChannelTextAreaButtons () {
-    const buttonsClassName = WebpackModules.getByProps('profileBioInput', 'buttons')?.buttons
-    const vnode = ReactTools.getReactInstance(document.querySelector(`.${buttonsClassName}`))
+    const vnode = ReactTools.getReactInstance(document.querySelector(`.${classes.buttons.buttons}`))
     if (!vnode) return
     for (let curr = vnode, max = 100; curr !== null && max--; curr = curr.return) {
       const tree = curr?.pendingProps?.children
@@ -829,11 +836,12 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
     static favoriteMedia (props) {
       // get message and source links
-      const $target = props.target?.current
+      const $target = props.target.current
       if ($target != null) {
         props.message = findMessageLink($target)
         props.source = findSourceLink($target, props.url)
       }
+      if (props.type === 'gif') MediaFavButton.favoriteGIF(props)
       const typeData = Utilities.loadData(config.name, props.type, { medias: [] })
       if (typeData.medias.find(m => m.url === props.url)) return
       const data = MediaFavButton.getMediaDataFromProps(props)
@@ -851,10 +859,12 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       if (props.fromPicker) Dispatcher.dispatch({ type: 'UPDATE_MEDIAS' })
     }
 
+    static favoriteGIF (props) {
+      GIFUtils.favorite({ ...props, format: 2 })
+    }
+
     static unfavoriteGIF (props) {
-      FrecencyUserSettingsProto.updateAsync('favoriteGifs', function (t) {
-        delete t.gifs[props.url]
-      }, 0).catch((err) => console.error('[FavoriteMedia]', err))
+      GIFUtils.unfavorite(props.url)
     }
 
     favButton () {
@@ -1230,7 +1240,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
     get elementTag () {
       if (this.props.type === 'audio') return 'audio'
-      else if (this.state.showControls || (this.isGIF && !this.props.src.endsWith('.gif'))) return 'video'
+      else if (this.state.showControls || (this.isGIF && !this.props.src?.endsWith('.gif'))) return 'video'
       return 'img'
     }
 
@@ -1644,7 +1654,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     }
 
     static downloadCategory (props) {
-      BdApi.openDialog({ openDirectory: true }).then(({ filePaths }) => {
+      openDialog({ openDirectory: true }).then(({ filePaths }) => {
         if (!filePaths?.[0]) return
         const categoryFolder = path.join(filePaths[0], props.name ?? '')
         mkdir(categoryFolder, {}, () => {
@@ -1854,7 +1864,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         action: () => {
           const ext = this.props.type === 'gif' ? '.gif' : getUrlExt(media.url)
           media.name = media.name.replace(/ /g, '_')
-          BdApi.openDialog({ mode: 'save', defaultPath: media.name + ext }).then(({ filePath }) => {
+          openDialog({ mode: 'save', defaultPath: media.name + ext }).then(({ filePath }) => {
             if (filePath === '') return
             fetchMedia(media).then((buffer) => {
               writeFile(filePath, buffer, (err) => {
@@ -2248,13 +2258,14 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
   return class FavoriteMedia extends Plugin {
     onStart () {
       loadModules()
-      this.patchChannelTextArea()
+      this.openMediaTabsByKeybinds()
       this.patchExpressionPicker()
       this.patchMessageContextMenu()
       this.patchGIFTab()
       this.patchClosePicker()
       this.patchMedias()
       this.preloadMedias()
+      this.patchChannelTextArea()
       if (this.settings.alwaysDeleteDeadMedias) this.deleteDeadMedias()
       DOMTools.addStyle(this.getName() + '-css', `
         .category-input-color > input[type='color'] {
@@ -2274,6 +2285,8 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         }
         .fm-favBtn.fm-audio {
           right: 0;
+          left: auto;
+          width: auto;
           margin-right: 10%;
         }
         .show-controls {
@@ -2351,6 +2364,8 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       DOMTools.removeStyle(this.getName() + '-css')
       Patcher.unpatchAll()
       this.contextMenu?.()
+      window.removeEventListener('keydown', this.onKeyDown)
+      window.removeEventListener('keyup', this.onKeyUp)
     }
 
     onSwitch () {
@@ -2379,7 +2394,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
             link.href = media[href]
             let mime = type
             if (type === 'gif') {
-              mime = media.src.endsWith('.gif') ? 'image' : 'video'
+              mime = media.src?.endsWith('.gif') ? 'image' : 'video'
             } else if (type === 'video' && href === 'poster') {
               mime = 'image'
             }
@@ -2397,6 +2412,31 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       document.head.appendChild(fmHead)
     }
 
+    detectMultiKeysPressing (keys, callback) {
+      const keysDown = {}
+      this.onKeyDown = function (e) {
+        keysDown[e.key] = true
+        if (keys.every(k => keysDown[k])) callback?.(keysDown)
+      }
+      this.onKeyUp = function (e) {
+        delete keysDown[e.key]
+      }
+      window.addEventListener('keydown', this.onKeyDown)
+      window.addEventListener('keyup', this.onKeyUp)
+    }
+
+    openMediaTabsByKeybinds () {
+      this.detectMultiKeysPressing(['Control', 'Alt'], (keysDown) => {
+        if (keysDown.i) {
+          EPS.toggleExpressionPicker('image', EPSConstants.NORMAL)
+        } else if (keysDown.v) {
+          EPS.toggleExpressionPicker('video', EPSConstants.NORMAL)
+        } else if (keysDown.a) {
+          EPS.toggleExpressionPicker('audio', EPSConstants.NORMAL)
+        }
+      })
+    }
+
     MediaTab (mediaType, elementType) {
       const selected = mediaType === EPS.useExpressionPickerStore.getState().activeView
       return React.createElement(elementType, {
@@ -2409,12 +2449,30 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       }, labels.tabName[mediaType])
     }
 
-    patchExpressionPicker () {
+    async waitExpressionPicker () {
+      return new Promise((resolve) => {
+        const selector = `.${classes.contentWrapper.contentWrapper}`
+        const observerSubscription = DOMTools.observer.subscribeToQuerySelector(() => {
+          const $el = document.querySelector(selector)
+          if ($el == null) return
+          resolve(ReactTools.getOwnerInstance($el))
+          DOMTools.observer.unsubscribe(observerSubscription)
+        }, selector, null, true)
+      })
+    }
+
+    async patchExpressionPicker () {
+      const ExpressionPicker = await this.waitExpressionPicker()
+      if (ExpressionPicker == null) {
+        console.error('[FavoriteMedia]', 'ExpressionPicker module not found')
+        return
+      }
+      ExpressionPicker.forceUpdate()
       // https://github.com/BetterDiscord/BetterDiscord/blob/3b9ad9b75b6ac64e6740e9c2f1d19fd4615010c7/renderer/src/builtins/emotes/emotemenu.js
-      Patcher.after(ExpressionPicker.prototype, 'render', (_, __, returnValue) => {
-        const originalChildren = returnValue?.props?.children?.props?.children
+      Patcher.after(ExpressionPicker.constructor.prototype, 'render', (_, __, returnValue) => {
+        const originalChildren = returnValue.props?.children
         if (originalChildren == null) return
-        returnValue.props.children.props.children = (...args) => {
+        returnValue.props.children = (...args) => {
           const childrenReturn = originalChildren(...args)
           const head = Utilities.findInTree(childrenReturn, (e) => e?.role === 'tablist', { walkable: ['props', 'children', 'return', 'stateNode'] })?.children
           const body = Utilities.findInTree(childrenReturn, (e) => e?.[0]?.type === 'nav', { walkable: ['props', 'children', 'return', 'stateNode'] })
@@ -2432,7 +2490,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
               }))
             }
           } catch (err) {
-            console.error('[FavoriteMedia]', '[FavoriteMedia] Error in ExpressionPicker\n', err)
+            console.error('[FavoriteMedia]', 'Error in ExpressionPicker\n', err)
           }
           return childrenReturn
         }
@@ -2471,48 +2529,63 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     }
 
     patchMedias () {
-      Patcher.after(MediaPlayer.prototype, 'render', ({ props }, __, returnValue) => {
-        const type = returnValue.props.children[1].type === 'audio' ? 'audio' : 'video'
-        if (!this.settings[type].enabled || !this.settings[type].showStar) return
-        let url = props.src
-        if (!url) return
-        url = url.split('https/')[1]
-        if (!url) url = props.src
-        else url = 'https://' + url
-        // force cdn link because on PC media link videos can't be played
-        url = url.replace('media.discordapp.net', 'cdn.discordapp.com')
-        returnValue.props.children.push(React.createElement(MediaFavButton, {
-          type,
-          url,
-          poster: props.poster,
-          width: props.width,
-          height: props.height,
-          uploaded: returnValue.props.children[0] != null,
-          target: returnValue.props.children[1]?.ref
-        }))
-      })
-      Patcher.after(Image.prototype, 'render', (_, __, returnValue) => {
-        if (!this.settings.image.enabled || !this.settings.image.showStar) return
-        const propsButton = returnValue.props?.children?.props?.children?.[1]?.props
-        if (propsButton == null) return
-        const propsImg = propsButton.children?.props
-        if (propsImg == null) return
-        const url = returnValue.props?.children?.props?.children?.[0]?.props?.href || propsImg.src
-        if (!url) return
-        const onclick = propsButton.onClick
-        propsButton.onClick = e => {
-          if (e.target?.alt === undefined) e.preventDefault()
-          else onclick(e)
-        }
-        if (returnValue.props.children.props.children[2] != null) return
-        returnValue.props.children.props.children.push(React.createElement(MediaFavButton, {
-          type: 'image',
-          url: url.replace('media.discordapp.net', 'cdn.discordapp.com').replace(/\?width=([\d]*)&height=([\d]*)/, ''),
-          width: propsImg.style?.maxWidth ?? propsImg.style?.width,
-          height: propsImg.style?.maxHeight ?? propsImg.style?.height,
-          target: returnValue.props.ringTarget
-        }))
-      })
+      if (MediaPlayer == null) {
+        console.error('[FavoriteMedia]', 'MediaPlayer module not found')
+      } else {
+        Patcher.after(MediaPlayer.prototype, 'render', ({ props }, __, returnValue) => {
+          const type = returnValue.props.children[1].type === 'audio' ? 'audio' : 'video'
+          if (!this.settings[type].enabled || !this.settings[type].showStar) return
+          let url = props.src
+          if (!url) return
+          url = url.split('https/')[1]
+          if (!url) url = props.src
+          else url = 'https://' + url
+          // force cdn link because on PC media link videos can't be played
+          url = url.replace('media.discordapp.net', 'cdn.discordapp.com')
+          returnValue.props.children.push(React.createElement(MediaFavButton, {
+            type,
+            url,
+            poster: props.poster,
+            width: props.width,
+            height: props.height,
+            uploaded: returnValue.props.children[0] != null,
+            target: returnValue.props.children[1]?.ref
+          }))
+        })
+      }
+      if (Image == null) {
+        console.error('[FavoriteMedia]', 'Image module not found')
+      } else {
+        Patcher.after(Image.prototype, 'render', (_, __, returnValue) => {
+          const propsButton = returnValue.props?.children?.props?.children?.[1]?.props
+          if (propsButton == null) return
+          const propsImg = propsButton.children?.props
+          if (propsImg == null) return
+          const data = {}
+          data.type = propsImg.play != null || propsImg.src?.split('?')[0].endsWith('.gif') ? 'gif' : 'image'
+          if (!this.settings[data.type].enabled || !this.settings[data.type].showStar) return
+          data.url = returnValue.props.focusTarget.current?.firstChild?.getAttribute('href') || propsImg.src
+          if (data.url == null) return
+          const onclick = propsButton.onClick
+          propsButton.onClick = e => {
+            if (e.target?.alt === undefined) e.preventDefault()
+            else onclick(e)
+          }
+          const index = returnValue.props.children.props.children[2] != null ? 2 : returnValue.props.children.props.children
+          if (data.type === 'gif') {
+            data.src = propsImg.src
+            data.url = returnValue.props.focusTarget.current?.parentElement.firstElementChild.getAttribute('href')
+          }
+          returnValue.props.children.props.children.splice(index, 1, React.createElement(MediaFavButton, {
+            type: data.type,
+            src: data.src,
+            url: data.url.replace('media.discordapp.net', 'cdn.discordapp.com').replace(/\?width=([\d]*)&height=([\d]*)/, ''),
+            width: propsImg.style?.maxWidth || (data.type === 'gif' ? propsImg.width : Number(data.url.match(/\?width=([\d]*)/, '')?.[1])) || 0,
+            height: propsImg.style?.maxHeight || (data.type === 'gif' ? propsImg.height : Number(data.url.match(/&height=([\d]*)/, '')?.[1])) || 0,
+            target: returnValue.props.focusTarget
+          }))
+        })
+      }
     }
 
     patchClosePicker () {
@@ -2524,7 +2597,10 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
     async patchGIFTab () {
       const GIFPicker = await ReactComponents.getComponent('GIFPicker', '#gif-picker-tab-panel')
-      if (GIFPicker == null) return
+      if (GIFPicker == null) {
+        console.error('[FavoriteMedia]', 'GIFPicker module not found')
+        return
+      }
       Patcher.after(GIFPicker.component.prototype, 'renderContent', (_this, _, returnValue) => {
         if (!this.settings.gif.enabled || _this.state.resultType !== 'Favorites') return
         if (!Array.isArray(returnValue.props.data)) return
@@ -2556,42 +2632,45 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
         const getMediaContextMenuItems = () => {
           if (props.target == null) return []
-          if (!(
-            (props.target.tagName === 'A' && props.target.nextSibling?.firstChild?.tagName === 'IMG') || // image
-            (props.target.tagName === 'A' && props.target.nextSibling?.firstChild?.tagName === 'VIDEO') || // gif
-            (props.target.tagName === 'VIDEO' && props.target.className?.includes('video')) || // video
-            (props.target.parentElement?.firstElementChild?.className?.includes('audioMetadata')) // audio
-          )) return []
-
+          let type = null
+          if (props.target.tagName === 'IMG') type = 'image'
+          else if (props.target.tagName === 'A' && ['IMG', 'VIDEO'].includes(props.target.nextSibling?.firstChild?.tagName)) type = 'gif'
+          else if (props.target.parentElement.firstElementChild.tagName === 'VIDEO') type = 'video'
+          else if (props.target.closest('[class*="wrapperAudio"]')) {
+            type = 'audio'
+            props.target = props.target.closest('[class*="wrapperAudio"]')
+          }
+          if (type == null) return []
           const data = {
-            type: 'image',
+            type,
             url: props.target.getAttribute('href') || props.target.src,
-            poster: props.target.poster,
-            width: props.target.width,
-            height: props.target.height,
+            poster: null,
+            width: 0,
+            height: 0,
             favorited: undefined,
-            message: null,
-            source: null
+            target: { current: props.target }
           }
-          if (props.target.nextSibling?.firstChild?.tagName === 'IMG') {
-            data.url = data.url || props.target.nextSibling.firstChild.src
-            data.width = props.target.nextSibling.firstChild.width
-            data.height = props.target.nextSibling.firstChild.height
-          }
-          if (props.target.nextSibling?.firstChild?.tagName === 'VIDEO') {
-            data.type = 'gif'
-            data.width = props.target.nextSibling.firstChild.width
-            data.height = props.target.nextSibling.firstChild.height
-          }
-          if (props.target.tagName === 'VIDEO') data.type = 'video'
-          if (props.target.parentElement?.firstElementChild?.className?.includes('audioMetadata')) {
-            data.url = props.target.parentElement?.querySelector('audio')?.firstElementChild?.src
-            data.type = 'audio'
+          if (data.type === 'image') {
+            let tmpUrl = data.url.split('https/')[1]
+            if (!tmpUrl) tmpUrl = data.url
+            else tmpUrl = 'https://' + tmpUrl
+            data.url = (tmpUrl || data.url || props.target.src).replace(/\?width=([\d]*)&height=([\d]*)/, '')
+            data.width = Number(props.target.src.match(/\?width=([\d]*)/, '')?.[1])
+            data.height = Number(props.target.src.match(/&height=([\d]*)/, '')?.[1])
+          } else if (data.type === 'gif') {
+            data.src = props.target.nextSibling.firstChild?.src
+            data.width = props.target.nextSibling.firstChild?.width
+            data.height = props.target.nextSibling.firstChild?.height
+          } else if (data.type === 'video') {
+            data.url = props.target.parentElement.firstElementChild.src
+            data.poster = props.target.parentElement.firstElementChild.poster
+            data.width = props.target.parentElement.firstElementChild.width
+            data.height = props.target.parentElement.firstElementChild.height
+          } else if (data.type === 'audio') {
+            data.url = props.target.querySelector('audio').firstElementChild?.src
           }
           data.url = data.url.replace('media.discordapp.net', 'cdn.discordapp.com')
           data.favorited = this.isFavorited(data.type, data.url)
-          data.message = findMessageLink(props.target)
-          data.source = findSourceLink(props.target, data.url)
           const menuItems = [{
             id: `media-${data.favorited ? 'un' : ''}favorite`,
             label: data.favorited ? Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES,
@@ -2628,7 +2707,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
               const media = { url: data.url, name: getUrlName(data.url) }
               const ext = data.type === 'gif' ? '.gif' : getUrlExt(media.url)
               media.name = media.name.replace(/ /g, '_')
-              BdApi.openDialog({ mode: 'save', defaultPath: media.name + ext }).then(({ filePath }) => {
+              openDialog({ mode: 'save', defaultPath: media.name + ext }).then(({ filePath }) => {
                 if (filePath === '') return
                 fetchMedia(media).then((buffer) => {
                   writeFile(filePath, buffer, (err) => {
