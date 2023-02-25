@@ -73,6 +73,13 @@ const config = {
             value: false
         },
         {
+            type: "switch",
+            id: "disableMediasTabKeybind",
+            name: "Disable medias tab keybind",
+            note: "Disable media tab opening with CTRL+ALT+I/V/A",
+            value: false
+        },
+        {
             type: "dropdown",
             id: "alwaysSendUpload",
             name: "Send/upload instantly medias",
@@ -2427,6 +2434,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
     openMediaTabsByKeybinds () {
       this.detectMultiKeysPressing(['Control', 'Alt'], (keysDown) => {
+        if (this.settings.disableMediasTabKeybind) return
         if (keysDown.i) {
           EPS.toggleExpressionPicker('image', EPSConstants.NORMAL)
         } else if (keysDown.v) {

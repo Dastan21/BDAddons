@@ -2108,6 +2108,7 @@ module.exports = (Plugin, Library) => {
 
     openMediaTabsByKeybinds () {
       this.detectMultiKeysPressing(['Control', 'Alt'], (keysDown) => {
+        if (this.settings.disableMediasTabKeybind) return
         if (keysDown.i) {
           EPS.toggleExpressionPicker('image', EPSConstants.NORMAL)
         } else if (keysDown.v) {
