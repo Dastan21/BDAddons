@@ -246,7 +246,8 @@
       "title": "Feature",
       "type": "added",
       "items": [
-        "Added medias tab keybind: CTRL+ALT+ (I for image, V for video and A for audio)"
+        "Added medias tab keybind: CTRL+M+ (I for image, V for video and A for audio)",
+        "Added option to disable the new keybinds"
       ]
     },
     {

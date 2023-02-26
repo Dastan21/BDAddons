@@ -289,7 +289,8 @@ const config = {
             title: "Feature",
             type: "added",
             items: [
-                "Added medias tab keybind: CTRL+ALT+ (I for image, V for video and A for audio)"
+                "Added medias tab keybind: CTRL+M+ (I for image, V for video and A for audio)",
+                "Added option to disable the new keybinds"
             ]
         },
         {
@@ -2369,10 +2370,11 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     onStop () {
       document.head.querySelector('fm-head')?.remove()
       DOMTools.removeStyle(this.getName() + '-css')
-      Patcher.unpatchAll()
+      document.removeEventListener('keydown', this.onKeyDown)
+      document.removeEventListener('keyup', this.onKeyUp)
       this.contextMenu?.()
-      window.removeEventListener('keydown', this.onKeyDown)
-      window.removeEventListener('keyup', this.onKeyUp)
+      Patcher.unpatchAll()
+      Dispatcher.dispatch({ type: 'UNPATCH_ALL' })
     }
 
     onSwitch () {
@@ -2423,17 +2425,21 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       const keysDown = {}
       this.onKeyDown = function (e) {
         keysDown[e.key] = true
-        if (keys.every(k => keysDown[k] === true)) callback?.(keysDown)
+        if (keys.every(k => keysDown[k] === true)) {
+          e.preventDefault()
+          e.stopPropagation()
+          callback?.(keysDown)
+        }
       }
       this.onKeyUp = function (e) {
         delete keysDown[e.key]
       }
-      window.addEventListener('keydown', this.onKeyDown)
-      window.addEventListener('keyup', this.onKeyUp)
+      document.addEventListener('keydown', this.onKeyDown)
+      document.addEventListener('keyup', this.onKeyUp)
     }
 
     openMediaTabsByKeybinds () {
-      this.detectMultiKeysPressing(['Control', 'Alt'], (keysDown) => {
+      this.detectMultiKeysPressing(['Control', 'm'], (keysDown) => {
         if (this.settings.disableMediasTabKeybind) return
         if (keysDown.i) {
           EPS.toggleExpressionPicker('image', EPSConstants.NORMAL)
@@ -2458,11 +2464,14 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     }
 
     async waitExpressionPicker () {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
+        const unpatch = () => { reject(new Error('Plugin stopped')) }
+        Dispatcher.subscribe('UNPATCH_ALL', unpatch)
         const selector = `.${classes.contentWrapper.contentWrapper}`
         const observerSubscription = DOMTools.observer.subscribeToQuerySelector(() => {
           const $el = document.querySelector(selector)
           if ($el == null) return
+          Dispatcher.unsubscribe('UNPATCH_ALL', unpatch)
           resolve(ReactTools.getOwnerInstance($el))
           DOMTools.observer.unsubscribe(observerSubscription)
         }, selector, null, true)
@@ -2470,7 +2479,13 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     }
 
     async patchExpressionPicker () {
-      const ExpressionPicker = await this.waitExpressionPicker()
+      let ExpressionPicker = null
+      try {
+        ExpressionPicker = await this.waitExpressionPicker()
+      } catch (_) {
+        // plugin stopped while waiting to expression picker, prevent duplicate patching
+        return
+      }
       if (ExpressionPicker == null) {
         console.error('[FavoriteMedia]', 'ExpressionPicker module not found')
         return
