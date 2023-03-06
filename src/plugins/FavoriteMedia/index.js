@@ -1260,7 +1260,7 @@ module.exports = (Plugin, Library) => {
           index: heights.indexOf(Math.min(...heights))
         }
         const max = Math.max(...heights)
-        const itemHeight = Math.round(100 * itemWidth * medias[m].height / medias[m].width) / 100
+        const itemHeight = Math.round(100 * itemWidth * medias[m].height / itemWidth) / 100
         let placedIndex = placed.indexOf(false)
         if (placedIndex === -1) { placed.fill(false); placedIndex = 0 }
         if (this.props.type === 'audio') {
