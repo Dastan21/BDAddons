@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos and audios.
- * @version 1.7.2
+ * @version 1.7.3
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -36,7 +36,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "1.7.2",
+    version: "1.7.3",
     description: "Allows to favorite GIFs, images, videos and audios.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -286,19 +286,10 @@ const config = {
     ],
     changelog: [
         {
-            title: "Feature",
-            type: "added",
-            items: [
-                "Added medias tab keybind: CTRL+M+ (I for image, V for video and A for audio)",
-                "Added option to disable the new keybinds"
-            ]
-        },
-        {
             title: "Bugs",
             type: "fixed",
             items: [
-                "Fixed medias tab not working",
-                "Fixed floating/clipping medias"
+                "Reworked how to get medias dimensions to avoid floating/clipping medias (should be more stable)"
             ]
         }
     ]
@@ -636,6 +627,33 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     }
   }
 
+  async function getMediaDimensions ($target) {
+    const dimensions = { width: 0, height: 0 }
+    if ($target == null) return dimensions
+    const src = $target.src?.replace(/\?width=([\d]*)&height=([\d]*)/, '')
+    if (src == null) return dimensions
+    return new Promise((resolve) => {
+      if ($target.tagName === 'VIDEO') {
+        const $vid = document.createElement('video')
+        $vid.preload = 'metadata'
+        $vid.addEventListener('loadedmetadata', (e) => {
+          dimensions.width = e.target.videoWidth
+          dimensions.height = e.target.videoHeight
+          resolve(dimensions)
+        })
+        $vid.src = src
+      } else if ($target.tagName === 'IMG') {
+        const $img = document.createElement('img')
+        $img.addEventListener('load', () => {
+          dimensions.width = $img.width
+          dimensions.height = $img.height
+          resolve(dimensions)
+        })
+        $img.src = src
+      }
+    })
+  }
+
   function loadModules () {
     loadEPS()
     loadComponentDispatch()
@@ -780,9 +798,9 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       this.tooltipFav.label = fav ? Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES
     }
 
-    changeFavorite () {
-      if (this.state.favorited) MediaFavButton.unfavoriteMedia(this.props)
-      else MediaFavButton.favoriteMedia(this.props)
+    async changeFavorite () {
+      if (this.state.favorited) await MediaFavButton.unfavoriteMedia(this.props)
+      else await MediaFavButton.favoriteMedia(this.props)
       if (!this.props.fromPicker) this.setState({ favorited: this.isFavorited })
       Dispatcher.dispatch({ type: 'FAVORITE_MEDIA', url: this.props.url })
       if (this.props.fromPicker) return
@@ -795,15 +813,16 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       }, 200)
     }
 
-    static getMediaDataFromProps (props) {
+    static async getMediaDataFromProps (props) {
       let data = null
+      const dimensions = await getMediaDimensions(props.target.current?.parentElement?.querySelector('img, video'))
       switch (props.type) {
         case 'gif':
           data = {
             url: props.url,
             src: props.src,
-            width: props.width,
-            height: props.height,
+            width: dimensions.width,
+            height: dimensions.height,
             name: getUrlName(props.url),
             message: props.message,
             source: props.source
@@ -813,8 +832,8 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           data = {
             url: props.url,
             poster: props.poster,
-            width: props.width,
-            height: props.height,
+            width: dimensions.width,
+            height: dimensions.height,
             name: getUrlName(props.url),
             message: props.message,
             source: props.source
@@ -832,8 +851,8 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         default: // image
           data = {
             url: props.url,
-            width: props.width,
-            height: props.height,
+            width: dimensions.width,
+            height: dimensions.height,
             name: getUrlName(props.url),
             message: props.message,
             source: props.source
@@ -842,36 +861,42 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       return data
     }
 
-    static favoriteMedia (props) {
+    static async favoriteMedia (props) {
       // get message and source links
       const $target = props.target.current
       if ($target != null) {
         props.message = findMessageLink($target)
         props.source = findSourceLink($target, props.url)
       }
-      if (props.type === 'gif') MediaFavButton.favoriteGIF(props)
       const typeData = Utilities.loadData(config.name, props.type, { medias: [] })
       if (typeData.medias.find(m => m.url === props.url)) return
-      const data = MediaFavButton.getMediaDataFromProps(props)
-      if (!data) return
+      const data = await MediaFavButton.getMediaDataFromProps(props)
+      if (props.type === 'gif') await MediaFavButton.favoriteGIF(data)
       typeData.medias.push(data)
       Utilities.saveData(config.name, props.type, typeData)
     }
 
-    static unfavoriteMedia (props) {
+    static async unfavoriteMedia (props) {
       const typeData = Utilities.loadData(config.name, props.type, { medias: [] })
       if (!typeData.medias.length) return
-      if (props.type === 'gif') MediaFavButton.unfavoriteGIF(props)
       typeData.medias = typeData.medias.filter(e => e.url !== props.url)
+      if (props.type === 'gif') await MediaFavButton.unfavoriteGIF(props)
       Utilities.saveData(config.name, props.type, typeData)
       if (props.fromPicker) Dispatcher.dispatch({ type: 'UPDATE_MEDIAS' })
     }
 
-    static favoriteGIF (props) {
-      GIFUtils.favorite({ ...props, format: 2 })
+    static async favoriteGIF (props) {
+      GIFUtils.favorite({
+        format: 2,
+        url: props.url,
+        src: props.src,
+        order: props.order,
+        width: props.width,
+        height: props.height
+      })
     }
 
-    static unfavoriteGIF (props) {
+    static async unfavoriteGIF (props) {
       GIFUtils.unfavorite(props.url)
     }
 
@@ -2272,7 +2297,6 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       this.patchGIFTab()
       this.patchClosePicker()
       this.patchMedias()
-      this.preloadMedias()
       this.patchChannelTextArea()
       if (this.settings.alwaysDeleteDeadMedias) this.deleteDeadMedias()
       DOMTools.addStyle(this.getName() + '-css', `
@@ -2368,7 +2392,6 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     }
 
     onStop () {
-      document.head.querySelector('fm-head')?.remove()
       DOMTools.removeStyle(this.getName() + '-css')
       document.removeEventListener('keydown', this.onKeyDown)
       document.removeEventListener('keyup', this.onKeyUp)
@@ -2383,42 +2406,6 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
     getSettingsPanel () {
       return this.buildSettingsPanel().getElement()
-    }
-
-    preloadMedias () {
-      const mediaTypes = {
-        gif: ['url', 'src'],
-        image: ['url'],
-        video: ['url', 'poster'],
-        audio: ['url']
-      }
-      const fmHead = document.createElement('fm-head')
-      Object.entries(mediaTypes).forEach(([type, hrefs]) => {
-        const data = Utilities.loadData(config.name, type, { medias: [] })
-        data.medias.forEach((media) => {
-          hrefs.forEach((href) => {
-            if (media[href] == null) return
-            const link = document.createElement('link')
-            link.rel = 'preload'
-            link.href = media[href]
-            let mime = type
-            if (type === 'gif') {
-              mime = media.src?.endsWith('.gif') ? 'image' : 'video'
-            } else if (type === 'video' && href === 'poster') {
-              mime = 'image'
-            }
-            link.as = mime
-            link.onerror = () => {
-              if (!media.dead) {
-                media.dead = true
-                Utilities.saveData(config.name, type, data)
-              }
-            }
-            fmHead.appendChild(link)
-          })
-        })
-      })
-      document.head.appendChild(fmHead)
     }
 
     detectMultiKeysPressing (keys, callback) {
@@ -2587,7 +2574,11 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           const data = {}
           data.type = propsImg.play != null || propsImg.src?.split('?')[0].endsWith('.gif') ? 'gif' : 'image'
           if (!this.settings[data.type].enabled || !this.settings[data.type].showStar) return
-          data.url = returnValue.props.focusTarget.current?.firstChild?.getAttribute('href') || propsImg.src
+          data.url = returnValue.props.focusTarget.current?.firstChild?.getAttribute('href') || propsImg.src || ''
+          let tmpUrl = data.url.split('https/')[1]
+          if (!tmpUrl) tmpUrl = data.url
+          else tmpUrl = 'https://' + tmpUrl
+          data.url = tmpUrl.replace(/\?width=([\d]*)&height=([\d]*)/, '')
           if (data.url == null) return
           const onclick = propsButton.onClick
           propsButton.onClick = e => {
@@ -2603,8 +2594,8 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
             type: data.type,
             src: data.src,
             url: data.url.replace('media.discordapp.net', 'cdn.discordapp.com').replace(/\?width=([\d]*)&height=([\d]*)/, ''),
-            width: propsImg.style?.maxWidth || (data.type === 'gif' ? propsImg.width : Number(data.url.match(/\?width=([\d]*)/, '')?.[1])) || 0,
-            height: propsImg.style?.maxHeight || (data.type === 'gif' ? propsImg.height : Number(data.url.match(/&height=([\d]*)/, '')?.[1])) || 0,
+            width: null,
+            height: null,
             target: returnValue.props.focusTarget
           }))
         })
@@ -2631,12 +2622,12 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         const savedGIFs = Utilities.loadData(config.name, 'gif', { medias: [] })
         const newGIFs = []
         // keep only favorited GIFs
-        favorites.forEach((props) => {
-          const data = MediaFavButton.getMediaDataFromProps({ ...props, type: 'gif' })
-          if (data == null) return
-          const foundGIF = savedGIFs.medias.find((g) => g.url === data.url)
-          newGIFs.push(foundGIF ?? data)
-        })
+        Promise.allSettled(favorites.map(async (props) => {
+          MediaFavButton.getMediaDataFromProps({ ...props, type: 'gif' }).then((data) => {
+            const foundGIF = savedGIFs.medias.find((g) => g.url === data.url)
+            newGIFs.push(foundGIF ?? data)
+          })
+        }))
         savedGIFs.medias = newGIFs
         Utilities.saveData(config.name, 'gif', savedGIFs)
 
@@ -2698,9 +2689,9 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
             id: `media-${data.favorited ? 'un' : ''}favorite`,
             label: data.favorited ? Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES,
             icon: () => React.createElement(StarSVG, { filled: !data.favorited }),
-            action: () => {
-              if (data.favorited) MediaFavButton.unfavoriteMedia(data)
-              else MediaFavButton.favoriteMedia(data)
+            action: async () => {
+              if (data.favorited) await MediaFavButton.unfavoriteMedia(data)
+              else await MediaFavButton.favoriteMedia(data)
               Dispatcher.dispatch({ type: 'FAVORITE_MEDIA', url: data.url })
             }
           }]
@@ -2792,8 +2783,8 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
                   id: `category-name-${c.id}`,
                   label: c.name,
                   key: c.id,
-                  action: () => {
-                    MediaFavButton.favoriteMedia(data)
+                  action: async () => {
+                    await MediaFavButton.favoriteMedia(data)
                     MediaPicker.changeMediaCategory(data.type, data.url, c.id)
                     Dispatcher.dispatch({ type: 'FAVORITE_MEDIA', url: data.url })
                   },

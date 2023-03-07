@@ -5,7 +5,7 @@
   "author": "Dastan",
   "authorId": "310450863845933057",
   "authorLink": "",
-  "version": "1.7.2",
+  "version": "1.7.3",
   "description": "Allows to favorite GIFs, images, videos and audios.",
   "website": "",
   "source": "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -243,19 +243,17 @@
   ],
   "changelog": [
     {
-      "title": "Feature",
-      "type": "added",
+      "title": "Bugs",
+      "type": "fixed",
       "items": [
-        "Added medias tab keybind: CTRL+M+ (I for image, V for video and A for audio)",
-        "Added option to disable the new keybinds"
+        "Reworked how to get medias dimensions to avoid floating/clipping medias (should be more stable)"
       ]
     },
     {
       "title": "Bugs",
       "type": "fixed",
       "items": [
-        "Fixed medias tab not working",
-        "Fixed floating/clipping medias"
+        "Removed medias preloading (causes slowness & crashes above 1k+)"
       ]
     }
   ]
