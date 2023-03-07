@@ -497,14 +497,14 @@ module.exports = (Plugin, Library) => {
 
     static async getMediaDataFromProps (props) {
       let data = null
-      const dimensions = await getMediaDimensions(props.target.current?.parentElement?.querySelector('img, video'))
+      const dimensions = await getMediaDimensions(props.target?.current?.parentElement?.querySelector('img, video'))
       switch (props.type) {
         case 'gif':
           data = {
             url: props.url,
             src: props.src,
-            width: dimensions.width,
-            height: dimensions.height,
+            width: props.width || dimensions.width,
+            height: props.height || dimensions.height,
             name: getUrlName(props.url),
             message: props.message,
             source: props.source
@@ -2309,9 +2309,10 @@ module.exports = (Plugin, Library) => {
             const foundGIF = savedGIFs.medias.find((g) => g.url === data.url)
             newGIFs.push(foundGIF ?? data)
           })
-        }))
-        savedGIFs.medias = newGIFs
-        Utilities.saveData(config.name, 'gif', savedGIFs)
+        })).then(() => {
+          savedGIFs.medias = newGIFs
+          Utilities.saveData(config.name, 'gif', savedGIFs)
+        })
 
         returnValue.type = MediaPicker
         returnValue.props = {

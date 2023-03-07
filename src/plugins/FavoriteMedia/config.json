@@ -246,13 +246,7 @@
       "title": "Bugs",
       "type": "fixed",
       "items": [
-        "Reworked how to get medias dimensions to avoid floating/clipping medias (should be more stable)"
-      ]
-    },
-    {
-      "title": "Bugs",
-      "type": "fixed",
-      "items": [
+        "Reworked how to get medias dimensions to avoid floating/clipping medias (should be more stable)",
         "Removed medias preloading (causes slowness & crashes above 1k+)"
       ]
     }

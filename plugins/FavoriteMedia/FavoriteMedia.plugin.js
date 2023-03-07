@@ -289,7 +289,8 @@ const config = {
             title: "Bugs",
             type: "fixed",
             items: [
-                "Reworked how to get medias dimensions to avoid floating/clipping medias (should be more stable)"
+                "Reworked how to get medias dimensions to avoid floating/clipping medias (should be more stable)",
+                "Removed medias preloading (causes slowness & crashes above 1k+)"
             ]
         }
     ]
@@ -815,14 +816,14 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
     static async getMediaDataFromProps (props) {
       let data = null
-      const dimensions = await getMediaDimensions(props.target.current?.parentElement?.querySelector('img, video'))
+      const dimensions = await getMediaDimensions(props.target?.current?.parentElement?.querySelector('img, video'))
       switch (props.type) {
         case 'gif':
           data = {
             url: props.url,
             src: props.src,
-            width: dimensions.width,
-            height: dimensions.height,
+            width: props.width || dimensions.width,
+            height: props.height || dimensions.height,
             name: getUrlName(props.url),
             message: props.message,
             source: props.source
@@ -2627,9 +2628,10 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
             const foundGIF = savedGIFs.medias.find((g) => g.url === data.url)
             newGIFs.push(foundGIF ?? data)
           })
-        }))
-        savedGIFs.medias = newGIFs
-        Utilities.saveData(config.name, 'gif', savedGIFs)
+        })).then(() => {
+          savedGIFs.medias = newGIFs
+          Utilities.saveData(config.name, 'gif', savedGIFs)
+        })
 
         returnValue.type = MediaPicker
         returnValue.props = {
