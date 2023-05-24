@@ -1,7 +1,7 @@
 /**
  * @name HideEmbedLink
  * @description Hides embed messages link.
- * @version 2.1.2
+ * @version 2.1.3
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink
@@ -36,7 +36,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "2.1.2",
+    version: "2.1.3",
     description: "Hides embed messages link.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink",
@@ -45,10 +45,10 @@ const config = {
     invite: "",
     changelog: [
         {
-            title: "Bugs",
+            title: "Fixed",
             type: "fixed",
             items: [
-                "Fixed setting to hide only medias links hiding filter"
+                "Fixed toggle icon not showing"
             ]
         }
     ],
@@ -226,7 +226,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       if (MessageAccessoriesModule?.prototype?.render == null) return
       Patcher.after(MessageAccessoriesModule.prototype, 'render', (t, _, ret) => {
         if (t.props?.message?.content == null || t.props.message.content === '') return
-        const embeds = ret.props?.children?.find(c => Array.isArray(c))
+        const embeds = ret.props?.children?.find(c => Array.isArray(c) && c?.[0]?.key?.startsWith('embed'))
         if (embeds == null || embeds?.length < 1) return
         embeds.forEach((e, i) => {
           if (e.props?.children?.props == null) return

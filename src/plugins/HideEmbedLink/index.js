@@ -138,7 +138,7 @@ module.exports = (Plugin, Library) => {
       if (MessageAccessoriesModule?.prototype?.render == null) return
       Patcher.after(MessageAccessoriesModule.prototype, 'render', (t, _, ret) => {
         if (t.props?.message?.content == null || t.props.message.content === '') return
-        const embeds = ret.props?.children?.find(c => Array.isArray(c))
+        const embeds = ret.props?.children?.find(c => Array.isArray(c) && c?.[0]?.key?.startsWith('embed'))
         if (embeds == null || embeds?.length < 1) return
         embeds.forEach((e, i) => {
           if (e.props?.children?.props == null) return
