@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build plugin",
+      "type": "shell",
+      "command": "npx zpl build ${fileDirnameBasename}",
+      "problemMatcher": []
+    },
+    {
+      "label": "Init plugin",
+      "type": "shell",
+      "command": "npx zpl init ${input:pluginName}",
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "pluginName",
+      "description": "Name of the plugin to init",
+      "default": "ExamplePlugin"
+    }
+  ]
+}
