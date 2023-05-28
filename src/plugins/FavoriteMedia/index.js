@@ -204,12 +204,13 @@ module.exports = (Plugin, Library) => {
     return url.match(/\.([0-9a-z]+)(?=[?#])|(\.)(?:[\w]+)$/gmi)?.[0] ?? ''
   }
 
-  async function sendInTextarea () {
+  async function sendInTextarea (clear = false) {
     return await new Promise((resolve, reject) => {
       try {
         const enterEvent = new KeyboardEvent('keydown', { charCode: 13, keyCode: 13, bubbles: true })
         setTimeout(() => {
           currentTextareaInput?.dispatchEvent(enterEvent)
+          if (clear) ComponentDispatch.dispatchToLastSubscribed('CLEAR_TEXT')
           resolve()
         })
       } catch (error) {
@@ -309,7 +310,8 @@ module.exports = (Plugin, Library) => {
     }
   }
 
-  async function getMediaDimensions ($target) {
+  async function getMediaDimensions ($target, props) {
+    if (props.width > 0 && props.height > 0) return { width: props.width, height: props.height }
     const dimensions = { width: 0, height: 0 }
     if ($target == null) return dimensions
     const src = $target.src?.replace(/\?width=([\d]*)&height=([\d]*)/, '')
@@ -469,7 +471,7 @@ module.exports = (Plugin, Library) => {
     }
 
     get isFavorited () {
-      return Utilities.loadData(config.name, this.props.type, { medias: [] }).medias.find(e => e.url === this.props.url) !== undefined
+      return Utilities.loadData(config.name, this.props.type, { medias: [] }).medias.find(e => e.url === this.props.url || e.src?.endsWith(this.props.url.replace('https://', ''))) !== undefined
     }
 
     updateFavorite (data) {
@@ -481,23 +483,27 @@ module.exports = (Plugin, Library) => {
     }
 
     async changeFavorite () {
-      if (this.state.favorited) await MediaFavButton.unfavoriteMedia(this.props)
-      else await MediaFavButton.favoriteMedia(this.props)
-      if (!this.props.fromPicker) this.setState({ favorited: this.isFavorited })
-      Dispatcher.dispatch({ type: 'FAVORITE_MEDIA', url: this.props.url })
-      if (this.props.fromPicker) return
-      this.tooltipFav.label = this.state.favorited ? Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES : Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES
-      this.tooltipFav.hide()
-      this.tooltipFav.show()
-      this.setState({ pulse: true })
-      setTimeout(() => {
-        this.setState({ pulse: false })
-      }, 200)
+      const switchFavorite = this.state.favorited ? MediaFavButton.unfavoriteMedia : MediaFavButton.favoriteMedia
+      switchFavorite(this.props).then(() => {
+        if (!this.props.fromPicker) this.setState({ favorited: this.isFavorited })
+        Dispatcher.dispatch({ type: 'FAVORITE_MEDIA', url: this.props.url })
+        if (this.props.fromPicker) return
+        this.tooltipFav.label = this.state.favorited ? Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES : Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES
+        this.tooltipFav.hide()
+        this.tooltipFav.show()
+        this.setState({ pulse: true })
+        setTimeout(() => {
+          this.setState({ pulse: false })
+        }, 200)
+      }).catch((err) => {
+        console.error('[FavoriteMedia]', err)
+      })
     }
 
     static async getMediaDataFromProps (props) {
       let data = null
-      const dimensions = await getMediaDimensions(props.target?.current?.parentElement?.querySelector('img, video'))
+      const dimensions = await getMediaDimensions(props.target?.current?.parentElement?.querySelector('img, video'), props)
+      if (dimensions.width === 0 || dimensions.height === 0) throw new Error('Could not fetch media dimensions')
       switch (props.type) {
         case 'gif':
           data = {
@@ -600,7 +606,7 @@ module.exports = (Plugin, Library) => {
       return this.props.fromPicker
         ? this.favButton()
         : React.createElement('div', {
-          className: `${classes.image.imageAccessory} ${classes.image.clickable} fm-favBtn fm-${this.props.type}${!this.props.uploaded ? 'fm-uploaded' : ''}`
+          className: `${classes.image.imageAccessory} ${classes.image.clickable} fm-favBtn fm-${this.props.type}${!this.props.uploaded ? ' fm-uploaded' : ''}`
         }, this.favButton())
     }
   }
@@ -749,6 +755,10 @@ module.exports = (Plugin, Library) => {
     constructor (props) {
       super(props)
 
+      this.state = {
+        thumbnailError: false
+      }
+
       this.onContextMenu = this.onContextMenu.bind(this)
       this.onDragStart = this.onDragStart.bind(this)
       this.onDrop = this.onDrop.bind(this)
@@ -763,7 +773,7 @@ module.exports = (Plugin, Library) => {
     }
 
     get showColor () {
-      return Utilities.loadSettings(config.name).hideThumbnail || !this.props.thumbnail
+      return Utilities.loadSettings(config.name).hideThumbnail || !(this.props.thumbnail && !this.state.thumbnailError)
     }
 
     get isGIF () {
@@ -874,9 +884,10 @@ module.exports = (Plugin, Library) => {
       this.refs.category.classList.remove('category-dragover')
     }
 
-    onError (e) {
+    onError () {
       console.warn('[FavoriteMedia]', 'Could not load media:', this.props.thumbnail)
-      e.target.src = MediaLoadFailImg
+      this.setState({ thumbnailError: true })
+      markMediaAsDead(this.props.type, this.props.thumbnail)
     }
 
     render () {
@@ -911,8 +922,8 @@ module.exports = (Plugin, Library) => {
           style: this.showColor ? { color: this.nameColor, 'text-shadow': 'none' } : {}
         }, this.props.name)
       ),
-      this.props.thumbnail && !Utilities.loadSettings(config.name).hideThumbnail
-        ? React.createElement(this.isGIF && !this.props.thumbnail.endsWith('.gif') ? 'video' : 'img', {
+      !this.showColor
+        ? React.createElement(this.isGIF && !this.props.thumbnail.split('?')[0].endsWith('.gif') ? 'video' : 'img', {
           className: classes.result.gif,
           preload: 'auto',
           autoplay: this.isGIF ? '' : undefined,
@@ -955,11 +966,12 @@ module.exports = (Plugin, Library) => {
 
     get elementTag () {
       if (this.props.type === 'audio') return 'audio'
-      else if (this.state.showControls || (this.isGIF && !this.props.src?.endsWith('.gif'))) return 'video'
+      else if (this.state.showControls || (this.isGIF && !this.props.src?.split('?')[0].endsWith('.gif'))) return 'video'
       return 'img'
     }
 
     get elementSrc () {
+      if (this.props.dead) return MediaLoadFailImg
       if (this.props.type === 'video' && !this.state.showControls) return this.props.poster
       if (this.isGIF) return this.props.src
       return this.props.url
@@ -1022,19 +1034,17 @@ module.exports = (Plugin, Library) => {
       }
       if (['path', 'svg'].includes(e.target.tagName)) return
       const shiftPressed = e.shiftKey
-      if (!sendMedia && (this.props.settings.alwaysUploadFile || this.props.type === 'audio')) {
+      if (!sendMedia && (this.props.type === 'audio' || this.props.settings[this.props.type].alwaysUploadFile)) {
         const media = { url: this.props.url, name: this.props.name }
         fetchMedia(media).then((buffer) => {
           uploadFile(this.props.type, buffer, media)
-          if (['both', 'file'].includes(this.props.settings.alwaysSendUpload)) {
-            sendInTextarea().then(() => ComponentDispatch.dispatchToLastSubscribed('CLEAR_TEXT'))
-          }
+          if (this.props.settings[this.props.type].alwaysSendInstantly) sendInTextarea(true)
           if (!shiftPressed) EPS.closeExpressionPicker()
         }).catch((err) => console.error('[FavoriteMedia]', err))
       } else {
         if (!shiftPressed) {
           ComponentDispatch.dispatchToLastSubscribed('INSERT_TEXT', { content: this.props.url, plainText: this.props.url })
-          if (['both', 'link'].includes(this.props.settings.alwaysSendUpload)) sendInTextarea().catch((err) => console.error('[FavoriteMedia]', err))
+          if (this.props.settings[this.props.type].alwaysSendInstantly) sendInTextarea().catch((err) => console.error('[FavoriteMedia]', err))
           EPS.closeExpressionPicker()
         } else {
           MessagesManager.sendMessage(currentChannelId, { content: this.props.url, validNonShortcutEmojis: [] })
@@ -1046,6 +1056,7 @@ module.exports = (Plugin, Library) => {
       if (e.target.tagName !== 'IMG') return
       console.warn('[FavoriteMedia]', 'Could not load media:', this.props.url)
       e.target.src = MediaLoadFailImg
+      markMediaAsDead(this.props.type, this.props.url)
     }
 
     render () {
@@ -1390,7 +1401,7 @@ module.exports = (Plugin, Library) => {
           }))).then((results) => {
             Toasts.success(labels.category.success.download)
             results.forEach((res) => {
-              if (res.status === 'rejected') console.error('[FavoriteMedia]', 'Failed to download media:', res.reason)
+              if (res.status === 'rejected') console.error('[FavoriteMedia]', 'Could not download media:', res.reason)
             })
           })
         })
@@ -1428,7 +1439,7 @@ module.exports = (Plugin, Library) => {
 
     static changeCategoryCategory (type, id, categoryId) {
       const typeData = Utilities.loadData(config.name, type, { medias: [] })
-      const index = typeData.categories.findIndex(m => m.id === id)
+      const index = typeData.categories.findIndex(c => c.id === id)
       if (index < 0) return
       typeData.categories[index].category_id = categoryId
       Utilities.saveData(config.name, type, typeData)
@@ -1466,16 +1477,14 @@ module.exports = (Plugin, Library) => {
 
     categoriesItems (media) {
       return this.state.categories
-        .filter(c => c.id !== (this.state.category?.id) && c.id !== MediaPicker.isMediaInCategory(this.props.type, media.id))
-        .map(c => {
-          return {
-            id: `category-menu-${c.id}`,
-            label: c.name,
-            key: c.id,
-            action: () => MediaPicker.changeMediaCategory(this.props.type, media.url, c.id),
-            render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })
-          }
-        })
+        .filter(c => c.id !== (media.category_id) && c.id !== MediaPicker.isMediaInCategory(this.props.type, media.id))
+        .map(c => ({
+          id: `category-menu-${c.id}`,
+          label: c.name,
+          key: c.id,
+          action: () => MediaPicker.changeMediaCategory(this.props.type, media.url, c.id),
+          render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })
+        }))
     }
 
     static isMediaInCategory (type, mediaId) {
@@ -1488,7 +1497,7 @@ module.exports = (Plugin, Library) => {
       const thumbnails = []
       for (let c = 0; c < this.state.categories.length; c++) {
         const id = this.state.categories[c].id
-        const medias = this.state.medias.filter(m => m.category_id === id)
+        const medias = this.state.medias.filter(m => m.category_id === id && !m.dead)
         let media = null
         if (medias.length === 0) continue
         else if (medias.length === 1) media = medias[0]
@@ -1519,9 +1528,6 @@ module.exports = (Plugin, Library) => {
         uploadFile(this.props.type, buffer, media)
         setTimeout(() => {
           if (spoiler) findSpoilerButton()?.click()
-          if (['both', 'file'].includes(this.props.settings.alwaysSendUpload)) {
-            sendInTextarea().then(() => ComponentDispatch.dispatchToLastSubscribed('CLEAR_TEXT'))
-          }
         }, 50)
         EPS.closeExpressionPicker()
       }).catch((err) => console.error('[FavoriteMedia]', err))
@@ -1970,9 +1976,18 @@ module.exports = (Plugin, Library) => {
     return true
   }
 
+  function markMediaAsDead (type, url) {
+    const typeData = Utilities.loadData(config.name, type, { medias: [] })
+    const index = typeData.medias.findIndex(m => m.url === url)
+    if (index < 0) return
+    typeData.medias[index].dead = true
+    Utilities.saveData(config.name, type, typeData)
+  }
+
   return class FavoriteMedia extends Plugin {
     onStart () {
       loadModules()
+
       this.openMediaTabsByKeybinds()
       this.patchExpressionPicker()
       this.patchMessageContextMenu()
@@ -1981,6 +1996,7 @@ module.exports = (Plugin, Library) => {
       this.patchMedias()
       this.patchChannelTextArea()
       if (this.settings.alwaysDeleteDeadMedias) this.deleteDeadMedias()
+
       DOMTools.addStyle(this.getName() + '-css', `
         .category-input-color > input[type='color'] {
           opacity: 0;
@@ -2074,12 +2090,14 @@ module.exports = (Plugin, Library) => {
     }
 
     onStop () {
-      DOMTools.removeStyle(this.getName() + '-css')
       document.removeEventListener('keydown', this.onKeyDown)
       document.removeEventListener('keyup', this.onKeyUp)
+
       this.contextMenu?.()
       Patcher.unpatchAll()
       Dispatcher.dispatch({ type: 'UNPATCH_ALL' })
+
+      DOMTools.removeStyle(this.getName() + '-css')
     }
 
     onSwitch () {
@@ -2094,22 +2112,26 @@ module.exports = (Plugin, Library) => {
       const keysDown = {}
       this.onKeyDown = function (e) {
         keysDown[e.key] = true
-        if (keys.every(k => keysDown[k] === true)) {
-          e.preventDefault()
-          e.stopPropagation()
-          callback?.(keysDown)
-        }
+        if (keys.every(k => keysDown[k] === true)) callback?.(e, keysDown)
       }
       this.onKeyUp = function (e) {
         delete keysDown[e.key]
       }
+      this.onBlur = function () {
+        for (const prop of Object.getOwnPropertyNames(keysDown)) {
+          delete keysDown[prop]
+        }
+      }
       document.addEventListener('keydown', this.onKeyDown)
       document.addEventListener('keyup', this.onKeyUp)
+      window.addEventListener('blur', this.onBlur)
     }
 
     openMediaTabsByKeybinds () {
-      this.detectMultiKeysPressing(['Control', 'm'], (keysDown) => {
+      this.detectMultiKeysPressing(['Control', 'Alt'], (e, keysDown) => {
         if (this.settings.disableMediasTabKeybind) return
+        e.stopPropagation()
+        e.preventDefault()
         if (keysDown.i) {
           EPS.toggleExpressionPicker('image', EPSConstants.NORMAL)
         } else if (keysDown.v) {
@@ -2196,6 +2218,7 @@ module.exports = (Plugin, Library) => {
 
       Patcher.after(ChannelTextAreaButtons, 'type', (_, [props], returnValue) => {
         if (Utilities.getNestedProp(returnValue, 'props.children.1.props.type') === 'sidebar') return
+        if (returnValue == null) return
         currentChannelId = SelectedChannelStore.getChannelId()
         const channel = ChannelStore.getChannel(currentChannelId)
         const perms = Permissions.can({
@@ -2238,8 +2261,6 @@ module.exports = (Plugin, Library) => {
             type,
             url,
             poster: props.poster,
-            width: props.width,
-            height: props.height,
             uploaded: returnValue.props.children[0] != null,
             target: returnValue.props.children[1]?.ref
           }))
@@ -2276,8 +2297,6 @@ module.exports = (Plugin, Library) => {
             type: data.type,
             src: data.src,
             url: data.url.replace('media.discordapp.net', 'cdn.discordapp.com').replace(/\?width=([\d]*)&height=([\d]*)/, ''),
-            width: null,
-            height: null,
             target: returnValue.props.focusTarget
           }))
         })
@@ -2308,6 +2327,8 @@ module.exports = (Plugin, Library) => {
           MediaFavButton.getMediaDataFromProps({ ...props, type: 'gif' }).then((data) => {
             const foundGIF = savedGIFs.medias.find((g) => g.url === data.url)
             newGIFs.push(foundGIF ?? data)
+          }).catch((err) => {
+            console.warn('[FavoriteMedia]', err.message)
           })
         })).then(() => {
           savedGIFs.medias = newGIFs
@@ -2342,8 +2363,6 @@ module.exports = (Plugin, Library) => {
             type,
             url: props.target.getAttribute('href') || props.target.src,
             poster: null,
-            width: 0,
-            height: 0,
             favorited: undefined,
             target: { current: props.target }
           }
@@ -2352,17 +2371,11 @@ module.exports = (Plugin, Library) => {
             if (!tmpUrl) tmpUrl = data.url
             else tmpUrl = 'https://' + tmpUrl
             data.url = (tmpUrl || data.url || props.target.src).replace(/\?width=([\d]*)&height=([\d]*)/, '')
-            data.width = Number(props.target.src.match(/\?width=([\d]*)/, '')?.[1])
-            data.height = Number(props.target.src.match(/&height=([\d]*)/, '')?.[1])
           } else if (data.type === 'gif') {
             data.src = props.target.nextSibling.firstChild?.src
-            data.width = props.target.nextSibling.firstChild?.width
-            data.height = props.target.nextSibling.firstChild?.height
           } else if (data.type === 'video') {
             data.url = props.target.parentElement.firstElementChild.src
             data.poster = props.target.parentElement.firstElementChild.poster
-            data.width = props.target.parentElement.firstElementChild.width
-            data.height = props.target.parentElement.firstElementChild.height
           } else if (data.type === 'audio') {
             data.url = props.target.querySelector('audio').firstElementChild?.src
           }
@@ -2373,9 +2386,12 @@ module.exports = (Plugin, Library) => {
             label: data.favorited ? Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES,
             icon: () => React.createElement(StarSVG, { filled: !data.favorited }),
             action: async () => {
-              if (data.favorited) await MediaFavButton.unfavoriteMedia(data)
-              else await MediaFavButton.favoriteMedia(data)
-              Dispatcher.dispatch({ type: 'FAVORITE_MEDIA', url: data.url })
+              const switchFavorite = data.favorited ? MediaFavButton.unfavoriteMedia : MediaFavButton.favoriteMedia
+              switchFavorite(data).then(() => {
+                Dispatcher.dispatch({ type: 'FAVORITE_MEDIA', url: data.url })
+              }).catch((err) => {
+                console.error('[FavoriteMedia]', err)
+              })
             }
           }]
           menuItems.push({
@@ -2467,9 +2483,12 @@ module.exports = (Plugin, Library) => {
                   label: c.name,
                   key: c.id,
                   action: async () => {
-                    await MediaFavButton.favoriteMedia(data)
-                    MediaPicker.changeMediaCategory(data.type, data.url, c.id)
-                    Dispatcher.dispatch({ type: 'FAVORITE_MEDIA', url: data.url })
+                    MediaFavButton.favoriteMedia(data).then(() => {
+                      MediaPicker.changeMediaCategory(data.type, data.url, c.id)
+                      Dispatcher.dispatch({ type: 'FAVORITE_MEDIA', url: data.url })
+                    }).catch((err) => {
+                      console.error('[FavoriteMedia]', err)
+                    })
                   },
                   render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id })
                 }))

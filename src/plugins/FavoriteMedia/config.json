@@ -5,7 +5,7 @@
   "author": "Dastan",
   "authorId": "310450863845933057",
   "authorLink": "",
-  "version": "1.7.3",
+  "version": "1.8.0",
   "description": "Allows to favorite GIFs, images, videos and audios.",
   "website": "",
   "source": "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -29,13 +29,6 @@
     },
     {
       "type": "switch",
-      "id": "alwaysUploadFile",
-      "name": "Always upload as file",
-      "note": "Uploads media as file instead of sending a link",
-      "value": false
-    },
-    {
-      "type": "switch",
       "id": "alwaysDeleteDeadMedias",
       "name": "Always delete dead medias",
       "note": "Automatically remove no longer available medias",
@@ -45,33 +38,8 @@
       "type": "switch",
       "id": "disableMediasTabKeybind",
       "name": "Disable medias tab keybind",
-      "note": "Disable media tab opening with CTRL+ALT+I/V/A",
+      "note": "Disable media tab opening with CTRL+Alt+I/V/A",
       "value": false
-    },
-    {
-      "type": "dropdown",
-      "id": "alwaysSendUpload",
-      "name": "Send/upload instantly medias",
-      "note": "Send instantly medias links and/or files",
-      "value": "both",
-      "options": [
-        {
-          "label": "None",
-          "value": "none"
-        },
-        {
-          "label": "Links",
-          "value": "link"
-        },
-        {
-          "label": "Files",
-          "value": "file"
-        },
-        {
-          "label": "Both",
-          "value": "both"
-        }
-      ]
     },
     {
       "type": "slider",
@@ -90,23 +58,6 @@
       "collapsible": true,
       "shown": false,
       "settings": [
-        {
-          "type": "dropdown",
-          "id": "btnsPosition",
-          "name": "Buttons Direction",
-          "note": "Direction of the buttons on the chat",
-          "value": "right",
-          "options": [
-            {
-              "label": "Right",
-              "value": "right"
-            },
-            {
-              "label": "Left",
-              "value": "left"
-            }
-          ]
-        },
         {
           "type": "dropdown",
           "id": "btnsPositionKey",
@@ -131,6 +82,23 @@
               "value": "emoji"
             }
           ]
+        },
+        {
+          "type": "dropdown",
+          "id": "btnsPosition",
+          "name": "Buttons Direction",
+          "note": "Direction of the buttons on the chat",
+          "value": "right",
+          "options": [
+            {
+              "label": "Right",
+              "value": "right"
+            },
+            {
+              "label": "Left",
+              "value": "left"
+            }
+          ]
         }
       ]
     },
@@ -147,6 +115,20 @@
           "name": "General",
           "note": "Replace Discord GIFs tab",
           "value": true
+        },
+        {
+          "type": "switch",
+          "id": "alwaysSendInstantly",
+          "name": "Instant",
+          "note": "Send instantly medias links and/or files",
+          "value": true
+        },
+        {
+          "type": "switch",
+          "id": "alwaysUploadFile",
+          "name": "Always upload as file",
+          "note": "Uploads media as file instead of sending a link",
+          "value": false
         }
       ]
     },
@@ -177,6 +159,20 @@
           "name": "Star",
           "note": "Show favorite star on image medias",
           "value": true
+        },
+        {
+          "type": "switch",
+          "id": "alwaysSendInstantly",
+          "name": "Instant",
+          "note": "Send instantly medias links and/or files",
+          "value": true
+        },
+        {
+          "type": "switch",
+          "id": "alwaysUploadFile",
+          "name": "Upload",
+          "note": "Uploads media as file instead of sending a link",
+          "value": false
         }
       ]
     },
@@ -207,6 +203,20 @@
           "name": "Star",
           "note": "Show favorite star on video medias",
           "value": true
+        },
+        {
+          "type": "switch",
+          "id": "alwaysSendInstantly",
+          "name": "Instant",
+          "note": "Send instantly medias links and/or files",
+          "value": true
+        },
+        {
+          "type": "switch",
+          "id": "alwaysUploadFile",
+          "name": "Upload",
+          "note": "Uploads media as file instead of sending a link",
+          "value": false
         }
       ]
     },
@@ -246,8 +256,7 @@
       "title": "Bugs",
       "type": "fixed",
       "items": [
-        "Reworked how to get medias dimensions to avoid floating/clipping medias (should be more stable)",
-        "Removed medias preloading (causes slowness & crashes above 1k+)"
+        "Many small fixes"
       ]
     }
   ]
