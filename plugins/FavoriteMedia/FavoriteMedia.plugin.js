@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos and audios.
- * @version 1.8.0
+ * @version 1.8.1
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -36,7 +36,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "1.8.0",
+    version: "1.8.1",
     description: "Allows to favorite GIFs, images, videos and audios.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -296,10 +296,17 @@ const config = {
     ],
     changelog: [
         {
+            title: "Features",
+            type: "added",
+            items: [
+                "Added medias pagination (to prevent rendering 1000+ medias at once) -> 50 per page"
+            ]
+        },
+        {
             title: "Bugs",
             type: "fixed",
             items: [
-                "Many small fixes"
+                "Fixed not favorited medias displayed as favorited"
             ]
         }
     ]
@@ -513,8 +520,10 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
   const Image = Webpack.getModule(m => m.defaultProps?.zoomable)
   const FilesUpload = Webpack.getModule(Webpack.Filters.byProps('addFiles'))
   const MessagesManager = Webpack.getModule(Webpack.Filters.byProps('sendMessage'))
+  const PageControl = Webpack.getModule(m => { try { return m.toString?.()?.includes('maxVisiblePages') } catch (e) { return null } }, { searchExports: true })
 
   const DEFAULT_BACKGROUND_COLOR = '#202225'
+  const MAX_BY_PAGE = 50
   const MediaLoadFailImg = 'data:image/png;base64,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'
   const ImageSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 384 384', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M341.333,0H42.667C19.093,0,0,19.093,0,42.667v298.667C0,364.907,19.093,384,42.667,384h298.667 C364.907,384,384,364.907,384,341.333V42.667C384,19.093,364.907,0,341.333,0z M42.667,320l74.667-96l53.333,64.107L245.333,192l96,128H42.667z' }))
   const VideoSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 298 298', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M298,33c0-13.255-10.745-24-24-24H24C10.745,9,0,19.745,0,33v232c0,13.255,10.745,24,24,24h250c13.255,0,24-10.745,24-24V33zM91,39h43v34H91V39z M61,259H30v-34h31V259z M61,73H30V39h31V73z M134,259H91v-34h43V259z M123,176.708v-55.417c0-8.25,5.868-11.302,12.77-6.783l40.237,26.272c6.902,4.519,6.958,11.914,0.056,16.434l-40.321,26.277C128.84,188.011,123,184.958,123,176.708z M207,259h-43v-34h43V259z M207,73h-43V39h43V73z M268,259h-31v-34h31V259z M268,73h-31V39h31V73z' }))
@@ -799,6 +808,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     }
 
     get isFavorited () {
+      if (!this.props.url) return false
       return Utilities.loadData(config.name, this.props.type, { medias: [] }).medias.find(e => e.url === this.props.url || e.src?.endsWith(this.props.url.replace('https://', ''))) !== undefined
     }
 
@@ -1215,7 +1225,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     onError () {
       console.warn('[FavoriteMedia]', 'Could not load media:', this.props.thumbnail)
       this.setState({ thumbnailError: true })
-      markMediaAsDead(this.props.type, this.props.thumbnail)
+      if (this.props.type === 'image') markMediaAsDead(this.props.type, this.props.thumbnail)
     }
 
     render () {
@@ -1384,7 +1394,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       if (e.target.tagName !== 'IMG') return
       console.warn('[FavoriteMedia]', 'Could not load media:', this.props.url)
       e.target.src = MediaLoadFailImg
-      markMediaAsDead(this.props.type, this.props.url)
+      if (this.props.type === 'image') markMediaAsDead(this.props.type, this.props.url)
     }
 
     render () {
@@ -1479,12 +1489,13 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
   const RenderList = class extends React.Component {
     render () {
-      return React.createElement(React.Fragment, {
+      return React.createElement('div', {
         children: this.props.items.map((itemProps, i) => React.createElement(this.props.component, {
           ...itemProps,
           ...this.props.componentProps,
           index: i
-        }))
+        })),
+        className: `fm-${this.props.component.name.startsWith('Cat') ? 'categories' : 'medias'}List`
       })
     }
   }
@@ -1498,7 +1509,8 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         categories: Utilities.loadData(config.name, this.props.type, { categories: [] }).categories,
         category: null,
         medias: Utilities.loadData(config.name, this.props.type, { medias: [] }).medias,
-        contentWidth: null
+        contentWidth: null,
+        page: 1
       }
 
       this.type = this.props.type
@@ -1518,8 +1530,8 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     }
 
     componentDidMount () {
-      this.refs.input.focus()
-      this.setState({ contentWidth: this.refs.content.clientWidth })
+      this.refs.input?.focus()
+      this.setState({ contentWidth: this.refs.content?.clientWidth })
       Dispatcher.subscribe('UPDATE_MEDIAS', this.loadMedias)
       Dispatcher.subscribe('UPDATE_CATEGORIES', this.loadCategories)
       Dispatcher.dispatch({ type: 'PICKER_BUTTON_ACTIVE' })
@@ -1533,7 +1545,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         this.loadMedias()
         Dispatcher.dispatch({ type: 'PICKER_BUTTON_ACTIVE' })
       }
-      if (this.state.contentWidth !== this.refs.content.clientWidth) this.setState({ contentWidth: this.refs.content.clientWidth })
+      if (this.state.contentWidth !== this.refs.content?.clientWidth) this.setState({ contentWidth: this.refs.content?.clientWidth })
     }
 
     componentWillUnmount () {
@@ -1560,7 +1572,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     get heights () {
       const cols = this.numberOfColumns
       const heights = new Array(cols).fill(0)
-      const categoriesLen = this.filteredCategories.length
+      const categoriesLen = this.currentPageCategories.length
       const rows = Math.ceil(categoriesLen / cols)
       const max = (categoriesLen % cols) || 999
       for (let i = 0; i < cols; i++) { heights[i] = (rows - (i < max ? 0 : 1)) * 122 }
@@ -1600,9 +1612,24 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       return this.listWithId(this.state.medias).filter(m => this.filterCondition(m.name.toLowerCase(), filter.toString().toLowerCase()))
     }
 
+    get currentPageCategories () {
+      if (PageControl == null) return this.filteredCategories
+      const start = MAX_BY_PAGE * (this.state.page - 1)
+      return this.filteredCategories.slice(start, start + MAX_BY_PAGE)
+    }
+
+    get currentPageMedias () {
+      if (PageControl == null) return this.filteredMedias
+      const offset = this.currentPageCategories.length
+      if (offset >= MAX_BY_PAGE) return []
+      else if (offset > 0) return this.filteredMedias.slice(0, MAX_BY_PAGE - offset)
+      const start = MAX_BY_PAGE * (this.state.page - 1 - Math.ceil(this.filteredCategories.length / MAX_BY_PAGE)) + (this.filteredCategories.length % 50)
+      return this.filteredMedias.slice(start, start + MAX_BY_PAGE)
+    }
+
     get positionedCategories () {
       const thumbnails = this.randomThumbnails
-      const categories = this.filteredCategories
+      const categories = this.currentPageCategories
       const width = this.state.contentWidth || 200
       const n = Math.floor(width / 200)
       const itemWidth = (width - (12 * (n - 1))) / n
@@ -1621,12 +1648,12 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       const heights = this.heights
       const width = this.state.contentWidth || 200
       const n = Math.floor(width / 200)
-      const offset = this.filteredCategories.length
+      const offset = this.currentPageCategories.length
       const placed = new Array(n)
       placed.fill(false)
       placed.fill(true, 0, offset % n)
       const itemWidth = (width - (12 * (n - 1))) / n
-      const medias = this.filteredMedias.reverse()
+      const medias = this.currentPageMedias.reverse()
       for (let m = 0; m < medias.length; m++) {
         const min = {
           height: Math.min(...heights),
@@ -1845,7 +1872,10 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
     backCategory () {
       const prevCategory = this.state.categories.find((c) => c.id === this.state.category.category_id)
-      this.setState({ category: prevCategory })
+      this.setState({
+        category: prevCategory,
+        page: 1
+      })
     }
 
     uploadMedia (mediaId, spoiler = false) {
@@ -2148,7 +2178,22 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         )
         : null
       )
-      )
+      ),
+      PageControl != null
+        ? React.createElement('div', {
+          className: 'fm-pageControl'
+        },
+        React.createElement(PageControl, {
+          currentPage: this.state.page,
+          maxVisiblePages: 5,
+          onPageChange: (page) => {
+            this.setState({ page: Number(page) })
+          },
+          pageSize: MAX_BY_PAGE,
+          totalCount: this.filteredCategories.length + this.filteredMedias.length
+        })
+        )
+        : null
       )
       )
     }
@@ -2413,6 +2458,25 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           float: right;
           align-items: center;
           margin: 0 4px 0 16px;
+        }
+        .fm-pageControl {
+          width: 100%;
+          position: absolute;
+          display: flex;
+          justify-content: center;
+          bottom: 0;
+          z-index: 10;
+        }
+        .fm-pageControl > div {
+          width: auto;
+          margin-top: 0;
+          background-color: var(--background-secondary);
+          border-top-left-radius: 8px;
+          border-top-right-radius: 8px;
+        }
+        .fm-pageControl > div > nav {
+          padding: 8px 0;
+          height: 28px;
         }
       `)
     }

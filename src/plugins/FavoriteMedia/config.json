@@ -5,7 +5,7 @@
   "author": "Dastan",
   "authorId": "310450863845933057",
   "authorLink": "",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "Allows to favorite GIFs, images, videos and audios.",
   "website": "",
   "source": "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -253,10 +253,17 @@
   ],
   "changelog": [
     {
+      "title": "Features",
+      "type": "added",
+      "items": [
+        "Added medias pagination (to prevent rendering 1000+ medias at once) -> 50 per page"
+      ]
+    },
+    {
       "title": "Bugs",
       "type": "fixed",
       "items": [
-        "Many small fixes"
+        "Fixed not favorited medias displayed as favorited"
       ]
     }
   ]
