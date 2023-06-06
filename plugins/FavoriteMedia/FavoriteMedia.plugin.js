@@ -1608,8 +1608,8 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
     get filteredMedias () {
       const filter = this.state.textFilter
-      if (!filter) return this.mediasInCategory
-      return this.listWithId(this.state.medias).filter(m => this.filterCondition(m.name.toLowerCase(), filter.toString().toLowerCase()))
+      if (!filter) return this.mediasInCategory.reverse()
+      return this.listWithId(this.state.medias).filter(m => this.filterCondition(m.name.toLowerCase(), filter.toString().toLowerCase())).reverse()
     }
 
     get currentPageCategories () {
@@ -1653,7 +1653,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       placed.fill(false)
       placed.fill(true, 0, offset % n)
       const itemWidth = (width - (12 * (n - 1))) / n
-      const medias = this.currentPageMedias.reverse()
+      const medias = this.currentPageMedias
       for (let m = 0; m < medias.length; m++) {
         const min = {
           height: Math.min(...heights),
