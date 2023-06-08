@@ -185,7 +185,7 @@ module.exports = (Plugin, Library) => {
   const Image = Webpack.getModule(m => m.defaultProps?.zoomable)
   const FilesUpload = Webpack.getModule(Webpack.Filters.byProps('addFiles'))
   const MessagesManager = Webpack.getModule(Webpack.Filters.byProps('sendMessage'))
-  const PageControl = Webpack.getModule(m => { try { return m.toString?.()?.includes('maxVisiblePages') } catch (e) { return null } }, { searchExports: true })
+  const PageControl = Webpack.getModule(m => typeof m === 'function' && m.toString()?.includes('maxVisiblePages'), { searchExports: true })
 
   const DEFAULT_BACKGROUND_COLOR = '#202225'
   const MAX_BY_PAGE = 50
@@ -363,7 +363,8 @@ module.exports = (Plugin, Library) => {
 
   function loadComponentDispatch () {
     if (ComponentDispatch != null) return
-    ComponentDispatch = Webpack.getModule(m => m.dispatchToLastSubscribed && m.emitter?.listeners('CLEAR_TEXT').length && m.emitter?.listeners('INSERT_TEXT').length, { searchExports: true })
+    const filter = m => m.dispatchToLastSubscribed && m.emitter?.listeners('CLEAR_TEXT').length && m.emitter?.listeners('INSERT_TEXT').length
+    Webpack.waitForModule(filter, { searchExports: true }).then((mod) => { ComponentDispatch = mod })
   }
 
   // https://github.com/Strencher/BetterDiscordStuff/blob/master/InvisibleTyping/InvisibleTyping.plugin.js#L483-L494
@@ -1029,7 +1030,6 @@ module.exports = (Plugin, Library) => {
     }
 
     sendMedia (e) {
-      loadComponentDispatch()
       const sendMedia = e.type === 'SEND_MEDIA'
       if (sendMedia) {
         if (e.mediaId !== this.props.id) return
@@ -1544,7 +1544,6 @@ module.exports = (Plugin, Library) => {
     }
 
     uploadMedia (mediaId, spoiler = false) {
-      loadComponentDispatch()
       const media = this.state.medias[mediaId]
       if (!media) return
       fetchMedia(media).then((buffer) => {
