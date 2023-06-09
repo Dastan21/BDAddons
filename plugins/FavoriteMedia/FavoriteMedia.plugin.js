@@ -698,8 +698,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
   function loadComponentDispatch () {
     if (ComponentDispatch != null) return
-    const filter = m => m.dispatchToLastSubscribed && m.emitter?.listeners('CLEAR_TEXT').length && m.emitter?.listeners('INSERT_TEXT').length
-    Webpack.waitForModule(filter, { searchExports: true }).then((mod) => { ComponentDispatch = mod })
+    ComponentDispatch = Webpack.getModule(m => m.dispatchToLastSubscribed && m.emitter?.listeners('CLEAR_TEXT').length && m.emitter?.listeners('INSERT_TEXT').length, { searchExports: true })
   }
 
   // https://github.com/Strencher/BetterDiscordStuff/blob/master/InvisibleTyping/InvisibleTyping.plugin.js#L483-L494
@@ -1365,6 +1364,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     }
 
     sendMedia (e) {
+      loadComponentDispatch()
       const sendMedia = e.type === 'SEND_MEDIA'
       if (sendMedia) {
         if (e.mediaId !== this.props.id) return
@@ -1879,6 +1879,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     }
 
     uploadMedia (mediaId, spoiler = false) {
+      loadComponentDispatch()
       const media = this.state.medias[mediaId]
       if (!media) return
       fetchMedia(media).then((buffer) => {
