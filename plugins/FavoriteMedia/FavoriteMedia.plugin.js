@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos and audios.
- * @version 1.8.1
+ * @version 1.8.2
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -36,7 +36,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "1.8.1",
+    version: "1.8.2",
     description: "Allows to favorite GIFs, images, videos and audios.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -291,22 +291,6 @@ const config = {
                     note: "Show favorite star on audio medias",
                     value: true
                 }
-            ]
-        }
-    ],
-    changelog: [
-        {
-            title: "Features",
-            type: "added",
-            items: [
-                "Added medias pagination (to prevent rendering 1000+ medias at once) -> 50 per page"
-            ]
-        },
-        {
-            title: "Bugs",
-            type: "fixed",
-            items: [
-                "Fixed not favorited medias displayed as favorited"
             ]
         }
     ]
