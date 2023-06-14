@@ -2026,7 +2026,6 @@ module.exports = (Plugin, Library) => {
     onStart () {
       loadModules()
 
-      this.openMediaTabsByKeybinds()
       this.patchExpressionPicker()
       this.patchMessageContextMenu()
       this.patchGIFTab()
@@ -2147,9 +2146,6 @@ module.exports = (Plugin, Library) => {
     }
 
     onStop () {
-      document.removeEventListener('keydown', this.onKeyDown)
-      document.removeEventListener('keyup', this.onKeyUp)
-
       this.contextMenu?.()
       Patcher.unpatchAll()
       Dispatcher.dispatch({ type: 'UNPATCH_ALL' })
@@ -2163,40 +2159,6 @@ module.exports = (Plugin, Library) => {
 
     getSettingsPanel () {
       return this.buildSettingsPanel().getElement()
-    }
-
-    detectMultiKeysPressing (keys, callback) {
-      const keysDown = {}
-      this.onKeyDown = function (e) {
-        keysDown[e.key] = true
-        if (keys.every(k => keysDown[k] === true)) callback?.(e, keysDown)
-      }
-      this.onKeyUp = function (e) {
-        delete keysDown[e.key]
-      }
-      this.onBlur = function () {
-        for (const prop of Object.getOwnPropertyNames(keysDown)) {
-          delete keysDown[prop]
-        }
-      }
-      document.addEventListener('keydown', this.onKeyDown)
-      document.addEventListener('keyup', this.onKeyUp)
-      window.addEventListener('blur', this.onBlur)
-    }
-
-    openMediaTabsByKeybinds () {
-      this.detectMultiKeysPressing(['Control', 'Alt'], (e, keysDown) => {
-        if (this.settings.disableMediasTabKeybind) return
-        e.stopPropagation()
-        e.preventDefault()
-        if (keysDown.i) {
-          EPS.toggleExpressionPicker('image', EPSConstants.NORMAL)
-        } else if (keysDown.v) {
-          EPS.toggleExpressionPicker('video', EPSConstants.NORMAL)
-        } else if (keysDown.a) {
-          EPS.toggleExpressionPicker('audio', EPSConstants.NORMAL)
-        }
-      })
     }
 
     MediaTab (mediaType, elementType) {

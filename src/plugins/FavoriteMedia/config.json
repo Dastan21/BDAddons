@@ -35,13 +35,6 @@
       "value": false
     },
     {
-      "type": "switch",
-      "id": "disableMediasTabKeybind",
-      "name": "Disable medias tab keybind",
-      "note": "Disable media tab opening with CTRL+Alt+I/V/A",
-      "value": false
-    },
-    {
       "type": "slider",
       "id": "mediaVolume",
       "name": "Preview Media Volume",
