@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos and audios.
- * @version 1.8.2
+ * @version 1.8.3
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -36,7 +36,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "1.8.2",
+    version: "1.8.3",
     description: "Allows to favorite GIFs, images, videos and audios.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -1517,7 +1517,10 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     componentDidUpdate () {
       if (this.type !== this.props.type) {
         this.type = this.props.type
-        this.setState({ category: null })
+        this.setState({
+          category: null,
+          page: 1
+        })
         this.loadCategories()
         this.loadMedias()
         Dispatcher.dispatch({ type: 'PICKER_BUTTON_ACTIVE' })

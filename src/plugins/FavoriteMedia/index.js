@@ -1205,7 +1205,10 @@ module.exports = (Plugin, Library) => {
     componentDidUpdate () {
       if (this.type !== this.props.type) {
         this.type = this.props.type
-        this.setState({ category: null })
+        this.setState({
+          category: null,
+          page: 1
+        })
         this.loadCategories()
         this.loadMedias()
         Dispatcher.dispatch({ type: 'PICKER_BUTTON_ACTIVE' })
