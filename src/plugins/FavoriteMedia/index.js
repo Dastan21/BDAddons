@@ -174,7 +174,7 @@ module.exports = (Plugin, Library) => {
   let ChannelTextAreaButtons
   let ComponentDispatch
   const EPS = {}
-  const EPSModules = Webpack.getModule(m => Object.keys(m).some(key => m[key]?.toString?.().includes('isSearchSuggestion')))
+  const EPSModules = Webpack.getModule(m => Object.keys(m).some(key => typeof m[key] === 'function' && m[key].toString().includes('isSearchSuggestion')))
   const EPSConstants = Webpack.getModule(Webpack.Filters.byProps('FORUM_CHANNEL_GUIDELINES', 'CREATE_FORUM_POST'), { searchExports: true })
   const GIFUtils = {
     favorite: Webpack.getModule(m => m.toString?.()?.includes('updateAsync("favoriteGifs'), { searchExports: true }),
@@ -506,7 +506,7 @@ module.exports = (Plugin, Library) => {
     static async getMediaDataFromProps (props) {
       let data = null
       const dimensions = await getMediaDimensions(props.target?.current?.parentElement?.querySelector('img, video'), props)
-      if (dimensions.width === 0 || dimensions.height === 0) throw new Error('Could not fetch media dimensions')
+      if (props.type !== 'audio' && (dimensions.width === 0 || dimensions.height === 0)) throw new Error('Could not fetch media dimensions')
       switch (props.type) {
         case 'gif':
           data = {
@@ -2132,6 +2132,7 @@ module.exports = (Plugin, Library) => {
           display: flex;
           justify-content: center;
           bottom: 0;
+          pointer-events: none;
           z-index: 10;
         }
         .fm-pageControl > div {
@@ -2140,6 +2141,7 @@ module.exports = (Plugin, Library) => {
           background-color: var(--background-secondary);
           border-top-left-radius: 8px;
           border-top-right-radius: 8px;
+          pointer-events: all;
         }
         .fm-pageControl > div > nav {
           padding: 8px 0;
