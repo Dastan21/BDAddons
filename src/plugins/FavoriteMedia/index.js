@@ -185,7 +185,7 @@ module.exports = (Plugin, Library) => {
   const Image = Webpack.getModule(m => m.defaultProps?.zoomable)
   const FilesUpload = Webpack.getModule(Webpack.Filters.byProps('addFiles'))
   const MessagesManager = Webpack.getModule(Webpack.Filters.byProps('sendMessage'))
-  const PageControl = Webpack.getModule(m => typeof m === 'function' && m.toString()?.includes('maxVisiblePages'), { searchExports: true })
+  const PageControl = Webpack.getModule(m => typeof m === 'function' && m.toString()?.includes('hideMaxPage'), { searchExports: true })
 
   const DEFAULT_BACKGROUND_COLOR = '#202225'
   const MAX_BY_PAGE = 50

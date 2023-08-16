@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos and audios.
- * @version 1.8.4
+ * @version 1.8.5
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -36,7 +36,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "1.8.4",
+    version: "1.8.5",
     description: "Allows to favorite GIFs, images, videos and audios.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -497,7 +497,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
   const Image = Webpack.getModule(m => m.defaultProps?.zoomable)
   const FilesUpload = Webpack.getModule(Webpack.Filters.byProps('addFiles'))
   const MessagesManager = Webpack.getModule(Webpack.Filters.byProps('sendMessage'))
-  const PageControl = Webpack.getModule(m => typeof m === 'function' && m.toString()?.includes('maxVisiblePages'), { searchExports: true })
+  const PageControl = Webpack.getModule(m => typeof m === 'function' && m.toString()?.includes('hideMaxPage'), { searchExports: true })
 
   const DEFAULT_BACKGROUND_COLOR = '#202225'
   const MAX_BY_PAGE = 50
