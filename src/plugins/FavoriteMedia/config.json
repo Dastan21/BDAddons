@@ -28,13 +28,6 @@
       "value": false
     },
     {
-      "type": "switch",
-      "id": "alwaysDeleteDeadMedias",
-      "name": "Always delete dead medias",
-      "note": "Automatically remove no longer available medias",
-      "value": false
-    },
-    {
       "type": "slider",
       "id": "mediaVolume",
       "name": "Preview Media Volume",

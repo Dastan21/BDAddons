@@ -59,13 +59,6 @@ const config = {
             value: false
         },
         {
-            type: "switch",
-            id: "alwaysDeleteDeadMedias",
-            name: "Always delete dead medias",
-            note: "Automatically remove no longer available medias",
-            value: false
-        },
-        {
             type: "slider",
             id: "mediaVolume",
             name: "Preview Media Volume",
@@ -1202,7 +1195,6 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     onError () {
       console.warn('[FavoriteMedia]', 'Could not load media:', this.props.thumbnail)
       this.setState({ thumbnailError: true })
-      if (this.props.type === 'image') markMediaAsDead(this.props.type, this.props.thumbnail)
     }
 
     render () {
@@ -1286,7 +1278,6 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     }
 
     get elementSrc () {
-      if (this.props.dead) return MediaLoadFailImg
       if (this.props.type === 'video' && !this.state.showControls) return this.props.poster
       if (this.isGIF) return this.props.src
       return this.props.url
@@ -1371,7 +1362,6 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       if (e.target.tagName !== 'IMG') return
       console.warn('[FavoriteMedia]', 'Could not load media:', this.props.url)
       e.target.src = MediaLoadFailImg
-      if (this.props.type === 'image') markMediaAsDead(this.props.type, this.props.url)
     }
 
     render () {
@@ -1832,7 +1822,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       const thumbnails = []
       for (let c = 0; c < this.state.categories.length; c++) {
         const id = this.state.categories[c].id
-        const medias = this.state.medias.filter(m => m.category_id === id && !m.dead)
+        const medias = this.state.medias.filter(m => m.category_id === id)
         let media = null
         if (medias.length === 0) continue
         else if (medias.length === 1) media = medias[0]
@@ -2329,14 +2319,6 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     return true
   }
 
-  function markMediaAsDead (type, url) {
-    const typeData = Utilities.loadData(config.name, type, { medias: [] })
-    const index = typeData.medias.findIndex(m => m.url === url)
-    if (index < 0) return
-    typeData.medias[index].dead = true
-    Utilities.saveData(config.name, type, typeData)
-  }
-
   return class FavoriteMedia extends Plugin {
     onStart () {
       loadModules()
@@ -2347,7 +2329,6 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       this.patchClosePicker()
       this.patchMedias()
       this.patchChannelTextArea()
-      if (this.settings.alwaysDeleteDeadMedias) this.deleteDeadMedias()
 
       DOMTools.addStyle(this.getName() + '-css', `
         .category-input-color > input[type='color'] {
@@ -2916,15 +2897,6 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
     isFavorited (type, url) {
       return Utilities.loadData(this._config.name, type, { medias: [] }).medias.find(e => e.url === url) !== undefined
-    }
-
-    deleteDeadMedias () {
-      const types = ['image', 'video', 'audio']
-      types.forEach((type) => {
-        const typeData = Utilities.loadData(this._config.name, type, { medias: [] })
-        typeData.medias = typeData.medias.filter((m) => !m.dead)
-        Utilities.saveData(this._config.name, type, typeData)
-      })
     }
   }
 
