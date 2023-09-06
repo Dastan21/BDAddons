@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos and audios.
- * @version 1.8.5
+ * @version 1.8.6
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -36,7 +36,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "1.8.5",
+    version: "1.8.6",
     description: "Allows to favorite GIFs, images, videos and audios.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -1590,10 +1590,11 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
     get currentPageMedias () {
       if (PageControl == null) return this.filteredMedias
-      const offset = this.currentPageCategories.length
+      let offset = this.currentPageCategories.length
       if (offset >= MAX_BY_PAGE) return []
       else if (offset > 0) return this.filteredMedias.slice(0, MAX_BY_PAGE - offset)
-      const start = MAX_BY_PAGE * (this.state.page - 1 - Math.ceil(this.filteredCategories.length / MAX_BY_PAGE)) + (this.filteredCategories.length % 50)
+      offset = (MAX_BY_PAGE * Math.floor(this.filteredCategories.length / MAX_BY_PAGE) + (MAX_BY_PAGE - this.filteredCategories.length % MAX_BY_PAGE)) % MAX_BY_PAGE
+      const start = offset + (this.state.page - 1 - Math.ceil(this.filteredCategories.length / MAX_BY_PAGE)) * MAX_BY_PAGE
       return this.filteredMedias.slice(start, start + MAX_BY_PAGE)
     }
 

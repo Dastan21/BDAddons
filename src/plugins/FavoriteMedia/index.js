@@ -1285,10 +1285,11 @@ module.exports = (Plugin, Library) => {
 
     get currentPageMedias () {
       if (PageControl == null) return this.filteredMedias
-      const offset = this.currentPageCategories.length
+      let offset = this.currentPageCategories.length
       if (offset >= MAX_BY_PAGE) return []
       else if (offset > 0) return this.filteredMedias.slice(0, MAX_BY_PAGE - offset)
-      const start = MAX_BY_PAGE * (this.state.page - 1 - Math.ceil(this.filteredCategories.length / MAX_BY_PAGE)) + (this.filteredCategories.length % 50)
+      offset = (MAX_BY_PAGE * Math.floor(this.filteredCategories.length / MAX_BY_PAGE) + (MAX_BY_PAGE - this.filteredCategories.length % MAX_BY_PAGE)) % MAX_BY_PAGE
+      const start = offset + (this.state.page - 1 - Math.ceil(this.filteredCategories.length / MAX_BY_PAGE)) * MAX_BY_PAGE
       return this.filteredMedias.slice(start, start + MAX_BY_PAGE)
     }
 
