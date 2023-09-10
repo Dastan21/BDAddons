@@ -43,12 +43,12 @@ module.exports = (Plugin, Library) => {
     role: WebpackModules.getByProps('roleCircle'),
     _gif: WebpackModules.getByProps('container', 'gifFavoriteButton', 'embedWrapper'),
     gif: WebpackModules.getByProps('size', 'gifFavoriteButton', 'selected'),
-    image: WebpackModules.getByProps('flexCenter', 'imageWrapper', 'imageWrapperBackground'),
+    image: WebpackModules.getByProps('clickable', 'imageWrapper', 'imageAccessory'),
     control: WebpackModules.getByProps('container', 'labelRow', 'control'),
     category: WebpackModules.getByProps('container', 'categoryFade', 'categoryFadeBlurple'),
     textarea: WebpackModules.getByProps('textAreaHeight', 'channelTextArea', 'highlighted'),
     gutter: WebpackModules.getByProps('gutterSize', 'container', 'content'),
-    _flex: WebpackModules.getByProps('_flex', '_horizontal', '_horizontalReverse'),
+    horizontal: WebpackModules.getByProps('flex', 'flexChild', 'horizontal'),
     flex: WebpackModules.getByProps('flex', 'alignStart', 'alignEnd'),
     title: WebpackModules.getByProps('title', 'h1', 'h2'),
     container: WebpackModules.getByProps('container', 'inner', 'pointer'),
@@ -124,8 +124,8 @@ module.exports = (Plugin, Library) => {
       container: classModules.gutter.container
     },
     flex: {
-      flex: classModules._flex.flex,
-      horizontal: classModules._flex.horizontal,
+      flex: classModules.horizontal.flex,
+      horizontal: classModules.horizontal.horizontal,
       justifyStart: classModules.flex.justifyStart,
       alignCenter: classModules.flex.alignCenter,
       noWrap: classModules.flex.noWrap
