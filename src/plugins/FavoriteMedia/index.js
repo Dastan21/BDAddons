@@ -36,24 +36,24 @@ module.exports = (Plugin, Library) => {
   const { Webpack, openDialog } = BdApi
 
   const classModules = {
-    icon: WebpackModules.getByProps('hoverScale', 'buttonWrapper', 'button'),
-    menu: WebpackModules.getByProps('menu', 'scroller', 'colorDefault'),
-    result: WebpackModules.getByProps('desiredItemWidth', 'results', 'result'),
-    input: WebpackModules.getByProps('inputWrapper', 'input', 'focused'),
-    role: WebpackModules.getByProps('roleCircle'),
-    _gif: WebpackModules.getByProps('container', 'gifFavoriteButton', 'embedWrapper'),
+    icon: WebpackModules.getByProps('icon', 'active', 'sparkle'),
+    menu: WebpackModules.getByProps('menu', 'labelContainer', 'colorDefault'),
+    result: WebpackModules.getByProps('result', 'emptyHints', 'emptyHintText'),
+    input: WebpackModules.getByProps('inputDefault', 'inputWrapper'),
+    role: WebpackModules.getByProps('roleCircle', 'dot'),
     gif: WebpackModules.getByProps('size', 'gifFavoriteButton', 'selected'),
+    gif2: WebpackModules.getByProps('container', 'gifFavoriteButton', 'embedWrapper'),
     image: WebpackModules.getByProps('clickable', 'imageWrapper', 'imageAccessory'),
     control: WebpackModules.getByProps('container', 'labelRow', 'control'),
-    category: WebpackModules.getByProps('container', 'categoryFade', 'categoryFadeBlurple'),
-    textarea: WebpackModules.getByProps('textAreaHeight', 'channelTextArea', 'highlighted'),
-    gutter: WebpackModules.getByProps('gutterSize', 'container', 'content'),
+    category: WebpackModules.getByProps('container', 'categoryFade', 'categoryName'),
+    textarea: WebpackModules.getByProps('channelTextArea', 'buttonContainer', 'button'),
+    gutter: WebpackModules.getByProps('header', 'backButton', 'searchHeader'),
     horizontal: WebpackModules.getByProps('flex', 'flexChild', 'horizontal'),
     flex: WebpackModules.getByProps('flex', 'alignStart', 'alignEnd'),
-    title: WebpackModules.getByProps('title', 'h1', 'h2'),
+    title: WebpackModules.getByProps('title', 'h1', 'h5'),
     container: WebpackModules.getByProps('container', 'inner', 'pointer'),
     scroller: WebpackModules.getByProps('scrollerBase', 'thin', 'fade'),
-    look: WebpackModules.getByProps('lowSaturationUnderline', 'button', 'lookFilled'),
+    look: WebpackModules.getByProps('button', 'lookBlank', 'colorBrand'),
     audio: WebpackModules.getByProps('wrapper', 'wrapperAudio', 'wrapperPaused'),
     contentWrapper: WebpackModules.getByProps('contentWrapper', 'resizeHandle', 'drawerSizingWrapper'),
     buttons: WebpackModules.getByProps('profileBioInput', 'buttons', 'attachButton')
@@ -89,7 +89,7 @@ module.exports = (Plugin, Library) => {
     },
     roleCircle: classModules.role.roleCircle,
     gif: {
-      gifFavoriteButton1: classModules._gif.gifFavoriteButton,
+      gifFavoriteButton1: classModules.gif2.gifFavoriteButton,
       size: classModules.gif.size,
       gifFavoriteButton2: classModules.gif.gifFavoriteButton,
       selected: classModules.gif.selected,
@@ -99,7 +99,7 @@ module.exports = (Plugin, Library) => {
     image: {
       imageAccessory: classModules.image.imageAccessory,
       clickable: classModules.image.clickable,
-      embedWrapper: classModules._gif.embedWrapper,
+      embedWrapper: classModules.gif2.embedWrapper,
       imageWrapper: classModules.image.imageWrapper
     },
     control: classModules.control.control,
