@@ -1948,6 +1948,10 @@ module.exports = (Plugin, Library) => {
     return typeData
   }
 
+  function getNewCategoryId (categories = []) {
+    return (Math.max(...categories.map(c => c.id)) || 0) + 1
+  }
+
   function createCategory (type, { name, color }, categoryId) {
     const res = categoryValidator(type, name, color)
     if (res.error) {
@@ -1956,7 +1960,12 @@ module.exports = (Plugin, Library) => {
       return false
     }
 
-    res.categories.push({ id: ((res.categories.slice(-1)[0] && res.categories.slice(-1)[0].id) || 0) + 1, name, color, category_id: categoryId })
+    res.categories.push({
+      id: getNewCategoryId(res.categories),
+      name,
+      color,
+      category_id: categoryId
+    })
     Utilities.saveData(config.name, type, res)
 
     Toasts.success(labels.category.success.create)

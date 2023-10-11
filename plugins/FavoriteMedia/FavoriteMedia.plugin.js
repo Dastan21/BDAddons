@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos and audios.
- * @version 1.8.8
+ * @version 1.8.9
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -36,7 +36,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "1.8.8",
+    version: "1.8.9",
     description: "Allows to favorite GIFs, images, videos and audios.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -2253,6 +2253,10 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     return typeData
   }
 
+  function getNewCategoryId (categories = []) {
+    return (Math.max(...categories.map(c => c.id)) || 0) + 1
+  }
+
   function createCategory (type, { name, color }, categoryId) {
     const res = categoryValidator(type, name, color)
     if (res.error) {
@@ -2261,7 +2265,12 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       return false
     }
 
-    res.categories.push({ id: ((res.categories.slice(-1)[0] && res.categories.slice(-1)[0].id) || 0) + 1, name, color, category_id: categoryId })
+    res.categories.push({
+      id: getNewCategoryId(res.categories),
+      name,
+      color,
+      category_id: categoryId
+    })
     Utilities.saveData(config.name, type, res)
 
     Toasts.success(labels.category.success.create)
