@@ -263,11 +263,21 @@ module.exports = (Plugin, Library) => {
               })
             }
           }
-          resolve(Buffer.concat(bufs))
+          resolve(concatBuffers(bufs))
         })
         res.on('error', (err) => reject(err))
       })
     })
+  }
+
+  function concatBuffers (bufs = []) {
+    let offset = 0
+    const uint = new Uint8Array(bufs.reduce((t, b) => t + b.byteLength), 0)
+    for (const buf of bufs) {
+      uint.set(offset, buf)
+      offset += buf.byteLength
+    }
+    return uint
   }
 
   function findTextareaInput ($button = document.getElementsByClassName(classes.textarea.buttonContainer).item(0)) {

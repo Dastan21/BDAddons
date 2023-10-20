@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos and audios.
- * @version 1.8.9
+ * @version 1.8.10
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -36,7 +36,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "1.8.9",
+    version: "1.8.10",
     description: "Allows to favorite GIFs, images, videos and audios.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -568,11 +568,21 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
               })
             }
           }
-          resolve(Buffer.concat(bufs))
+          resolve(concatBuffers(bufs))
         })
         res.on('error', (err) => reject(err))
       })
     })
+  }
+
+  function concatBuffers (bufs = []) {
+    let offset = 0
+    const uint = new Uint8Array(bufs.reduce((t, b) => t + b.byteLength), 0)
+    for (const buf of bufs) {
+      uint.set(offset, buf)
+      offset += buf.byteLength
+    }
+    return uint
   }
 
   function findTextareaInput ($button = document.getElementsByClassName(classes.textarea.buttonContainer).item(0)) {
