@@ -24,14 +24,12 @@ module.exports = (Plugin, Library) => {
       MessageStore,
       SelectedChannelStore,
       ChannelStore,
-      UserStore,
       Permissions,
       Strings
     }, Patcher
   } = Library
   const { mkdir, lstat, writeFile } = require('fs')
   const path = require('path')
-  const https = require('https')
   const BdApi = new window.BdApi('FavoriteMedia')
   const { Webpack, openDialog } = BdApi
 
@@ -39,7 +37,7 @@ module.exports = (Plugin, Library) => {
     icon: WebpackModules.getByProps('icon', 'active', 'sparkle'),
     menu: WebpackModules.getByProps('menu', 'labelContainer', 'colorDefault'),
     result: WebpackModules.getByProps('result', 'emptyHints', 'emptyHintText'),
-    input: WebpackModules.getByProps('inputDefault', 'inputWrapper'),
+    input: WebpackModules.getByProps('inputDefault', 'inputWrapper', 'inputPrefix'),
     role: WebpackModules.getByProps('roleCircle', 'dot'),
     gif: WebpackModules.getByProps('size', 'gifFavoriteButton', 'selected'),
     gif2: WebpackModules.getByProps('container', 'gifFavoriteButton', 'embedWrapper'),
@@ -167,14 +165,12 @@ module.exports = (Plugin, Library) => {
   }
 
   const canClosePicker = { context: '', value: true }
-  let closeExpressionPickerKey = ''
   let currentChannelId = ''
   let currentTextareaInput = null
 
   let ChannelTextAreaButtons
-  let ComponentDispatch
-  const EPS = {}
-  const EPSModules = Webpack.getModule(m => Object.keys(m).some(key => typeof m[key] === 'function' && m[key].toString().includes('isSearchSuggestion')))
+  const ComponentDispatch = WebpackModules.getByProps('ComponentDispatch').ComponentDispatch
+  const EPS = Webpack.getByKeys('toggleExpressionPicker')
   const EPSConstants = Webpack.getModule(Webpack.Filters.byProps('FORUM_CHANNEL_GUIDELINES', 'CREATE_FORUM_POST'), { searchExports: true })
   const GIFUtils = {
     favorite: Webpack.getModule(m => m.toString?.()?.includes('updateAsync("favoriteGifs'), { searchExports: true }),
@@ -185,7 +181,7 @@ module.exports = (Plugin, Library) => {
   const Image = Webpack.getModule(m => m.defaultProps?.zoomable)
   const FilesUpload = Webpack.getModule(Webpack.Filters.byProps('addFiles'))
   const MessagesManager = Webpack.getModule(Webpack.Filters.byProps('sendMessage'))
-  const PageControl = Webpack.getModule(m => typeof m === 'function' && m.toString()?.includes('hideMaxPage'), { searchExports: true })
+  const PageControl = Webpack.getModule(m => typeof m === 'function' && m.toString()?.includes('totalCount'), { searchExports: true })
 
   const DEFAULT_BACKGROUND_COLOR = '#202225'
   const MAX_BY_PAGE = 50
@@ -224,6 +220,7 @@ module.exports = (Plugin, Library) => {
   function uploadFile (type, buffer, media) {
     // if the textarea has not been patched, file uploading will fail
     if (currentTextareaInput == null || !document.body.contains(currentTextareaInput)) return console.error('[FavoriteMedia]', 'Could not find current textarea, upload file canceled.')
+
     const isGIF = type === 'gif'
     const ext = getUrlExt(media.url)
     const fileName = `${isGIF ? getUrlName(media.url).replace(/ /g, '_') : media.name}${ext}`
@@ -238,46 +235,20 @@ module.exports = (Plugin, Library) => {
   }
 
   async function fetchMedia (media) {
-    return await new Promise((resolve, reject) => {
-      https.get(media.url, (res) => {
-        let bufs = []
-        res.on('data', (chunk) => bufs.push(chunk))
-        res.on('end', async () => {
-          // no longer cached on Discord CDN
-          const td = new TextDecoder('utf-8')
-          if (td.decode(bufs[0].subarray(0, 5)) === '<?xml') return reject(new Error('Media no longer cached on the server'))
-          // tenor GIF case
-          if (media.url.startsWith('https://tenor.com/view/')) {
-            const td = new TextDecoder('utf-8')
-            if (td.decode(bufs[0].subarray(0, 15)) === '<!DOCTYPE html>') {
-              bufs = bufs.map((b) => td.decode(b))
-              media.url = String(bufs).match(/src="(https:\/\/media\.tenor\.com\/[^"]*)"/)?.[1]
-              media.name = media.url.match(/view\/(.*)-gif-/)?.[1]
-              bufs = await new Promise((resolve, reject) => {
-                https.get(media.url, (res) => {
-                  const bufsGIF = []
-                  res.on('data', chunk => bufsGIF.push(chunk))
-                  res.on('end', () => resolve(bufsGIF))
-                  res.on('error', (err) => reject(err))
-                })
-              })
-            }
-          }
-          resolve(concatBuffers(bufs))
-        })
-        res.on('error', (err) => reject(err))
-      })
-    })
-  }
-
-  function concatBuffers (bufs = []) {
-    let offset = 0
-    const uint = new Uint8Array(bufs.reduce((t, b) => t + b.byteLength), 0)
-    for (const buf of bufs) {
-      uint.set(offset, buf)
-      offset += buf.byteLength
+    let mediaBuffer = await BdApi.Net.fetch(media.url).then((r) => r.arrayBuffer())
+    const td = new TextDecoder('utf-8')
+    // no longer cached on Discord CDN
+    if (td.decode(mediaBuffer.slice(0, 5)) === '<?xml') throw new Error('Media no longer cached on the server')
+    // tenor GIF case
+    if (media.url.startsWith('https://tenor.com/view/')) {
+      if (td.decode(mediaBuffer.slice(0, 15)) === '<!DOCTYPE html>') {
+        media.url = td.decode(mediaBuffer).match(/src="(https:\/\/media\.tenor\.com\/[^"]*)"/)?.[1]
+        media.name = media.url.match(/view\/(.*)-gif-/)?.[1]
+        mediaBuffer = await BdApi.Net.fetch(media.url).then((r) => r.arrayBuffer())
+      }
     }
-    return uint
+
+    return new Uint8Array(mediaBuffer)
   }
 
   function findTextareaInput ($button = document.getElementsByClassName(classes.textarea.buttonContainer).item(0)) {
@@ -351,29 +322,7 @@ module.exports = (Plugin, Library) => {
   }
 
   function loadModules () {
-    loadEPS()
-    loadComponentDispatch()
     loadChannelTextAreaButtons()
-  }
-
-  function loadEPS () {
-    if (EPSModules == null) return
-    Object.entries(EPSModules).forEach(([key, fn]) => {
-      const code = String(fn)
-      if (code.includes('useDebugValue') && fn.getState) {
-        EPS.useExpressionPickerStore = fn
-      } else if (code.includes('===')) {
-        EPS.toggleExpressionPicker = fn
-      } else if (code.includes('activeView:null,activeViewType:null')) {
-        EPS.closeExpressionPicker = fn
-        closeExpressionPickerKey = key
-      }
-    })
-  }
-
-  function loadComponentDispatch () {
-    if (ComponentDispatch != null) return
-    ComponentDispatch = Webpack.getModule(m => m.dispatchToLastSubscribed && m.emitter?.listeners('CLEAR_TEXT').length && m.emitter?.listeners('INSERT_TEXT').length, { searchExports: true })
   }
 
   // https://github.com/Strencher/BetterDiscordStuff/blob/master/InvisibleTyping/InvisibleTyping.plugin.js#L483-L494
@@ -484,7 +433,11 @@ module.exports = (Plugin, Library) => {
 
     get isFavorited () {
       if (!this.props.url) return false
-      return Utilities.loadData(config.name, this.props.type, { medias: [] }).medias.find(e => e.url === this.props.url || e.src?.endsWith(this.props.url.replace('https://', ''))) !== undefined
+      return Utilities.loadData(config.name, this.props.type, { medias: [] }).medias.find(e => MediaFavButton.checkSameUrl(e.url, this.props.url)) !== undefined
+    }
+
+    static checkSameUrl (url1, url2, src1) {
+      return url1 === url2 || src1?.endsWith(url2.replace('https://', '')) || url1.split('?')[0] === url2.split('?')[0]
     }
 
     updateFavorite (data) {
@@ -619,7 +572,7 @@ module.exports = (Plugin, Library) => {
       return this.props.fromPicker
         ? this.favButton()
         : React.createElement('div', {
-          className: `${classes.image.imageAccessory} ${classes.image.clickable} fm-favBtn fm-${this.props.type}${!this.props.uploaded ? ' fm-uploaded' : ''}`
+          className: `${classes.image.imageAccessory} ${classes.image.clickable} fm-favBtn fm-${this.props.type}${this.props.uploaded ? ' fm-uploaded' : ''}`
         }, this.favButton())
     }
   }
@@ -1037,7 +990,6 @@ module.exports = (Plugin, Library) => {
     }
 
     sendMedia (e) {
-      loadComponentDispatch()
       const sendMedia = e.type === 'SEND_MEDIA'
       if (sendMedia) {
         if (e.mediaId !== this.props.id) return
@@ -1555,7 +1507,6 @@ module.exports = (Plugin, Library) => {
     }
 
     uploadMedia (mediaId, spoiler = false) {
-      loadComponentDispatch()
       const media = this.state.medias[mediaId]
       if (!media) return
       fetchMedia(media).then((buffer) => {
@@ -1916,6 +1867,13 @@ module.exports = (Plugin, Library) => {
 
     render () {
       return React.createElement('div', {
+        className: `${classes.textarea.buttonContainer} fm-buttonContainer fm-${this.props.type}`,
+        ref: 'button'
+      },
+      React.createElement('button', {
+        className: `${classes.look.button} ${classes.look.lookBlank} ${classes.look.colorBrand} ${classes.look.grow}${this.state.active ? ` ${classes.icon.active}` : ''} fm-button`,
+        tabindex: '0',
+        type: 'button',
         onMouseDown: this.checkPicker,
         onClick: () => {
           const EPSState = EPS.useExpressionPickerStore.getState()
@@ -1923,14 +1881,7 @@ module.exports = (Plugin, Library) => {
             EPS.toggleExpressionPicker(this.props.type, this.props.pickerType ?? EPSState.activeViewType)
           }
           EPS.toggleExpressionPicker(this.props.type, this.props.pickerType ?? EPSConstants.NORMAL)
-        },
-        className: `${classes.textarea.buttonContainer} fm-buttonContainer fm-${this.props.type}`,
-        ref: 'button'
-      },
-      React.createElement('button', {
-        className: `${classes.look.button} ${classes.look.lookBlank} ${classes.look.colorBrand} ${classes.look.grow}${this.state.active ? ` ${classes.icon.active}` : ''} fm-button`,
-        tabindex: '0',
-        type: 'button'
+        }
       },
       React.createElement('div', {
         className: `${classes.look.contents} ${classes.textarea.button} ${classes.icon.button} fm-buttonContent`
@@ -2057,9 +2008,6 @@ module.exports = (Plugin, Library) => {
         }
         .category-input-color:hover {
           transform: scale(1.1);
-        }
-        .fm-favBtn.fm-video:not(.fm-uploaded) {
-          top: calc(50% - 1em);
         }
         .fm-favBtn.fm-audio {
           right: 0;
@@ -2253,11 +2201,7 @@ module.exports = (Plugin, Library) => {
         if (returnValue == null) return
         currentChannelId = SelectedChannelStore.getChannelId()
         const channel = ChannelStore.getChannel(currentChannelId)
-        const perms = Permissions.can({
-          permission: PermissionsConstants.SEND_MESSAGES,
-          user: UserStore.getCurrentUser(),
-          context: channel
-        })
+        const perms = Permissions.can(PermissionsConstants.SEND_MESSAGES, channel)
         if (!channel.type && !perms) return
         const buttons = returnValue.props.children
         if (!buttons || !Array.isArray(buttons)) return
@@ -2293,7 +2237,7 @@ module.exports = (Plugin, Library) => {
             type,
             url,
             poster: props.poster,
-            uploaded: returnValue.props.children[0] != null,
+            uploaded: props.fileSize != null,
             target: returnValue.props.children[1]?.ref
           }))
         })
@@ -2305,11 +2249,11 @@ module.exports = (Plugin, Library) => {
           const propsButton = returnValue.props?.children?.props?.children?.[1]?.props
           if (propsButton == null) return
           const propsImg = propsButton.children?.props
-          if (propsImg == null) return
+          if (propsImg == null || propsImg.type === 'VIDEO') return
           const data = {}
-          data.type = propsImg.play != null || propsImg.src?.split('?')[0].endsWith('.gif') ? 'gif' : 'image'
+          data.url = returnValue.props.focusTarget.current?.firstChild?.getAttribute('href') || propsImg.src || propsImg.children?.props?.src || ''
+          data.type = propsImg.play != null || data.url?.split('?')[0].endsWith('.gif') ? 'gif' : 'image'
           if (!this.settings[data.type].enabled || !this.settings[data.type].showStar) return
-          data.url = returnValue.props.focusTarget.current?.firstChild?.getAttribute('href') || propsImg.src || ''
           let tmpUrl = data.url.split('https/')[1]
           if (!tmpUrl) tmpUrl = data.url
           else tmpUrl = 'https://' + tmpUrl
@@ -2322,7 +2266,7 @@ module.exports = (Plugin, Library) => {
           }
           const index = returnValue.props.children.props.children[2] != null ? 2 : returnValue.props.children.props.children
           if (data.type === 'gif') {
-            data.src = propsImg.src
+            data.src = propsImg.src || propsImg.children?.props?.src
             data.url = returnValue.props.focusTarget.current?.parentElement.firstElementChild.getAttribute('href') || data.url
           }
           returnValue.props.children.props.children.splice(index, 1, React.createElement(MediaFavButton, {
@@ -2336,7 +2280,7 @@ module.exports = (Plugin, Library) => {
     }
 
     patchClosePicker () {
-      Patcher.instead(EPSModules, closeExpressionPickerKey, (_, __, originalFunction) => {
+      Patcher.instead(EPS, 'closeExpressionPicker', (_, __, originalFunction) => {
         if (canClosePicker.value) originalFunction()
         if (canClosePicker.context === 'mediabutton') canClosePicker.value = true
       })
@@ -2351,7 +2295,7 @@ module.exports = (Plugin, Library) => {
       Patcher.after(GIFPicker.component.prototype, 'renderContent', (_this, _, returnValue) => {
         if (!this.settings.gif.enabled || _this.state.resultType !== 'Favorites') return
         if (!Array.isArray(returnValue.props.data)) return
-        const favorites = returnValue.props.data.reverse()
+        const favorites = [...returnValue.props.data].reverse()
         const savedGIFs = Utilities.loadData(config.name, 'gif', { medias: [] })
         const newGIFs = []
         // keep only favorited GIFs
@@ -2384,7 +2328,7 @@ module.exports = (Plugin, Library) => {
           if (props.target == null) return []
           let type = null
           if (props.target.tagName === 'IMG') type = 'image'
-          else if (props.target.tagName === 'A' && ['IMG', 'VIDEO'].includes(props.target.nextSibling?.firstChild?.tagName)) type = 'gif'
+          else if (props.target.tagName === 'A' && (props.target.nextSibling?.firstChild?.tagName === 'VIDEO' || props.target.nextSibling?.firstChild?.firstChild?.tagName === 'IMG')) type = 'gif'
           else if (props.target.parentElement.firstElementChild.tagName === 'VIDEO') type = 'video'
           else if (props.target.closest('[class*="wrapperAudio"]')) {
             type = 'audio'
@@ -2404,7 +2348,7 @@ module.exports = (Plugin, Library) => {
             else tmpUrl = 'https://' + tmpUrl
             data.url = (tmpUrl || data.url || props.target.src).replace(/\?width=([\d]*)&height=([\d]*)/, '')
           } else if (data.type === 'gif') {
-            data.src = props.target.nextSibling.firstChild?.src
+            data.src = props.target.nextSibling.firstChild?.src || props.target.nextSibling.firstChild?.firstChild?.src
           } else if (data.type === 'video') {
             data.url = props.target.parentElement.firstElementChild.src
             data.poster = props.target.parentElement.firstElementChild.poster
@@ -2611,7 +2555,7 @@ module.exports = (Plugin, Library) => {
     }
 
     isFavorited (type, url) {
-      return Utilities.loadData(this._config.name, type, { medias: [] }).medias.find(e => e.url === url) !== undefined
+      return Utilities.loadData(this._config.name, type, { medias: [] }).medias.find((e) => MediaFavButton.checkSameUrl(e.url, url)) !== undefined
     }
   }
 
