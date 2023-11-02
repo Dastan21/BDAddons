@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos and audios.
- * @version 1.8.11
+ * @version 1.8.12
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -36,7 +36,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "1.8.11",
+    version: "1.8.12",
     description: "Allows to favorite GIFs, images, videos and audios.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -602,7 +602,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     if (props.width > 0 && props.height > 0) return { width: props.width, height: props.height }
     const dimensions = { width: 0, height: 0 }
     if ($target == null) return dimensions
-    const src = $target.src?.replace(/\?width=([\d]*)&height=([\d]*)/, '')
+    const src = $target.src?.replace(/(\?|&)width=([\d]*)&height=([\d]*)/, '')
     if (src == null) return dimensions
     return new Promise((resolve) => {
       if ($target.tagName === 'VIDEO') {
@@ -2577,7 +2577,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           returnValue.props.children.props.children.splice(index, 1, React.createElement(MediaFavButton, {
             type: data.type,
             src: data.src,
-            url: data.url.replace('media.discordapp.net', 'cdn.discordapp.com').replace(/\?width=([\d]*)&height=([\d]*)/, ''),
+            url: data.url.replace('media.discordapp.net', 'cdn.discordapp.com').replace(/(\?|&)width=([\d]*)&height=([\d]*)/, ''),
             target: returnValue.props.focusTarget
           }))
         })

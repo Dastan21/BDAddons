@@ -297,7 +297,7 @@ module.exports = (Plugin, Library) => {
     if (props.width > 0 && props.height > 0) return { width: props.width, height: props.height }
     const dimensions = { width: 0, height: 0 }
     if ($target == null) return dimensions
-    const src = $target.src?.replace(/\?width=([\d]*)&height=([\d]*)/, '')
+    const src = $target.src?.replace(/(\?|&)width=([\d]*)&height=([\d]*)/, '')
     if (src == null) return dimensions
     return new Promise((resolve) => {
       if ($target.tagName === 'VIDEO') {
@@ -2272,7 +2272,7 @@ module.exports = (Plugin, Library) => {
           returnValue.props.children.props.children.splice(index, 1, React.createElement(MediaFavButton, {
             type: data.type,
             src: data.src,
-            url: data.url.replace('media.discordapp.net', 'cdn.discordapp.com').replace(/\?width=([\d]*)&height=([\d]*)/, ''),
+            url: data.url.replace('media.discordapp.net', 'cdn.discordapp.com').replace(/(\?|&)width=([\d]*)&height=([\d]*)/, ''),
             target: returnValue.props.focusTarget
           }))
         })
