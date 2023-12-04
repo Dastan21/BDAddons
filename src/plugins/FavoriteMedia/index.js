@@ -54,7 +54,8 @@ module.exports = (Plugin, Library) => {
     look: WebpackModules.getByProps('button', 'lookBlank', 'colorBrand'),
     audio: WebpackModules.getByProps('wrapper', 'wrapperAudio', 'wrapperPaused'),
     contentWrapper: WebpackModules.getByProps('contentWrapper', 'resizeHandle', 'drawerSizingWrapper'),
-    buttons: WebpackModules.getByProps('profileBioInput', 'buttons', 'attachButton')
+    buttons: WebpackModules.getByProps('profileBioInput', 'buttons', 'attachButton'),
+    upload: WebpackModules.getByProps('actionBarContainer', 'actionBar', 'upload')
   }
   const classes = {
     icon: {
@@ -161,6 +162,9 @@ module.exports = (Plugin, Library) => {
     },
     buttons: {
       buttons: classModules.buttons.buttons
+    },
+    upload: {
+      actionBarContainer: classModules.upload.actionBarContainer
     }
   }
 
@@ -256,7 +260,7 @@ module.exports = (Plugin, Library) => {
   }
 
   function findSpoilerButton () {
-    return currentTextareaInput?.closest(`.${classes.textarea.channelTextArea}`)?.querySelector('[role="button"]:first-child')
+    return currentTextareaInput?.closest(`.${classes.textarea.channelTextArea}`)?.querySelector(`.${classes.upload.actionBarContainer} [role="button"]:first-child`)
   }
 
   function findMessageIds ($target) {

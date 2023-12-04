@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos and audios.
- * @version 1.8.12
+ * @version 1.8.13
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -36,7 +36,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "1.8.12",
+    version: "1.8.13",
     description: "Allows to favorite GIFs, images, videos and audios.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -359,7 +359,8 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     look: WebpackModules.getByProps('button', 'lookBlank', 'colorBrand'),
     audio: WebpackModules.getByProps('wrapper', 'wrapperAudio', 'wrapperPaused'),
     contentWrapper: WebpackModules.getByProps('contentWrapper', 'resizeHandle', 'drawerSizingWrapper'),
-    buttons: WebpackModules.getByProps('profileBioInput', 'buttons', 'attachButton')
+    buttons: WebpackModules.getByProps('profileBioInput', 'buttons', 'attachButton'),
+    upload: WebpackModules.getByProps('actionBarContainer', 'actionBar', 'upload')
   }
   const classes = {
     icon: {
@@ -466,6 +467,9 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     },
     buttons: {
       buttons: classModules.buttons.buttons
+    },
+    upload: {
+      actionBarContainer: classModules.upload.actionBarContainer
     }
   }
 
@@ -561,7 +565,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
   }
 
   function findSpoilerButton () {
-    return currentTextareaInput?.closest(`.${classes.textarea.channelTextArea}`)?.querySelector('[role="button"]:first-child')
+    return currentTextareaInput?.closest(`.${classes.textarea.channelTextArea}`)?.querySelector(`.${classes.upload.actionBarContainer} [role="button"]:first-child`)
   }
 
   function findMessageIds ($target) {
