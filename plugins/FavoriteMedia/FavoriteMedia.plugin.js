@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos and audios.
- * @version 1.8.13
+ * @version 1.8.14
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -36,7 +36,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "1.8.13",
+    version: "1.8.14",
     description: "Allows to favorite GIFs, images, videos and audios.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -2219,7 +2219,9 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
   }
 
   function getNewCategoryId (categories = []) {
-    return (Math.max(...categories.map(c => c.id)) || 0) + 1
+    const id = Math.max(...categories.map(c => c.id))
+    if (isNaN(id) || id < 1) return 1
+    return id + 1
   }
 
   function createCategory (type, { name, color }, categoryId) {

@@ -1914,7 +1914,9 @@ module.exports = (Plugin, Library) => {
   }
 
   function getNewCategoryId (categories = []) {
-    return (Math.max(...categories.map(c => c.id)) || 0) + 1
+    const id = Math.max(...categories.map(c => c.id))
+    if (isNaN(id) || id < 1) return 1
+    return id + 1
   }
 
   function createCategory (type, { name, color }, categoryId) {
