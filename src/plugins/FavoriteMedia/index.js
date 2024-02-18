@@ -454,10 +454,10 @@ module.exports = (Plugin, Library) => {
 
     async changeFavorite () {
       const switchFavorite = this.state.favorited ? MediaFavButton.unfavoriteMedia : MediaFavButton.favoriteMedia
-      switchFavorite(this.props).then(() => {
-        if (!this.props.fromPicker) this.setState({ favorited: this.isFavorited })
-        Dispatcher.dispatch({ type: 'FAVORITE_MEDIA', url: this.props.url })
-        if (this.props.fromPicker) return
+      switchFavorite(this.props).then((props) => {
+        if (!props.fromPicker) this.setState({ favorited: this.isFavorited })
+        Dispatcher.dispatch({ type: 'FAVORITE_MEDIA', url: props.url })
+        if (props.fromPicker) return
         this.tooltipFav.label = this.state.favorited ? Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES : Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES
         this.tooltipFav.hide()
         this.tooltipFav.show()
@@ -532,6 +532,7 @@ module.exports = (Plugin, Library) => {
       if (props.type === 'gif') await MediaFavButton.favoriteGIF(data)
       typeData.medias.push(data)
       Utilities.saveData(config.name, props.type, typeData)
+      return props
     }
 
     static async unfavoriteMedia (props) {
@@ -541,6 +542,7 @@ module.exports = (Plugin, Library) => {
       if (props.type === 'gif') await MediaFavButton.unfavoriteGIF(props)
       Utilities.saveData(config.name, props.type, typeData)
       if (props.fromPicker) Dispatcher.dispatch({ type: 'UPDATE_MEDIAS' })
+      return props
     }
 
     static async favoriteGIF (props) {
@@ -2254,10 +2256,10 @@ module.exports = (Plugin, Library) => {
         Patcher.after(Image.prototype, 'render', (_, __, returnValue) => {
           const propsButton = returnValue.props?.children?.props?.children?.[1]?.props
           if (propsButton == null) return
-          const propsImg = propsButton.children?.props
-          if (propsImg == null || propsImg.type === 'VIDEO') return
+          const propsImg = propsButton.children?.props?.children?.props
+          if (propsImg == null || propsImg.type === 'VIDEO' || propsImg.type === 'GIF') return
           const data = {}
-          data.url = returnValue.props.focusTarget.current?.firstChild?.getAttribute('href') || propsImg.src || propsImg.children?.props?.src || ''
+          data.url = returnValue.props.focusTarget.current?.firstChild?.firstChild?.getAttribute('href') || propsImg.src || propsImg.children?.props?.src || ''
           data.type = propsImg.play != null || data.url?.split('?')[0].endsWith('.gif') ? 'gif' : 'image'
           if (!this.settings[data.type].enabled || !this.settings[data.type].showStar) return
           let tmpUrl = data.url.split('https/')[1]
@@ -2334,7 +2336,7 @@ module.exports = (Plugin, Library) => {
           if (props.target == null) return []
           let type = null
           if (props.target.tagName === 'IMG') type = 'image'
-          else if (props.target.tagName === 'A' && (props.target.nextSibling?.firstChild?.tagName === 'VIDEO' || props.target.nextSibling?.firstChild?.firstChild?.tagName === 'IMG')) type = 'gif'
+          else if (props.target.tagName === 'A' && (props.target.nextSibling?.firstChild?.firstChild?.tagName === 'VIDEO' || props.target.nextSibling?.firstChild?.firstChild?.firstChild?.tagName === 'IMG')) type = 'gif'
           else if (props.target.parentElement.firstElementChild.tagName === 'VIDEO') type = 'video'
           else if (props.target.closest('[class*="wrapperAudio"]')) {
             type = 'audio'
