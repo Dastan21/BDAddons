@@ -246,7 +246,7 @@ module.exports = (Plugin, Library) => {
     // tenor GIF case
     if (media.url.startsWith('https://tenor.com/view/')) {
       if (td.decode(mediaBuffer.slice(0, 15)) === '<!DOCTYPE html>') {
-        media.url = td.decode(mediaBuffer).match(/src="(https:\/\/media\.tenor\.com\/[^"]*)"/)?.[1]
+        media.url = td.decode(mediaBuffer).match(/src="(https:\/\/media([^.]*)\.tenor\.com\/[^"]*)"/)?.[1]
         media.name = media.url.match(/view\/(.*)-gif-/)?.[1]
         mediaBuffer = await BdApi.Net.fetch(media.url).then((r) => r.arrayBuffer())
       }

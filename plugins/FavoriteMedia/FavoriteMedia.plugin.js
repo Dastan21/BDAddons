@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos and audios.
- * @version 1.8.15
+ * @version 1.8.16
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -36,7 +36,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "1.8.15",
+    version: "1.8.16",
     description: "Allows to favorite GIFs, images, videos and audios.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -551,7 +551,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     // tenor GIF case
     if (media.url.startsWith('https://tenor.com/view/')) {
       if (td.decode(mediaBuffer.slice(0, 15)) === '<!DOCTYPE html>') {
-        media.url = td.decode(mediaBuffer).match(/src="(https:\/\/media\.tenor\.com\/[^"]*)"/)?.[1]
+        media.url = td.decode(mediaBuffer).match(/src="(https:\/\/media([^.]*)\.tenor\.com\/[^"]*)"/)?.[1]
         media.name = media.url.match(/view\/(.*)-gif-/)?.[1]
         mediaBuffer = await BdApi.Net.fetch(media.url).then((r) => r.arrayBuffer())
       }
