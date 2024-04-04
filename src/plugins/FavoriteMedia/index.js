@@ -25,7 +25,10 @@ module.exports = (Plugin, Library) => {
       SelectedChannelStore,
       ChannelStore,
       Permissions,
-      Strings
+      Strings,
+      APIModule: {
+        HTTP: RestAPI
+      }
     }, Patcher
   } = Library
   const { mkdir, lstat, writeFile } = require('fs')
@@ -1397,23 +1400,93 @@ module.exports = (Plugin, Library) => {
       })
     }
 
+    static async refreshUrls (props) {
+      if (props.medias.length <= 0) return
+
+      const res = Utilities.loadData(config.name, props.type, { medias: [] })
+      const urls = [
+        ...props.medias.map(m => m.url),
+        ...props.medias.filter(m => m.poster != null).map(m => m.poster),
+        ...props.medias.filter(m => m.src != null).map(m => m.src)
+      ]
+      const chunks = Math.ceil(urls.length / 50)
+      let done = 0
+
+      for (let i = 0; i < chunks; i++) {
+        await RestAPI.post({
+          url: '/attachments/refresh-urls',
+          body: {
+            attachment_urls: urls.slice(i * 50, (i + 1) * 50)
+          }
+        }).then(r => {
+          if (!r.ok) return
+
+          for (const refreshedUrl of r.body.refreshed_urls) {
+            if (refreshedUrl.refreshed == null) continue
+            const indexUrl = res.medias.findIndex(m => m.url.includes(refreshedUrl.original))
+            if (indexUrl >= 0) {
+              res.medias[indexUrl].url = refreshedUrl.refreshed
+              done++
+            }
+
+            if (props.type === 'video') {
+              const indexPoster = res.medias.findIndex(m => m.poster?.includes(refreshedUrl.original))
+              if (indexPoster >= 0) {
+                res.medias[indexPoster].poster = refreshedUrl.refreshed
+                done++
+              }
+            }
+
+            const indexSrc = res.medias.findIndex(m => m.src?.includes(refreshedUrl.original))
+            if (indexSrc >= 0) {
+              if (props.type === 'gif') {
+                res.medias[indexSrc].src = refreshedUrl.refreshed
+                done++
+              } else {
+                // cleanup
+                delete res.medias[indexSrc].src
+              }
+            }
+          }
+        })
+      }
+
+      Utilities.saveData(config.name, props.type, res)
+      Dispatcher.dispatch({ type: 'UPDATE_MEDIAS' })
+      Dispatcher.dispatch({ type: 'UPDATE_CATEGORIES' })
+      console.info('[FavoriteMedia] Refreshed', done, 'urls')
+      if (done > 0) Toasts.success(labels.category.success.refreshUrls)
+      EPS.closeExpressionPicker()
+    }
+
     onContextMenu (e) {
       canClosePicker.context = 'contextmenu'
       canClosePicker.value = false
+
+      const items = [
+        {
+          id: 'category-create',
+          label: labels.category.create,
+          action: () => MediaPicker.openCategoryModal(this.props.type, 'create', null, this.state.category?.id)
+        }, {
+          id: 'category-download',
+          label: labels.category.download,
+          action: () => MediaPicker.downloadCategory({ type: this.props.type, name: this.state.category?.name, categoryId: this.state.category?.id })
+        }
+      ]
+
+      if (this.state.category == null && this.props.type !== 'gif') {
+        items.push({
+          id: 'media-refresh-urls',
+          label: labels.category.refreshUrls,
+          action: () => MediaPicker.refreshUrls({ type: this.props.type, medias: this.state.medias })
+        })
+      }
+
       ContextMenu.openContextMenu(e,
         ContextMenu.buildMenu([{
           type: 'group',
-          items: [
-            {
-              id: 'category-create',
-              label: labels.category.create,
-              action: () => MediaPicker.openCategoryModal(this.props.type, 'create', null, this.state.category?.id)
-            }, {
-              id: 'category-download',
-              label: labels.category.download,
-              action: () => MediaPicker.downloadCategory({ type: this.props.type, name: this.state.category?.name, categoryId: this.state.category?.id })
-            }
-          ]
+          items
         }]), {
           onClose: () => {
             canClosePicker.context = 'contextmenu'
@@ -2585,6 +2658,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Изтриване на категорията',
             deleteConfirm: 'Тази категория съдържа подкатегории. Всички те ще бъдат изтрити. Сигурни ли сте, че искате да изтриете категории?',
             download: 'Изтеглете мултимедия',
+            refreshUrls: 'Опресняване на URL адресите',
             placeholder: 'Име на категория',
             move: 'Ход',
             moveNext: 'След',
@@ -2604,7 +2678,8 @@ module.exports = (Plugin, Library) => {
               delete: 'Категорията е изтрита!',
               edit: 'Категорията е променена!',
               move: 'Категорията е преместена!',
-              download: 'Медиите са качени!'
+              download: 'Медиите са качени!',
+              refreshUrls: 'URL адресите са обновени!'
             },
             emptyHint: 'Щракнете с десния бутон, за да създадете категория!'
           },
@@ -2685,6 +2760,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Slet kategori',
             deleteConfirm: 'Denne kategori indeholder underkategorier. De vil alle blive slettet. Er du sikker på, at du vil slette kategorier?',
             download: 'Download medier',
+            refreshUrls: 'Opdater URL\'er',
             placeholder: 'Kategorinavn',
             move: 'Bevæge sig',
             moveNext: 'Efter',
@@ -2704,7 +2780,8 @@ module.exports = (Plugin, Library) => {
               delete: 'Kategorien er blevet slettet!',
               edit: 'Kategorien er blevet ændret!',
               move: 'Kategorien er flyttet!',
-              download: 'Medierne er blevet uploadet!'
+              download: 'Medierne er blevet uploadet!',
+              refreshUrls: 'URL\'er opdateret!'
             },
             emptyHint: 'Højreklik for at oprette en kategori!'
           },
@@ -2790,6 +2867,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Kategorie löschen',
             deleteConfirm: 'Diese Kategorie enthält Unterkategorien. Sie werden alle gelöscht. Möchten Sie Kategorien wirklich löschen?',
             download: 'Medien herunterladen',
+            refreshUrls: 'URLs aktualisieren',
             placeholder: 'Kategoriename',
             move: 'Bewegung',
             moveNext: 'Nach dem',
@@ -2809,7 +2887,8 @@ module.exports = (Plugin, Library) => {
               delete: 'Die Kategorie wurde gelöscht!',
               edit: 'Die Kategorie wurde geändert!',
               move: 'Die Kategorie wurde verschoben!',
-              download: 'Die Medien wurden hochgeladen!'
+              download: 'Die Medien wurden hochgeladen!',
+              refreshUrls: 'URLs aktualisiert!'
             },
             emptyHint: 'Rechtsklick um eine Kategorie zu erstellen!'
           },
@@ -2890,6 +2969,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Διαγραφή κατηγορίας',
             deleteConfirm: 'Αυτή η κατηγορία περιέχει υποκατηγορίες. Θα διαγραφούν όλα. Είστε βέβαιοι ότι θέλετε να διαγράψετε κατηγορίες;',
             download: 'Λήψη μέσων',
+            refreshUrls: 'Ανανέωση διευθύνσεων URL',
             placeholder: 'Ονομα κατηγορίας',
             move: 'Κίνηση',
             moveNext: 'Μετά',
@@ -2909,7 +2989,8 @@ module.exports = (Plugin, Library) => {
               delete: 'Η κατηγορία διαγράφηκε!',
               edit: 'Η κατηγορία άλλαξε!',
               move: 'Η κατηγορία έχει μετακινηθεί!',
-              download: 'Τα μέσα έχουν ανέβει!'
+              download: 'Τα μέσα έχουν ανέβει!',
+              refreshUrls: 'Οι διευθύνσεις URL ανανεώθηκαν!'
             },
             emptyHint: 'Κάντε δεξί κλικ για να δημιουργήσετε μια κατηγορία!'
           },
@@ -2990,6 +3071,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Eliminar categoría',
             deleteConfirm: 'Esta categoría contiene subcategorías. Todos serán eliminados. ¿Seguro que quieres eliminar categorías?',
             download: 'Descargar medios',
+            refreshUrls: 'Actualizar URL',
             placeholder: 'Nombre de la categoría',
             move: 'Moverse',
             moveNext: 'Después',
@@ -3009,7 +3091,8 @@ module.exports = (Plugin, Library) => {
               delete: '¡La categoría ha sido eliminada!',
               edit: '¡La categoría ha sido cambiada!',
               move: '¡La categoría ha sido movida!',
-              download: '¡Los medios han sido cargados!'
+              download: '¡Los medios han sido cargados!',
+              refreshUrls: '¡URL actualizadas!'
             },
             emptyHint: '¡Haz clic derecho para crear una categoría!'
           },
@@ -3090,6 +3173,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Poista luokka',
             deleteConfirm: 'Tämä luokka sisältää alaluokkia. Ne kaikki poistetaan. Haluatko varmasti poistaa luokkia?',
             download: 'Lataa media',
+            refreshUrls: 'Päivitä URL-osoitteet',
             placeholder: 'Kategorian nimi',
             move: 'Liikkua',
             moveNext: 'Jälkeen',
@@ -3109,7 +3193,8 @@ module.exports = (Plugin, Library) => {
               delete: 'Luokka on poistettu!',
               edit: 'Luokkaa on muutettu!',
               move: 'Luokka on siirretty!',
-              download: 'Media on ladattu!'
+              download: 'Media on ladattu!',
+              refreshUrls: 'URL-osoitteet päivitetty!'
             },
             emptyHint: 'Napsauta hiiren kakkospainikkeella luodaksesi luokan!'
           },
@@ -3190,6 +3275,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Supprimer la catégorie',
             deleteConfirm: 'Cette catégorie contient des sous-catégories. Elles vont toutes être supprimées. Voulez-vous vraiment supprimer les catégories ?',
             download: 'Télécharger les médias',
+            refreshUrls: 'Rafraîchir les liens',
             placeholder: 'Nom de la catégorie',
             move: 'Déplacer',
             moveNext: 'Après',
@@ -3209,7 +3295,8 @@ module.exports = (Plugin, Library) => {
               delete: 'La catégorie a été supprimée !',
               edit: 'La catégorie a été modifiée !',
               move: 'La catégorie a été déplacée !',
-              download: 'Les médias ont été téléchargés !'
+              download: 'Les médias ont été téléchargés !',
+              refreshUrls: 'Les liens ont été rafraîchis !'
             },
             emptyHint: 'Fais un clique-droit pour créer une catégorie !'
           },
@@ -3290,6 +3377,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Izbriši kategoriju',
             deleteConfirm: 'Ova kategorija sadrži potkategorije. Svi će biti izbrisani. Jeste li sigurni da želite izbrisati kategorije?',
             download: 'Preuzmite medije',
+            refreshUrls: 'Osvježi URL-ove',
             placeholder: 'Ime kategorije',
             move: 'Potez',
             moveNext: 'Nakon',
@@ -3309,7 +3397,8 @@ module.exports = (Plugin, Library) => {
               delete: 'Kategorija je izbrisana!',
               edit: 'Izmijenjena je kategorija!',
               move: 'Kategorija je premještena!',
-              download: 'Mediji su učitani!'
+              download: 'Mediji su učitani!',
+              refreshUrls: 'URL-ovi osvježeni!'
             },
             emptyHint: 'Desni klik za stvaranje kategorije!'
           },
@@ -3390,6 +3479,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Kategória törlése',
             deleteConfirm: 'Ez a kategória alkategóriákat tartalmaz. Mindegyik törlődik. Biztosan törölni szeretné a kategóriákat?',
             download: 'Média letöltése',
+            refreshUrls: 'URL-ek frissítése',
             placeholder: 'Kategória név',
             move: 'Mozog',
             moveNext: 'Utána',
@@ -3409,7 +3499,8 @@ module.exports = (Plugin, Library) => {
               delete: 'A kategória törölve lett!',
               edit: 'A kategória megváltozott!',
               move: 'A kategória áthelyezve!',
-              download: 'A média feltöltve!'
+              download: 'A média feltöltve!',
+              refreshUrls: 'Az URL-ek frissítve!'
             },
             emptyHint: 'Kattintson jobb gombbal a kategória létrehozásához!'
           },
@@ -3490,6 +3581,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Elimina categoria',
             deleteConfirm: 'Questa categoria contiene sottocategorie. Saranno tutti cancellati. Sei sicuro di voler eliminare le categorie?',
             download: 'Scarica file multimediali',
+            refreshUrls: 'Aggiorna URL',
             placeholder: 'Nome della categoria',
             move: 'Spostare',
             moveNext: 'Dopo',
@@ -3509,7 +3601,8 @@ module.exports = (Plugin, Library) => {
               delete: 'La categoria è stata eliminata!',
               edit: 'La categoria è stata cambiata!',
               move: 'La categoria è stata spostata!',
-              download: 'Il supporto è stato caricato!'
+              download: 'Il supporto è stato caricato!',
+              refreshUrls: 'URL aggiornati!'
             },
             emptyHint: 'Fare clic con il tasto destro per creare una categoria!'
           },
@@ -3590,6 +3683,7 @@ module.exports = (Plugin, Library) => {
             delete: 'カテゴリを削除',
             deleteConfirm: 'このカテゴリにはサブカテゴリが含まれています。 それらはすべて削除されます。 カテゴリを削除してもよろしいですか?',
             download: 'メディアをダウンロード',
+            refreshUrls: 'URLを更新する',
             placeholder: '種別名',
             move: '移動',
             moveNext: '後',
@@ -3609,7 +3703,8 @@ module.exports = (Plugin, Library) => {
               delete: 'カテゴリが削除されました！',
               edit: 'カテゴリが変更されました！',
               move: 'カテゴリが移動しました！',
-              download: 'メディアがアップしました！'
+              download: 'メディアがアップしました！',
+              refreshUrls: 'URLが更新されました！'
             },
             emptyHint: '右クリックしてカテゴリを作成してください！'
           },
@@ -3690,6 +3785,7 @@ module.exports = (Plugin, Library) => {
             delete: '카테고리 삭제',
             deleteConfirm: '이 범주에는 하위 범주가 포함되어 있습니다. 모두 삭제됩니다. 카테고리를 삭제하시겠습니까?',
             download: '미디어 다운로드',
+            refreshUrls: 'URL 새로 고침',
             placeholder: '카테고리 이름',
             move: '움직임',
             moveNext: '후',
@@ -3709,7 +3805,8 @@ module.exports = (Plugin, Library) => {
               delete: '카테고리가 삭제되었습니다!',
               edit: '카테고리가 변경되었습니다!',
               move: '카테고리가 이동되었습니다!',
-              download: '미디어가 업로드되었습니다!'
+              download: '미디어가 업로드되었습니다!',
+              refreshUrls: 'URL이 새로 고쳐졌습니다.'
             },
             emptyHint: '카테고리를 만들려면 마우스 오른쪽 버튼을 클릭하십시오!'
           },
@@ -3790,6 +3887,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Ištrinti kategoriją',
             deleteConfirm: 'Šioje kategorijoje yra subkategorijų. Jie visi bus ištrinti. Ar tikrai norite ištrinti kategorijas?',
             download: 'Parsisiųsti mediją',
+            refreshUrls: 'Atnaujinkite URL',
             placeholder: 'Kategorijos pavadinimas',
             move: 'Perkelti',
             moveNext: 'Po',
@@ -3809,7 +3907,8 @@ module.exports = (Plugin, Library) => {
               delete: 'Kategorija ištrinta!',
               edit: 'Kategorija pakeista!',
               move: 'Kategorija perkelta!',
-              download: 'Žiniasklaida įkelta!'
+              download: 'Žiniasklaida įkelta!',
+              refreshUrls: 'URL atnaujinti!'
             },
             emptyHint: 'Dešiniuoju pelės mygtuku spustelėkite norėdami sukurti kategoriją!'
           },
@@ -3890,6 +3989,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Categorie verwijderen',
             deleteConfirm: 'Deze categorie bevat subcategorieën. Ze worden allemaal verwijderd. Weet u zeker dat u categorieën wilt verwijderen?',
             download: 'Media downloaden',
+            refreshUrls: 'Vernieuw URL\'s',
             placeholder: 'Categorie naam',
             move: 'Verplaatsen, verschuiven',
             moveNext: 'Na',
@@ -3909,7 +4009,8 @@ module.exports = (Plugin, Library) => {
               delete: 'De categorie is verwijderd!',
               edit: 'De categorie is gewijzigd!',
               move: 'De categorie is verplaatst!',
-              download: 'De media is geüpload!'
+              download: 'De media is geüpload!',
+              refreshUrls: 'URL\'s vernieuwd!'
             },
             emptyHint: 'Klik met de rechtermuisknop om een categorie aan te maken!'
           },
@@ -3990,6 +4091,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Slett kategori',
             deleteConfirm: 'Denne kategorien inneholder underkategorier. De vil alle bli slettet. Er du sikker på at du vil slette kategorier?',
             download: 'Last ned media',
+            refreshUrls: 'Oppdater nettadresser',
             placeholder: 'Kategori navn',
             move: 'Bevege seg',
             moveNext: 'Etter',
@@ -4009,7 +4111,8 @@ module.exports = (Plugin, Library) => {
               delete: 'Kategorien er slettet!',
               edit: 'Kategorien er endret!',
               move: 'Kategorien er flyttet!',
-              download: 'Mediene er lastet opp!'
+              download: 'Mediene er lastet opp!',
+              refreshUrls: 'URL-er oppdatert!'
             },
             emptyHint: 'Høyreklikk for å opprette en kategori!'
           },
@@ -4090,6 +4193,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Usuń kategorię',
             deleteConfirm: 'Ta kategoria zawiera podkategorie. Wszystkie zostaną usunięte. Czy na pewno chcesz usunąć kategorie?',
             download: 'Pobierz multimedia',
+            refreshUrls: 'Odśwież adresy URL',
             placeholder: 'Nazwa Kategorii',
             move: 'Ruszaj się',
             moveNext: 'Po',
@@ -4109,7 +4213,8 @@ module.exports = (Plugin, Library) => {
               delete: 'Kategoria została usunięta!',
               edit: 'Kategoria została zmieniona!',
               move: 'Kategoria została przeniesiona!',
-              download: 'Media zostały przesłane!'
+              download: 'Media zostały przesłane!',
+              refreshUrls: 'Adresy URL zostały odświeżone!'
             },
             emptyHint: 'Kliknij prawym przyciskiem myszy, aby utworzyć kategorię!'
           },
@@ -4190,6 +4295,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Apagar categoria',
             deleteConfirm: 'Esta categoria contém subcategorias. Todos eles serão excluídos. Tem certeza de que deseja excluir as categorias?',
             download: 'Baixar mídia',
+            refreshUrls: 'Atualizar URLs',
             placeholder: 'Nome da Categoria',
             move: 'Mover',
             moveNext: 'Após',
@@ -4209,7 +4315,8 @@ module.exports = (Plugin, Library) => {
               delete: 'A categoria foi excluída!',
               edit: 'A categoria foi alterada!',
               move: 'A categoria foi movida!',
-              download: 'A mídia foi carregada!'
+              download: 'A mídia foi carregada!',
+              refreshUrls: 'URLs atualizados!'
             },
             emptyHint: 'Clique com o botão direito para criar uma categoria!'
           },
@@ -4290,6 +4397,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Ștergeți categoria',
             deleteConfirm: 'Această categorie conține subcategorii. Toate vor fi șterse. Sigur doriți să ștergeți categoriile?',
             download: 'Descărcați conținut media',
+            refreshUrls: 'Reîmprospătați adresele URL',
             placeholder: 'Numele categoriei',
             move: 'Mișcare',
             moveNext: 'După',
@@ -4309,7 +4417,8 @@ module.exports = (Plugin, Library) => {
               delete: 'Categoria a fost ștearsă!',
               edit: 'Categoria a fost schimbată!',
               move: 'Categoria a fost mutată!',
-              download: 'Media a fost încărcată!'
+              download: 'Media a fost încărcată!',
+              refreshUrls: 'Adresele URL au fost reîmprospătate!'
             },
             emptyHint: 'Faceți clic dreapta pentru a crea o categorie!'
           },
@@ -4390,6 +4499,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Удалить категорию',
             deleteConfirm: 'Эта категория содержит подкатегории. Все они будут удалены. Вы уверены, что хотите удалить категории?',
             download: 'Скачать медиа',
+            refreshUrls: 'Обновить URL-адреса',
             placeholder: 'Название категории',
             move: 'Двигаться',
             moveNext: 'После',
@@ -4409,7 +4519,8 @@ module.exports = (Plugin, Library) => {
               delete: 'Категория удалена!',
               edit: 'Категория изменена!',
               move: 'Категория перемещена!',
-              download: 'Медиа загружена!'
+              download: 'Медиа загружена!',
+              refreshUrls: 'URL-адреса обновлены!'
             },
             emptyHint: 'Щелкните правой кнопкой мыши, чтобы создать категорию!'
           },
@@ -4490,6 +4601,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Ta bort kategori',
             deleteConfirm: 'Denna kategori innehåller underkategorier. De kommer alla att raderas. Är du säker på att du vill ta bort kategorier?',
             download: 'Ladda ner media',
+            refreshUrls: 'Uppdatera webbadresser',
             placeholder: 'Kategori namn',
             move: 'Flytta',
             moveNext: 'Efter',
@@ -4509,7 +4621,8 @@ module.exports = (Plugin, Library) => {
               delete: 'Kategorin har tagits bort!',
               edit: 'Kategorin har ändrats!',
               move: 'Kategorin har flyttats!',
-              download: 'Media har laddats upp!'
+              download: 'Media har laddats upp!',
+              refreshUrls: 'Webbadresser uppdaterade!'
             },
             emptyHint: 'Högerklicka för att skapa en kategori!'
           },
@@ -4590,6 +4703,7 @@ module.exports = (Plugin, Library) => {
             delete: 'ลบหมวดหมู่',
             deleteConfirm: 'หมวดหมู่นี้มีหมวดหมู่ย่อย พวกเขาทั้งหมดจะถูกลบ คุณแน่ใจหรือไม่ว่าต้องการลบหมวดหมู่',
             download: 'ดาวน์โหลดสื่อ',
+            refreshUrls: 'รีเฟรช URL',
             placeholder: 'ชื่อหมวดหมู่',
             move: 'ย้าย',
             moveNext: 'หลังจาก',
@@ -4609,7 +4723,8 @@ module.exports = (Plugin, Library) => {
               delete: 'หมวดหมู่ถูกลบ!',
               edit: 'หมวดหมู่มีการเปลี่ยนแปลง!',
               move: 'หมวดหมู่ถูกย้าย!',
-              download: 'สื่อได้รับการอัปโหลด!'
+              download: 'สื่อได้รับการอัปโหลด!',
+              refreshUrls: 'รีเฟรช URL แล้ว!'
             },
             emptyHint: 'คลิกขวาเพื่อสร้างหมวดหมู่!'
           },
@@ -4690,6 +4805,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Kategoriyi sil',
             deleteConfirm: 'Bu kategori alt kategorileri içerir. Hepsi silinecek. Kategorileri silmek istediğinizden emin misiniz?',
             download: 'Medyayı indir',
+            refreshUrls: 'URL\'leri yenile',
             placeholder: 'Kategori adı',
             move: 'Hareket',
             moveNext: 'Sonra',
@@ -4709,7 +4825,8 @@ module.exports = (Plugin, Library) => {
               delete: 'Kategori silindi!',
               edit: 'Kategori değiştirildi!',
               move: 'Kategori taşındı!',
-              download: 'Medya yüklendi!'
+              download: 'Medya yüklendi!',
+              refreshUrls: 'URL\'ler yenilendi!'
             },
             emptyHint: 'Kategori oluşturmak için sağ tıklayın!'
           },
@@ -4790,6 +4907,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Видалити категорію',
             deleteConfirm: 'Ця категорія містить підкатегорії. Усі вони будуть видалені. Ви впевнені, що хочете видалити категорії?',
             download: 'Завантажити медіафайли',
+            refreshUrls: 'Оновити URL-адреси',
             placeholder: 'Назва категорії',
             move: 'Рухайся',
             moveNext: 'Після',
@@ -4809,7 +4927,8 @@ module.exports = (Plugin, Library) => {
               delete: 'Категорію видалено!',
               edit: 'Категорію змінено!',
               move: 'Категорію переміщено!',
-              download: 'ЗМІ завантажено!'
+              download: 'ЗМІ завантажено!',
+              refreshUrls: 'URL-адреси оновлено!'
             },
             emptyHint: 'Клацніть правою кнопкою миші, щоб створити категорію!'
           },
@@ -4890,6 +5009,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Xóa danh mục',
             deleteConfirm: 'Thể loại này chứa các thể loại con. Tất cả chúng sẽ bị xóa. Bạn có chắc chắn muốn xóa danh mục không?',
             download: 'Завантажити медіафайли',
+            refreshUrls: 'Làm mới URL',
             placeholder: 'Tên danh mục',
             move: 'Di chuyển',
             moveNext: 'Sau',
@@ -4909,7 +5029,8 @@ module.exports = (Plugin, Library) => {
               delete: 'Danh mục đã bị xóa!',
               edit: 'Danh mục đã được thay đổi!',
               move: 'Danh mục đã được di chuyển!',
-              download: 'ЗМІ завантажено!'
+              download: 'ЗМІ завантажено!',
+              refreshUrls: 'Đã làm mới URL!'
             },
             emptyHint: 'Nhấp chuột phải để tạo một danh mục!'
           },
@@ -4990,6 +5111,7 @@ module.exports = (Plugin, Library) => {
             delete: '删除类别',
             deleteConfirm: '此类别包含子类别。 它们都将被删除。 您确定要删除类别吗？',
             download: '下载媒体',
+            refreshUrls: '刷新网址',
             placeholder: '分类名称',
             move: '移动',
             moveNext: '后',
@@ -5009,7 +5131,8 @@ module.exports = (Plugin, Library) => {
               delete: '该分类已被删除！',
               edit: '类别已更改！',
               move: '类别已移动！',
-              download: '媒体已上传！'
+              download: '媒体已上传！',
+              refreshUrls: '网址已刷新！'
             },
             emptyHint: '右键创建一个类别！'
           },
@@ -5090,6 +5213,7 @@ module.exports = (Plugin, Library) => {
             delete: '刪除分類',
             deleteConfirm: '此類別包含子類別。 它們都將被刪除。 您確定要刪除類別嗎？',
             download: '下載媒體',
+            refreshUrls: '刷新網址',
             placeholder: '分類名稱',
             move: '移動',
             moveNext: '下一個',
@@ -5109,7 +5233,8 @@ module.exports = (Plugin, Library) => {
               delete: '該分類已刪除！',
               edit: '分類已更改！',
               move: '分類已移動！',
-              download: '媒體已上傳！'
+              download: '媒體已上傳！',
+              refreshUrls: '網址已刷新！'
             },
             emptyHint: '右鍵創建一個新分類！'
           },
@@ -5188,6 +5313,7 @@ module.exports = (Plugin, Library) => {
             delete: 'Delete Category',
             deleteConfirm: 'This category contains sub-categories. They will all get deleted. Are you sure you want to delete the categories?',
             download: 'Download Medias',
+            refreshUrls: 'Refresh urls',
             placeholder: 'Category Name',
             move: 'Move',
             moveNext: 'Next',
@@ -5207,7 +5333,8 @@ module.exports = (Plugin, Library) => {
               delete: 'Category deleted!',
               edit: 'Category edited!',
               move: 'Category moved!',
-              download: 'Medias downloaded!'
+              download: 'Medias downloaded!',
+              refreshUrls: 'Urls refreshed!'
             },
             emptyHint: 'Right-click to create a category!'
           },

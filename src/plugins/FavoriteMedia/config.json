@@ -5,13 +5,22 @@
   "author": "Dastan",
   "authorId": "310450863845933057",
   "authorLink": "",
-  "version": "1.8.16",
+  "version": "1.9.0",
   "description": "Allows to favorite GIFs, images, videos and audios.",
   "website": "",
   "source": "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
   "patreon": "",
-  "donate": "",
+  "donate": "https://ko-fi.com/dastan",
   "invite": "",
+  "changelog": [
+    {
+      "title": "Features",
+      "type": "added",
+      "items": [
+        "Added context-menu option on the main pickers to refresh all media urls (doesn't work for GIFs)"
+      ]
+    }
+  ],
   "defaultConfig": [
     {
       "type": "switch",
