@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos and audios.
- * @version 1.9.0
+ * @version 1.9.1
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -37,22 +37,13 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "1.9.0",
+    version: "1.9.1",
     description: "Allows to favorite GIFs, images, videos and audios.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
     patreon: "",
     donate: "https://ko-fi.com/dastan",
     invite: "",
-    changelog: [
-        {
-            title: "Features",
-            type: "added",
-            items: [
-                "Added context-menu option on the main pickers to refresh all media urls (doesn't work for GIFs)"
-            ]
-        }
-    ],
     defaultConfig: [
         {
             type: "switch",
@@ -371,7 +362,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     scroller: WebpackModules.getByProps('scrollerBase', 'thin', 'fade'),
     look: WebpackModules.getByProps('button', 'lookBlank', 'colorBrand'),
     audio: WebpackModules.getByProps('wrapper', 'wrapperAudio', 'wrapperPaused'),
-    contentWrapper: WebpackModules.getByProps('contentWrapper', 'resizeHandle', 'drawerSizingWrapper'),
+    contentWrapper: WebpackModules.getByProps('contentWrapper', 'nav', 'positionLayer'),
     buttons: WebpackModules.getByProps('profileBioInput', 'buttons', 'attachButton'),
     upload: WebpackModules.getByProps('actionBarContainer', 'actionBar', 'upload')
   }

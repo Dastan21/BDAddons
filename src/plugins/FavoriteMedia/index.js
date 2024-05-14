@@ -56,7 +56,7 @@ module.exports = (Plugin, Library) => {
     scroller: WebpackModules.getByProps('scrollerBase', 'thin', 'fade'),
     look: WebpackModules.getByProps('button', 'lookBlank', 'colorBrand'),
     audio: WebpackModules.getByProps('wrapper', 'wrapperAudio', 'wrapperPaused'),
-    contentWrapper: WebpackModules.getByProps('contentWrapper', 'resizeHandle', 'drawerSizingWrapper'),
+    contentWrapper: WebpackModules.getByProps('contentWrapper', 'nav', 'positionLayer'),
     buttons: WebpackModules.getByProps('profileBioInput', 'buttons', 'attachButton'),
     upload: WebpackModules.getByProps('actionBarContainer', 'actionBar', 'upload')
   }
