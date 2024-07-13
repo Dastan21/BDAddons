@@ -10,11 +10,11 @@ module.exports = (Plugin, Library) => {
   const FIX_LIST = [
     {
       match: /^https:\/\/(.*)youtu.be\/(.*)/,
-      replace: href => 'https://www.youtube.com/watch?v=' + String(href).split('/')?.pop(),
+      replace: href => 'https://www.youtube.com/watch?v=' + String(href).split('/')?.pop()?.split('?si=')[0],
     },
     {
       match: /^https:\/\/(.*)youtube.com\/shorts\/(.*)/,
-      replace: href => 'https://www.youtube.com/watch?v=' + String(href).split('/')?.pop(),
+      replace: href => 'https://www.youtube.com/watch?v=' + String(href).split('/')?.pop()?.split('?si=')[0],
     },
   ]
 
@@ -187,7 +187,7 @@ module.exports = (Plugin, Library) => {
     hasEmbed (m, embeds) {
       const embedURLs = embeds.map(e => e.url)
       if (!m.props) return false
-      return m.type && (embedURLs.includes(m.props.href) || this.isValid(m.props.href, embedURLs))
+      return m.type && this.isValid(m.props.href, embedURLs)
     }
 
     isValid (href, urls = []) {
