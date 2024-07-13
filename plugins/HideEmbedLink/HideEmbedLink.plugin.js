@@ -87,12 +87,16 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
   const FIX_LIST = [
     {
-      match: /^https:\/\/(.*)youtu.be\/(.*)/,
+      match: /^https:\/\/.*youtu.be\/.*/,
       replace: href => 'https://www.youtube.com/watch?v=' + String(href).split('/')?.pop()?.split('?si=')[0],
     },
     {
-      match: /^https:\/\/(.*)youtube.com\/shorts\/(.*)/,
+      match: /^https:\/\/.*youtube.com\/shorts\/.*/,
       replace: href => 'https://www.youtube.com/watch?v=' + String(href).split('/')?.pop()?.split('?si=')[0],
+    },
+    {
+      match: /^https:\/\/x.com\/.*/,
+      replace: href => 'https://twitter.com/' + String(href).split('x.com/')?.pop(),
     },
   ]
 
