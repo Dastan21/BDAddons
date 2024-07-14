@@ -359,7 +359,7 @@ const config = {
             type: "added",
             items: [
                 "Added new medias type: `file`",
-                "Added medias previews cache (go to the database panel, near media search, and do 'Cache all medias')",
+                "Added medias previews cache (go to Local database, near media search, and do 'Cache all medias')",
                 "Added medias import",
                 "Added fixed category thumbnail (not random)",
                 "Added settings translations"
