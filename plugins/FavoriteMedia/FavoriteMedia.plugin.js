@@ -5566,6 +5566,10 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         },
         mediasCounter: 'Medias count',
         settings: {
+          allowCaching: {
+            name: 'Allow medias preview caching',
+            note: 'Uses local offline database to cache medias preview',
+          },
           panel: 'Plugin settings',
         },
       },
