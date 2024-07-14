@@ -5,8 +5,8 @@
   "author": "Dastan",
   "authorId": "310450863845933057",
   "authorLink": "",
-  "version": "1.9.1",
-  "description": "Allows to favorite GIFs, images, videos and audios.",
+  "version": "1.10.0",
+  "description": "Allows to favorite GIFs, images, videos, audios and files.",
   "website": "",
   "source": "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
   "patreon": "",
@@ -16,21 +16,28 @@
     {
       "type": "switch",
       "id": "hideUnsortedMedias",
-      "name": "Hide Medias",
+      "name": "Hide medias",
       "note": "Hide medias in the picker tab which are in a category",
       "value": true
     },
     {
       "type": "switch",
       "id": "hideThumbnail",
-      "name": "Hide Thumbnail",
+      "name": "Hide thumbnail",
       "note": "Show the category color instead of a random media thumbnail",
       "value": false
     },
     {
+      "type": "switch",
+      "id": "allowCaching",
+      "name": "Allow medias preview caching",
+      "note": "Uses local offline database to cache medias preview",
+      "value": true
+    },
+    {
       "type": "slider",
       "id": "mediaVolume",
-      "name": "Preview Media Volume",
+      "name": "Preview media volume",
       "note": "Volume of the previews medias on the picker tab",
       "min": 0,
       "max": 100,
@@ -38,16 +45,37 @@
       "value": 10
     },
     {
+      "type": "dropdown",
+      "id": "maxMediasPerPage",
+      "name": "Max medias per page",
+      "note": "The maximum amount of displayed medias per page in the picker tab",
+      "value": 50,
+      "options": [
+        {
+          "label": "20",
+          "value": 20
+        },
+        {
+          "label": "50",
+          "value": 50
+        },
+        {
+          "label": "100",
+          "value": 100
+        }
+      ]
+    },
+    {
       "type": "category",
       "id": "position",
-      "name": "Buttons Position",
+      "name": "Buttons position",
       "collapsible": true,
       "shown": false,
       "settings": [
         {
           "type": "dropdown",
           "id": "btnsPositionKey",
-          "name": "Buttons Relative Position",
+          "name": "Buttons relative position",
           "note": "Near which other button the buttons have to be placed",
           "value": "emoji",
           "options": [
@@ -72,7 +100,7 @@
         {
           "type": "dropdown",
           "id": "btnsPosition",
-          "name": "Buttons Direction",
+          "name": "Buttons direction",
           "note": "Direction of the buttons on the chat",
           "value": "right",
           "options": [
@@ -91,7 +119,7 @@
     {
       "type": "category",
       "id": "gif",
-      "name": "GIF Settings",
+      "name": "GIFs settings",
       "collapsible": true,
       "shown": false,
       "settings": [
@@ -105,7 +133,7 @@
         {
           "type": "switch",
           "id": "alwaysSendInstantly",
-          "name": "Instant",
+          "name": "Instant send",
           "note": "Send instantly medias links and/or files",
           "value": true
         },
@@ -121,7 +149,7 @@
     {
       "type": "category",
       "id": "image",
-      "name": "Image Settings",
+      "name": "Images settings",
       "collapsible": true,
       "shown": false,
       "settings": [
@@ -129,27 +157,27 @@
           "type": "switch",
           "id": "enabled",
           "name": "General",
-          "note": "Enable images",
+          "note": "Enable this type of media",
           "value": true
         },
         {
           "type": "switch",
           "id": "showBtn",
           "name": "Button",
-          "note": "Show image button on chat",
+          "note": "Show button on chat",
           "value": true
         },
         {
           "type": "switch",
           "id": "showStar",
           "name": "Star",
-          "note": "Show favorite star on image medias",
+          "note": "Show favorite star on medias",
           "value": true
         },
         {
           "type": "switch",
           "id": "alwaysSendInstantly",
-          "name": "Instant",
+          "name": "Instant send",
           "note": "Send instantly medias links and/or files",
           "value": true
         },
@@ -165,7 +193,7 @@
     {
       "type": "category",
       "id": "video",
-      "name": "Video Settings",
+      "name": "Videos settings",
       "collapsible": true,
       "shown": false,
       "settings": [
@@ -173,27 +201,27 @@
           "type": "switch",
           "id": "enabled",
           "name": "General",
-          "note": "Enable videos",
+          "note": "Enable this type of media",
           "value": true
         },
         {
           "type": "switch",
           "id": "showBtn",
           "name": "Button",
-          "note": "Show video button on chat",
+          "note": "Show button on chat",
           "value": true
         },
         {
           "type": "switch",
           "id": "showStar",
           "name": "Star",
-          "note": "Show favorite star on video medias",
+          "note": "Show favorite star on medias",
           "value": true
         },
         {
           "type": "switch",
           "id": "alwaysSendInstantly",
-          "name": "Instant",
+          "name": "Instant send",
           "note": "Send instantly medias links and/or files",
           "value": true
         },
@@ -209,7 +237,7 @@
     {
       "type": "category",
       "id": "audio",
-      "name": "Audio Settings",
+      "name": "Audios settings",
       "collapsible": true,
       "shown": false,
       "settings": [
@@ -217,24 +245,86 @@
           "type": "switch",
           "id": "enabled",
           "name": "General",
-          "note": "Enable audios",
+          "note": "Enable this type of media",
           "value": true
         },
         {
           "type": "switch",
           "id": "showBtn",
           "name": "Button",
-          "note": "Show audio button on chat",
+          "note": "Show button on chat",
           "value": true
         },
         {
           "type": "switch",
           "id": "showStar",
           "name": "Star",
-          "note": "Show favorite star on audio medias",
+          "note": "Show favorite star on medias",
           "value": true
         }
       ]
+    },
+    {
+      "type": "category",
+      "id": "file",
+      "name": "Files settings",
+      "collapsible": true,
+      "shown": false,
+      "settings": [
+        {
+          "type": "switch",
+          "id": "enabled",
+          "name": "General",
+          "note": "Enable this type of media",
+          "value": true
+        },
+        {
+          "type": "switch",
+          "id": "showBtn",
+          "name": "Button",
+          "note": "Show button on chat",
+          "value": true
+        },
+        {
+          "type": "switch",
+          "id": "showStar",
+          "name": "Star",
+          "note": "Show favorite star on medias",
+          "value": true
+        },
+        {
+          "type": "switch",
+          "id": "alwaysSendInstantly",
+          "name": "Instant send",
+          "note": "Send instantly medias links and/or files",
+          "value": true
+        },
+        {
+          "type": "switch",
+          "id": "alwaysUploadFile",
+          "name": "Upload",
+          "note": "Uploads media as file instead of sending a link",
+          "value": false
+        }
+      ]
+    }
+  ],
+  "changelog": [
+    {
+      "title": "Features",
+      "type": "added",
+      "items": [
+        "Added new medias type: `file`",
+        "Added medias previews cache (enabled by default)",
+        "Added medias import",
+        "Added fixed category thumbnail (not random)",
+        "Added settings translations"
+      ]
+    },
+    {
+      "title": "Bugs",
+      "type": "fixed",
+      "items": ["Fixed wheel/middle-click on images not working"]
     }
   ]
 }
