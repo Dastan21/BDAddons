@@ -2967,7 +2967,7 @@ module.exports = (Plugin, Library) => {
         .category-input-color:hover {
           transform: scale(1.1);
         }
-        .${classes.image.imageAccessory}:not(.fm-favBtn) {
+        .${classes.image.imageAccessory}:not(.fm-favBtn):has(+ .fm-favBtn) {
           display: none;
         }
         .fm-favBtn.fm-audio,
