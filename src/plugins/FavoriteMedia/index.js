@@ -1600,11 +1600,9 @@ module.exports = (Plugin, Library) => {
 
     get tag () {
       if (this.props.type === 'file') return null
-      if (this.state.showControls) {
-        if (this.isGIF && !this.props.src?.split('?')[0].endsWith('.gif')) return 'video'
-        if (this.props.type === 'audio') return 'audio'
-        return 'video'
-      } else if (this.props.type === 'audio') return null
+      if (this.state.showControls) return this.props.type === 'audio' ? 'audio' : 'video'
+      if (this.isGIF && !this.props.src?.split('?')[0].endsWith('.gif')) return 'video'
+      if (this.props.type === 'audio') return null
       return 'img'
     }
 
