@@ -1,7 +1,7 @@
 /**
  * @name HideEmbedLink
  * @description Hides embed messages link.
- * @version 2.1.5
+ * @version 2.1.6
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink
@@ -37,7 +37,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "2.1.5",
+    version: "2.1.6",
     description: "Hides embed messages link.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink",
@@ -128,7 +128,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     }
 
     get links () {
-      return document.querySelectorAll(`div[id^='message-content-${this.props.messageId}'] a.hel-embedLink[title="${this.props.url}"]`)
+      return document.querySelectorAll(`div[id^='message-content-${this.props.messageId}'] a.hel-embedLink[href="${this.props.url}"]`)
     }
 
     render () {
@@ -260,7 +260,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           e.props.children.props['aria-hel-id'] = t.props.message.id
           e.props.children.props['aria-hel-url'] = Array
             .from(document.querySelectorAll(`div[id='message-content-${t.props.message.id}'] a.hel-embedLink`))
-            .find(link => this.isValid(link.getAttribute('title'), [t.props.message.embeds[i].url]))?.getAttribute('title')
+            .find(link => this.isValid(link.getAttribute('href'), [t.props.message.embeds[i].url]))?.getAttribute('href')
           e.props.children.props['aria-hel-index'] = i
         })
       })

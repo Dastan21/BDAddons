@@ -50,7 +50,7 @@ module.exports = (Plugin, Library) => {
     }
 
     get links () {
-      return document.querySelectorAll(`div[id^='message-content-${this.props.messageId}'] a.hel-embedLink[title="${this.props.url}"]`)
+      return document.querySelectorAll(`div[id^='message-content-${this.props.messageId}'] a.hel-embedLink[href="${this.props.url}"]`)
     }
 
     render () {
@@ -182,7 +182,7 @@ module.exports = (Plugin, Library) => {
           e.props.children.props['aria-hel-id'] = t.props.message.id
           e.props.children.props['aria-hel-url'] = Array
             .from(document.querySelectorAll(`div[id='message-content-${t.props.message.id}'] a.hel-embedLink`))
-            .find(link => this.isValid(link.getAttribute('title'), [t.props.message.embeds[i].url]))?.getAttribute('title')
+            .find(link => this.isValid(link.getAttribute('href'), [t.props.message.embeds[i].url]))?.getAttribute('href')
           e.props.children.props['aria-hel-index'] = i
         })
       })
