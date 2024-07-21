@@ -203,7 +203,6 @@ module.exports = (Plugin, Library) => {
   const DiscordComponents = Webpack.getByKeys('Button', 'Card', 'Modal')
 
   const DEFAULT_BACKGROUND_COLOR = '#202225'
-  const MediaLoadFailImg = 'data:image/png;base64,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'
   const ImageSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 384 384', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M341.333,0H42.667C19.093,0,0,19.093,0,42.667v298.667C0,364.907,19.093,384,42.667,384h298.667 C364.907,384,384,364.907,384,341.333V42.667C384,19.093,364.907,0,341.333,0z M42.667,320l74.667-96l53.333,64.107L245.333,192l96,128H42.667z' }))
   const VideoSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 298 298', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M298,33c0-13.255-10.745-24-24-24H24C10.745,9,0,19.745,0,33v232c0,13.255,10.745,24,24,24h250c13.255,0,24-10.745,24-24V33zM91,39h43v34H91V39z M61,259H30v-34h31V259z M61,73H30V39h31V73z M134,259H91v-34h43V259z M123,176.708v-55.417c0-8.25,5.868-11.302,12.77-6.783l40.237,26.272c6.902,4.519,6.958,11.914,0.056,16.434l-40.321,26.277C128.84,188.011,123,184.958,123,176.708z M207,259h-43v-34h43V259z M207,73h-43V39h43V73z M268,259h-31v-34h31V259z M268,73h-31V39h31V73z' }))
   const AudioSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 115.3 115.3', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M47.9,14.306L26,30.706H6c-3.3,0-6,2.7-6,6v41.8c0,3.301,2.7,6,6,6h20l21.9,16.4c4,3,9.6,0.2,9.6-4.8v-77C57.5,14.106,51.8,11.306,47.9,14.306z' }), React.createElement('path', { fill: 'currentColor', d: 'M77.3,24.106c-2.7-2.7-7.2-2.7-9.899,0c-2.7,2.7-2.7,7.2,0,9.9c13,13,13,34.101,0,47.101c-2.7,2.7-2.7,7.2,0,9.899c1.399,1.4,3.199,2,4.899,2s3.601-0.699,4.9-2.1C95.8,72.606,95.8,42.606,77.3,24.106z' }), React.createElement('path', { fill: 'currentColor', d: 'M85.1,8.406c-2.699,2.7-2.699,7.2,0,9.9c10.5,10.5,16.301,24.4,16.301,39.3s-5.801,28.8-16.301,39.3c-2.699,2.7-2.699,7.2,0,9.9c1.4,1.399,3.2,2.1,4.9,2.1c1.8,0,3.6-0.7,4.9-2c13.1-13.1,20.399-30.6,20.399-49.2c0-18.6-7.2-36-20.399-49.2C92.3,5.706,87.9,5.706,85.1,8.406z' }))
@@ -1085,9 +1084,7 @@ module.exports = (Plugin, Library) => {
       Dispatcher.dispatch({ type: 'FM_UPDATE_MEDIAS' })
       Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
       showToast(plugin.instance.strings.import.success, { type: 'success' })
-      MediaPicker.fetchMediasIntoDB().then(() => {
-        MediaPicker.cacheMediasFromDB()
-      })
+      MediaPicker.fetchMediasIntoDB()
     }
 
     get importData () {
@@ -1216,6 +1213,7 @@ module.exports = (Plugin, Library) => {
         size: null,
         loadingStats: true,
         loadingCache: false,
+        fetchMediasProgress: '',
       }
 
       this.loadStats = this.loadStats.bind(this)
@@ -1224,10 +1222,12 @@ module.exports = (Plugin, Library) => {
       this.openModalClearDatabase = this.openModalClearDatabase.bind(this)
       this.clearDatabase = this.clearDatabase.bind(this)
       this.openCacheMediasConfirm = this.openCacheMediasConfirm.bind(this)
+      this.updateFetchMediasProgress = this.updateFetchMediasProgress.bind(this)
     }
 
     componentDidMount () {
       this.loadStats()
+      Dispatcher.subscribe('FM_FETCH_INTO_DB', this.updateFetchMediasProgress)
     }
 
     componentDidUpdate () {
@@ -1241,9 +1241,9 @@ module.exports = (Plugin, Library) => {
         for (const key of Object.getOwnPropertyNames(mediasCache)) {
           delete mediasCache[key]
         }
-      } else {
-        MediaPicker.cacheMediasFromDB()
       }
+
+      Dispatcher.unsubscribe('FM_FETCH_INTO_DB', this.updateFetchMediasProgress)
     }
 
     async loadStats () {
@@ -1274,6 +1274,10 @@ module.exports = (Plugin, Library) => {
       })
     }
 
+    updateFetchMediasProgress (data) {
+      this.setState({ fetchMediasProgress: `${data.done}/${data.total}` })
+    }
+
     async clearDatabase () {
       await fmdb.clear().then(() => {
         showToast(plugin.instance.strings.cache.clear.success, { type: 'success' })
@@ -1289,17 +1293,8 @@ module.exports = (Plugin, Library) => {
         onConfirm: () => {
           this.setState({ loadingCache: true })
           MediaPicker.fetchMediasIntoDB().then((count) => {
-            if (count > 0) {
-              this.loadStats()
-              MediaPicker.cacheMediasFromDB().then(() => {
-                showToast(plugin.instance.strings.cache.cacheAll.success, { type: 'success' })
-              }).catch((err) => {
-                console.error(err)
-                showToast(plugin.instance.strings.cache.cacheAll.error, { type: 'error' })
-              })
-            } else {
-              showToast(plugin.instance.strings.cache.cacheAll.noMedia, { type: 'info' })
-            }
+            if (count > 0) this.loadStats()
+            showToast(plugin.instance.strings.cache.cacheAll.noMedia, { type: 'info' })
             this.setState({ loadingCache: false })
           })
         },
@@ -1364,7 +1359,12 @@ module.exports = (Plugin, Library) => {
         }, plugin.instance.strings.cache.cacheAll.button)
         )
         )
-        : React.createElement(DiscordComponents.Spinner)
+        : React.createElement('div', {
+          className: `${classes.color.colorStandard} fm-databaseFetchMediasProgress`,
+        },
+        React.createElement(DiscordComponents.Spinner),
+        React.createElement('span', {}, this.state.fetchMediasProgress)
+        )
       )
     }
   }
@@ -1523,9 +1523,20 @@ module.exports = (Plugin, Library) => {
       this.refs.category.classList.remove('category-dragover')
     }
 
-    onError () {
+    async onError () {
       console.warn(`[${config.name}]`, 'Could not load media:', this.state.src, this.thumbnail)
-      this.setState({ thumbnailError: true })
+
+      const key = this.thumbnail
+      const media = await fmdb.get(key)
+      if (media == null) {
+        this.setState({ thumbnailError: true })
+        return
+      }
+
+      const blob = new Blob([media])
+      const url = URL.createObjectURL(blob)
+      mediasCache[key] = url
+      this.setState({ src: url })
     }
 
     render () {
@@ -1721,11 +1732,18 @@ module.exports = (Plugin, Library) => {
       }
     }
 
-    onError (e) {
-      if (e.target.tagName !== 'IMG') return
+    async onError (e) {
+      if (e.target.tagName !== 'IMG' || mediasCache[this.src] != null) return
 
-      console.warn(`[${config.name}]`, 'Could not load media:', this.state.src, this.src)
-      e.target.src = MediaLoadFailImg
+      console.warn(`[${config.name}]`, 'Could not load media:', this.src)
+      const key = this.src
+      const media = await fmdb.get(key)
+      if (media == null) return
+
+      const blob = new Blob([media])
+      const url = URL.createObjectURL(blob)
+      mediasCache[key] = url
+      this.setState({ src: url })
     }
 
     render () {
@@ -1837,13 +1855,11 @@ module.exports = (Plugin, Library) => {
         medias: Utilities.loadData(config.name, this.props.type, { medias: [] }).medias,
         contentWidth: null,
         page: 1,
-        loadingCache: plugin.instance.settings.allowCaching && mediasCache.loading,
       }
 
       this.type = this.props.type
       this.contentHeight = MediaPicker.HEIGHT
 
-      this.cacheLoaded = this.cacheLoaded.bind(this)
       this.createButtonsTooltips = this.createButtonsTooltips.bind(this)
       this.clearSearch = this.clearSearch.bind(this)
       this.setCategory = this.setCategory.bind(this)
@@ -1862,7 +1878,6 @@ module.exports = (Plugin, Library) => {
     componentDidMount () {
       this.refs.input?.focus()
       this.setState({ contentWidth: this.refs.content?.clientWidth })
-      Dispatcher.subscribe('FM_CACHE_LOADED', this.cacheLoaded)
       Dispatcher.subscribe('FM_UPDATE_MEDIAS', this.loadMedias)
       Dispatcher.subscribe('FM_UPDATE_CATEGORIES', this.loadCategories)
       Dispatcher.dispatch({ type: 'FM_PICKER_BUTTON_ACTIVE' })
@@ -1885,14 +1900,9 @@ module.exports = (Plugin, Library) => {
     }
 
     componentWillUnmount () {
-      Dispatcher.unsubscribe('FM_CACHE_LOADED', this.cacheLoaded)
       Dispatcher.unsubscribe('FM_UPDATE_MEDIAS', this.loadMedias)
       Dispatcher.unsubscribe('FM_UPDATE_CATEGORIES', this.loadCategories)
       Dispatcher.dispatch({ type: 'FM_PICKER_BUTTON_ACTIVE' })
-    }
-
-    cacheLoaded () {
-      this.setState({ loadingCache: false })
     }
 
     createButtonsTooltips () {
@@ -2448,41 +2458,20 @@ module.exports = (Plugin, Library) => {
       })
     }
 
-    static async cacheMediasFromDB () {
-      mediasCache.loading = true
-      const time = new Date().getTime()
-      const medias = await fmdb.getAll()
-      const keys = await fmdb.getKeys()
-      let totalCached = 0
-
-      keys.forEach((k, i) => {
-        if (mediasCache[k] != null) return
-
-        const blob = new Blob([medias[i]])
-        const url = URL.createObjectURL(blob)
-        mediasCache[k] = url
-        totalCached++
-      })
-
-      mediasCache.loading = false
-      Dispatcher.dispatch({ type: 'FM_CACHE_LOADED' })
-      if (totalCached > 0) console.info(`[${config.name}]`, `Cached ${totalCached} medias from database in ${((new Date().getTime() - time) / 1000).toFixed(2)}s`)
-    }
-
     static async fetchMediasIntoDB () {
       const time = new Date().getTime()
-      const notCachedMediaUrls = []
+      const mediasUrlToCache = []
       const keys = await fmdb.getKeys()
       const types = ['image', 'video', 'gif']
       for (const type of types) {
         const medias = Utilities.loadData(config.name, type, { medias: [] }).medias
         for (const media of medias) {
           const url = MediaFavButton.getThumbnail(type, media)
-          if (url != null && !keys.includes(url)) notCachedMediaUrls.push(url)
+          if (url != null && !keys.includes(url)) mediasUrlToCache.push(url)
         }
       }
 
-      if (notCachedMediaUrls.length <= 0) {
+      if (mediasUrlToCache.length <= 0) {
         console.info(`[${config.name}]`, 'There is no media to cache')
         return 0
       }
@@ -2493,18 +2482,17 @@ module.exports = (Plugin, Library) => {
         await fmdb.set(r.original, buf)
       }
 
-      const refreshedUrls = await MediaPicker.refreshUrls(notCachedMediaUrls)
-      totalCached += await Promise.allSettled(refreshedUrls.map(cacheMedia)).then((results) => {
-        results.forEach((r, i) => {
-          if (r.status === 'rejected') {
-            console.warn(`[${config.name}]`, 'Failed to cache media:', refreshedUrls[i]?.original, r.reason?.message)
-          }
+      const refreshedUrls = await MediaPicker.refreshUrls(mediasUrlToCache)
+      for (const refreshedUrl of refreshedUrls) {
+        await cacheMedia(refreshedUrl).then(() => {
+          totalCached++
+          Dispatcher.dispatch({ type: 'FM_FETCH_INTO_DB', done: totalCached, total: mediasUrlToCache.length })
+        }).catch((err) => {
+          console.warn(`[${config.name}]`, 'Failed to cache media:', refreshedUrl.original, err.message ?? err)
         })
+      }
 
-        return results.filter((r) => r.status === 'fulfilled').length
-      })
-
-      console.info(`[${config.name}]`, `Saved ${totalCached} medias in the database in ${((new Date().getTime() - time) / 1000).toFixed(2)}s`)
+      console.info(`[${config.name}]`, `Saved ${totalCached}/${mediasUrlToCache.length} medias in the database in ${((new Date().getTime() - time) / 1000).toFixed(2)}s`)
 
       return totalCached
     }
@@ -2532,241 +2520,232 @@ module.exports = (Plugin, Library) => {
     }
 
     render () {
-      return this.state.loadingCache
+      return React.createElement('div', {
+        id: `${this.props.type}-picker-tab-panel`,
+        role: 'tabpanel',
+        'aria-labelledby': `${this.props.type}-picker-tab`,
+        className: `${classes.gutter.container} fm-pickerContainer`,
+      },
+      React.createElement('div', {
+        className: `${classes.gutter.header} fm-header`,
+      },
+      React.createElement('div', {
+        className: `${classes.h5} fm-headerRight`,
+      },
+      React.createElement('span', {
+        ref: 'mediasCounter',
+        className: 'fm-mediasCounter',
+      }, this.filteredMedias.length),
+      React.createElement('div', {
+        ref: 'databaseButton',
+        className: `${classes.buttons.button} fm-databaseButton fm-buttonIcon`,
+        onClick: MediaPicker.openDatabasePanel,
+      }, DatabaseSVG()),
+      React.createElement('div', {
+        ref: 'importButton',
+        className: `${classes.buttons.button} fm-importButton fm-buttonIcon`,
+        onClick: MediaPicker.openImportModal,
+      }, ImportSVG()),
+      React.createElement('div', {
+        ref: 'settingsButton',
+        className: `${classes.buttons.button} fm-settingsButton fm-buttonIcon`,
+        onClick: () => Dispatcher.dispatch({ type: 'FM_OPEN_SETTINGS' }),
+      }, CogSVG())
+      ),
+      React.createElement('div', {
+        className: `${classes.flex.flex} ${classes.flex.horizontal} ${classes.flex.justifyStart} ${classes.flex.alignCenter} ${classes.flex.noWrap}`,
+        style: { flex: '1 1 auto' },
+      },
+      this.state.category
         ? React.createElement('div', {
-          className: 'fm-loadingCachedMediasContainer',
+          className: classes.gutter.backButton,
+          role: 'button',
+          tabindex: '0',
+          onClick: () => this.backCategory(),
         },
-        React.createElement(DiscordComponents.Spinner),
-        React.createElement('p', {
-          className: classes.color.colorStandard,
-        }, plugin.instance.strings.cache.loadingMedias)
+        React.createElement('svg', {
+          'aria-hidden': false,
+          width: '24',
+          height: '24',
+          viewBox: '0 0 24 24',
+          fill: 'none',
+        },
+        React.createElement('path', {
+          fill: 'currentColor',
+          d: 'M20 10.9378H14.2199H8.06628L10.502 8.50202L9 7L4 12L9 17L10.502 15.498L8.06628 13.0622H20V10.9378Z',
+        })
         )
-        : React.createElement('div', {
-          id: `${this.props.type}-picker-tab-panel`,
-          role: 'tabpanel',
-          'aria-labelledby': `${this.props.type}-picker-tab`,
-          className: `${classes.gutter.container} fm-pickerContainer`,
+        )
+        : null,
+      this.state.category
+        ? React.createElement('h5', {
+          className: `${classes.h5} ${classes.gutter.searchHeader}`,
+        }, this.state.category.name)
+        : null,
+      this.state.textFilter && !this.state.category
+        ? React.createElement('div', {
+          className: classes.gutter.backButton,
+          role: 'button',
+          tabindex: '0',
+          onClick: this.clearSearch,
+        },
+        React.createElement('svg', {
+          'aria-hidden': false,
+          width: '24',
+          height: '24',
+          viewBox: '0 0 24 24',
+          fill: 'none',
+        },
+        React.createElement('path', {
+          fill: 'currentColor',
+          d: 'M20 10.9378H14.2199H8.06628L10.502 8.50202L9 7L4 12L9 17L10.502 15.498L8.06628 13.0622H20V10.9378Z',
+        })
+        )
+        )
+        : null,
+      !this.state.category
+        ? React.createElement('div', {
+          className: `${classes.gutter.searchBar} ${classes.container.container} ${classes.container.medium}`,
         },
         React.createElement('div', {
-          className: `${classes.gutter.header} fm-header`,
+          className: classes.container.inner,
+        },
+        React.createElement('input', {
+          className: classes.container.input,
+          placeholder: plugin.instance.strings.searchItem[this.props.type],
+          autofocus: true,
+          ref: 'input',
+          onChange: e => {
+            this.setState({ textFilter: e.target.value })
+            this.resetScroll()
+          },
+        }),
+        React.createElement('div', {
+          className: `${classes.container.iconLayout} ${classes.container.medium} ${this.state.textFilter ? classes.container.pointer : ''}`,
+          tabindex: '-1',
+          role: 'button',
+          onClick: this.clearSearch,
         },
         React.createElement('div', {
-          className: `${classes.h5} fm-headerRight`,
+          className: classes.container.iconContainer,
         },
-        React.createElement('span', {
-          ref: 'mediasCounter',
-          className: 'fm-mediasCounter',
-        }, this.filteredMedias.length),
-        React.createElement('div', {
-          ref: 'databaseButton',
-          className: `${classes.buttons.button} fm-databaseButton fm-buttonIcon`,
-          onClick: MediaPicker.openDatabasePanel,
-        }, DatabaseSVG()),
-        React.createElement('div', {
-          ref: 'importButton',
-          className: `${classes.buttons.button} fm-importButton fm-buttonIcon`,
-          onClick: MediaPicker.openImportModal,
-        }, ImportSVG()),
-        React.createElement('div', {
-          ref: 'settingsButton',
-          className: `${classes.buttons.button} fm-settingsButton fm-buttonIcon`,
-          onClick: () => Dispatcher.dispatch({ type: 'FM_OPEN_SETTINGS' }),
-        }, CogSVG())
+        React.createElement('svg', {
+          className: `${classes.container.clear} ${this.state.textFilter ? '' : ` ${classes.container.visible}`}`,
+          'aria-hidden': false,
+          width: '24',
+          height: '24',
+          viewBox: '0 0 24 24',
+        },
+        React.createElement('path', {
+          fill: 'currentColor',
+          d: 'M21.707 20.293L16.314 14.9C17.403 13.504 18 11.799 18 10C18 7.863 17.167 5.854 15.656 4.344C14.146 2.832 12.137 2 10 2C7.863 2 5.854 2.832 4.344 4.344C2.833 5.854 2 7.863 2 10C2 12.137 2.833 14.146 4.344 15.656C5.854 17.168 7.863 18 10 18C11.799 18 13.504 17.404 14.9 16.314L20.293 21.706L21.707 20.293ZM10 16C8.397 16 6.891 15.376 5.758 14.243C4.624 13.11 4 11.603 4 10C4 8.398 4.624 6.891 5.758 5.758C6.891 4.624 8.397 4 10 4C11.603 4 13.109 4.624 14.242 5.758C15.376 6.891 16 8.398 16 10C16 11.603 15.376 13.11 14.242 14.243C13.109 15.376 11.603 16 10 16Z',
+        })
         ),
-        React.createElement('div', {
-          className: `${classes.flex.flex} ${classes.flex.horizontal} ${classes.flex.justifyStart} ${classes.flex.alignCenter} ${classes.flex.noWrap}`,
-          style: { flex: '1 1 auto' },
+        React.createElement('svg', {
+          className: `${classes.container.clear} ${this.state.textFilter ? ` ${classes.container.visible}` : ''}`,
+          'aria-hidden': false,
+          width: '24',
+          height: '24',
+          viewBox: '0 0 24 24',
         },
-        this.state.category
-          ? React.createElement('div', {
-            className: classes.gutter.backButton,
-            role: 'button',
-            tabindex: '0',
-            onClick: () => this.backCategory(),
-          },
-          React.createElement('svg', {
-            'aria-hidden': false,
-            width: '24',
-            height: '24',
-            viewBox: '0 0 24 24',
-            fill: 'none',
-          },
-          React.createElement('path', {
-            fill: 'currentColor',
-            d: 'M20 10.9378H14.2199H8.06628L10.502 8.50202L9 7L4 12L9 17L10.502 15.498L8.06628 13.0622H20V10.9378Z',
-          })
-          )
-          )
-          : null,
-        this.state.category
-          ? React.createElement('h5', {
-            className: `${classes.h5} ${classes.gutter.searchHeader}`,
-          }, this.state.category.name)
-          : null,
-        this.state.textFilter && !this.state.category
-          ? React.createElement('div', {
-            className: classes.gutter.backButton,
-            role: 'button',
-            tabindex: '0',
-            onClick: this.clearSearch,
-          },
-          React.createElement('svg', {
-            'aria-hidden': false,
-            width: '24',
-            height: '24',
-            viewBox: '0 0 24 24',
-            fill: 'none',
-          },
-          React.createElement('path', {
-            fill: 'currentColor',
-            d: 'M20 10.9378H14.2199H8.06628L10.502 8.50202L9 7L4 12L9 17L10.502 15.498L8.06628 13.0622H20V10.9378Z',
-          })
-          )
-          )
-          : null,
-        !this.state.category
-          ? React.createElement('div', {
-            className: `${classes.gutter.searchBar} ${classes.container.container} ${classes.container.medium}`,
-          },
-          React.createElement('div', {
-            className: classes.container.inner,
-          },
-          React.createElement('input', {
-            className: classes.container.input,
-            placeholder: plugin.instance.strings.searchItem[this.props.type],
-            autofocus: true,
-            ref: 'input',
-            onChange: e => {
-              this.setState({ textFilter: e.target.value })
-              this.resetScroll()
-            },
-          }),
-          React.createElement('div', {
-            className: `${classes.container.iconLayout} ${classes.container.medium} ${this.state.textFilter ? classes.container.pointer : ''}`,
-            tabindex: '-1',
-            role: 'button',
-            onClick: this.clearSearch,
-          },
-          React.createElement('div', {
-            className: classes.container.iconContainer,
-          },
-          React.createElement('svg', {
-            className: `${classes.container.clear} ${this.state.textFilter ? '' : ` ${classes.container.visible}`}`,
-            'aria-hidden': false,
-            width: '24',
-            height: '24',
-            viewBox: '0 0 24 24',
-          },
-          React.createElement('path', {
-            fill: 'currentColor',
-            d: 'M21.707 20.293L16.314 14.9C17.403 13.504 18 11.799 18 10C18 7.863 17.167 5.854 15.656 4.344C14.146 2.832 12.137 2 10 2C7.863 2 5.854 2.832 4.344 4.344C2.833 5.854 2 7.863 2 10C2 12.137 2.833 14.146 4.344 15.656C5.854 17.168 7.863 18 10 18C11.799 18 13.504 17.404 14.9 16.314L20.293 21.706L21.707 20.293ZM10 16C8.397 16 6.891 15.376 5.758 14.243C4.624 13.11 4 11.603 4 10C4 8.398 4.624 6.891 5.758 5.758C6.891 4.624 8.397 4 10 4C11.603 4 13.109 4.624 14.242 5.758C15.376 6.891 16 8.398 16 10C16 11.603 15.376 13.11 14.242 14.243C13.109 15.376 11.603 16 10 16Z',
-          })
-          ),
-          React.createElement('svg', {
-            className: `${classes.container.clear} ${this.state.textFilter ? ` ${classes.container.visible}` : ''}`,
-            'aria-hidden': false,
-            width: '24',
-            height: '24',
-            viewBox: '0 0 24 24',
-          },
-          React.createElement('path', {
-            fill: 'currentColor',
-            d: 'M18.4 4L12 10.4L5.6 4L4 5.6L10.4 12L4 18.4L5.6 20L12 13.6L18.4 20L20 18.4L13.6 12L20 5.6L18.4 4Z',
-          })
-          )
-          )
-          )
-          )
-          )
-          : null
-        )
-        ),
-        React.createElement('div', {
-          className: `${classes.gutter.content} fm-pickerContent`,
-          style: { height: '100%' },
-        },
-        React.createElement('div', {
-          ref: 'pickerScroll',
-          className: `${classes.category.container} ${classes.scroller.thin} ${classes.scroller.fade} fm-pickerContentContainer`,
-          style: { overflow: 'hidden scroll', 'padding-right': '0' },
-          onContextMenu: this.onContextMenu,
-        },
-        React.createElement('div', {
-          className: `${classes.scroller.content} fm-pickerContentContainerContent`,
-        },
-        React.createElement('div', {
-          style: { position: 'absolute', left: '12px', top: '12px', width: 'calc(100% - 16px)' },
-          ref: 'content',
-        },
-        !this.state.category && (this.state.categories.length + this.state.medias.length === 0)
-          ? React.createElement(EmptyFavorites, { type: this.props.type })
-          : null,
-        this.state.categories.length > 0 && this.state.contentWidth
-          ? React.createElement(RenderList, {
-            component: CategoryCard,
-            items: this.positionedCategories,
-            componentProps: {
-              type: this.props.type,
-              setCategory: this.setCategory,
-              length: this.filteredCategories.length,
-            },
-          })
-          : null,
-        this.state.medias.length > 0 && this.state.contentWidth
-          ? React.createElement(RenderList, {
-            component: MediaCard,
-            items: this.positionedMedias,
-            componentProps: {
-              type: this.props.type,
-              onMediaContextMenu: this.onMediaContextMenu,
-              settings: this.props.settings,
-            },
-          })
-          : null
-        ),
-        this.state.categories.length > 0 || this.state.medias.length > 0
-          ? React.createElement('div', {
-            style: {
-              position: 'absolute',
-              left: '12px',
-              top: `${this.contentHeight + 12}px`,
-              width: 'calc(100% - 16px)',
-              height: '220px',
-            },
-            ref: 'endSticker',
-          },
-          React.createElement('div', {
-            className: classes.result.endContainer,
-            style: {
-              position: 'sticky',
-              top: '0px',
-              left: '0px',
-              width: '100%',
-              height: '220px',
-            },
-          })
-          )
-          : null
-        )
-        ),
-        PageControl != null
-          ? React.createElement('div', {
-            className: 'fm-pageControl',
-          },
-          React.createElement(PageControl, {
-            currentPage: this.state.page,
-            maxVisiblePages: 5,
-            onPageChange: (page) => {
-              this.setState({ page: Number(page) })
-              this.resetScroll()
-            },
-            pageSize: plugin.instance.settings.maxMediasPerPage,
-            totalCount: this.filteredCategories.length + this.filteredMedias.length,
-          })
-          )
-          : null
+        React.createElement('path', {
+          fill: 'currentColor',
+          d: 'M18.4 4L12 10.4L5.6 4L4 5.6L10.4 12L4 18.4L5.6 20L12 13.6L18.4 20L20 18.4L13.6 12L20 5.6L18.4 4Z',
+        })
         )
         )
+        )
+        )
+        )
+        : null
+      )
+      ),
+      React.createElement('div', {
+        className: `${classes.gutter.content} fm-pickerContent`,
+        style: { height: '100%' },
+      },
+      React.createElement('div', {
+        ref: 'pickerScroll',
+        className: `${classes.category.container} ${classes.scroller.thin} ${classes.scroller.fade} fm-pickerContentContainer`,
+        style: { overflow: 'hidden scroll', 'padding-right': '0' },
+        onContextMenu: this.onContextMenu,
+      },
+      React.createElement('div', {
+        className: `${classes.scroller.content} fm-pickerContentContainerContent`,
+      },
+      React.createElement('div', {
+        style: { position: 'absolute', left: '12px', top: '12px', width: 'calc(100% - 16px)' },
+        ref: 'content',
+      },
+      !this.state.category && (this.state.categories.length + this.state.medias.length === 0)
+        ? React.createElement(EmptyFavorites, { type: this.props.type })
+        : null,
+      this.state.categories.length > 0 && this.state.contentWidth
+        ? React.createElement(RenderList, {
+          component: CategoryCard,
+          items: this.positionedCategories,
+          componentProps: {
+            type: this.props.type,
+            setCategory: this.setCategory,
+            length: this.filteredCategories.length,
+          },
+        })
+        : null,
+      this.state.medias.length > 0 && this.state.contentWidth
+        ? React.createElement(RenderList, {
+          component: MediaCard,
+          items: this.positionedMedias,
+          componentProps: {
+            type: this.props.type,
+            onMediaContextMenu: this.onMediaContextMenu,
+            settings: this.props.settings,
+          },
+        })
+        : null
+      ),
+      this.state.categories.length > 0 || this.state.medias.length > 0
+        ? React.createElement('div', {
+          style: {
+            position: 'absolute',
+            left: '12px',
+            top: `${this.contentHeight + 12}px`,
+            width: 'calc(100% - 16px)',
+            height: '220px',
+          },
+          ref: 'endSticker',
+        },
+        React.createElement('div', {
+          className: classes.result.endContainer,
+          style: {
+            position: 'sticky',
+            top: '0px',
+            left: '0px',
+            width: '100%',
+            height: '220px',
+          },
+        })
+        )
+        : null
+      )
+      ),
+      PageControl != null
+        ? React.createElement('div', {
+          className: 'fm-pageControl',
+        },
+        React.createElement(PageControl, {
+          currentPage: this.state.page,
+          maxVisiblePages: 5,
+          onPageChange: (page) => {
+            this.setState({ page: Number(page) })
+            this.resetScroll()
+          },
+          pageSize: plugin.instance.settings.maxMediasPerPage,
+          totalCount: this.filteredCategories.length + this.filteredMedias.length,
+        })
+        )
+        : null
+      )
+      )
     }
   }
 
@@ -2947,8 +2926,6 @@ module.exports = (Plugin, Library) => {
       this.patchMedias()
       this.patchChannelTextArea()
 
-      if (plugin.instance.settings.allowCaching) MediaPicker.cacheMediasFromDB()
-
       this.openSettings = this.openSettings.bind(this)
       Dispatcher.subscribe('FM_OPEN_SETTINGS', this.openSettings)
 
@@ -3115,12 +3092,12 @@ module.exports = (Plugin, Library) => {
           border-radius: 4px;
           padding: 2px;
         }
-        .fm-loadingCachedMediasContainer {
+        .fm-databaseFetchMediasProgress {
           display: flex;
           flex-direction: column;
-          gap: 16px;
           justify-content: center;
           align-items: center;
+          gap: 24px;
         }
         .${classes.category.categoryText} {
           padding: 4px;
@@ -3794,7 +3771,6 @@ module.exports = (Plugin, Library) => {
             error: 'Грешка при кеширане на медия',
           },
           refreshButton: 'Опресняване',
-          loadingMedias: 'Зареждат се визуализации на кеширани медии...',
         },
         mediasCounter: 'Брой медии',
         settings: {
@@ -4070,7 +4046,6 @@ module.exports = (Plugin, Library) => {
             error: 'Selhání při ukládání médií do mezipaměti',
           },
           refreshButton: 'Obnovit',
-          loadingMedias: 'Načítání náhledů médií uložených v mezipaměti...',
         },
         mediasCounter: 'Počet médií',
         settings: {
@@ -4342,7 +4317,6 @@ module.exports = (Plugin, Library) => {
             error: 'Fejl under cachelagring af medier',
           },
           refreshButton: 'Opdater',
-          loadingMedias: 'Indlæser forhåndsvisninger af cachelagrede medier...',
         },
         mediasCounter: 'Antal medier',
         settings: {
@@ -4614,7 +4588,6 @@ module.exports = (Plugin, Library) => {
             error: 'Fehler beim Zwischenspeichern von Medien',
           },
           refreshButton: 'Aktualisierung',
-          loadingMedias: 'Zwischengespeicherte Medienvorschauen werden geladen...',
         },
         mediasCounter: 'Anzahl der Medien',
         settings: {
@@ -4886,7 +4859,6 @@ module.exports = (Plugin, Library) => {
             error: 'Αποτυχία κατά την προσωρινή αποθήκευση πολυμέσων',
           },
           refreshButton: 'Φρεσκάρω',
-          loadingMedias: 'Φόρτωση αποθηκευμένων προεπισκοπήσεων πολυμέσων...',
         },
         mediasCounter: 'Αριθμός μέσων',
         settings: {
@@ -5162,7 +5134,6 @@ module.exports = (Plugin, Library) => {
             error: 'Failed to cache medias',
           },
           refreshButton: 'Refresh',
-          loadingMedias: 'Loading previews of cached medias...',
         },
         mediasCounter: 'Medias count',
         settings: {
@@ -5308,7 +5279,6 @@ module.exports = (Plugin, Library) => {
             error: 'Error al almacenar en caché los medios',
           },
           refreshButton: 'Actualizar',
-          loadingMedias: 'Cargando vistas previas de medios almacenados en caché...',
         },
         mediasCounter: 'Número de medios',
         settings: {
@@ -5580,7 +5550,6 @@ module.exports = (Plugin, Library) => {
             error: 'Virhe tallennettaessa mediaa välimuistiin',
           },
           refreshButton: 'virkistää',
-          loadingMedias: 'Ladataan välimuistin esikatseluita...',
         },
         mediasCounter: 'Median määrä',
         settings: {
@@ -5856,7 +5825,6 @@ module.exports = (Plugin, Library) => {
             error: 'Échec lors de la mise en cache des médias',
           },
           refreshButton: 'Actualiser',
-          loadingMedias: 'Chargement des aperçus des médias mis en cache...',
         },
         mediasCounter: 'Nombre de médias',
         settings: {
@@ -6132,7 +6100,6 @@ module.exports = (Plugin, Library) => {
             error: 'मीडिया को कैशिंग करते समय विफलता',
           },
           refreshButton: 'ताज़ा करना',
-          loadingMedias: 'कैश्ड मीडिया पूर्वावलोकन लोड हो रहा है...',
         },
         mediasCounter: 'मीडिया की संख्या',
         settings: {
@@ -6404,7 +6371,6 @@ module.exports = (Plugin, Library) => {
             error: 'Pogreška tijekom predmemoriranja medija',
           },
           refreshButton: 'Osvježiti',
-          loadingMedias: 'Učitavanje predmemoriranih medijskih pregleda...',
         },
         mediasCounter: 'Broj medija',
         settings: {
@@ -6676,7 +6642,6 @@ module.exports = (Plugin, Library) => {
             error: 'Hiba a média gyorsítótárazásakor',
           },
           refreshButton: 'Frissítés',
-          loadingMedias: 'Gyorsítótárazott média előnézetek betöltése...',
         },
         mediasCounter: 'A média száma',
         settings: {
@@ -6948,7 +6913,6 @@ module.exports = (Plugin, Library) => {
             error: 'Errore durante la memorizzazione nella cache dei media',
           },
           refreshButton: 'ricaricare',
-          loadingMedias: 'Caricamento delle anteprime multimediali memorizzate nella cache...',
         },
         mediasCounter: 'Numero di supporti',
         settings: {
@@ -7220,7 +7184,6 @@ module.exports = (Plugin, Library) => {
             error: 'メディアのキャッシュ中にエラーが発生しました',
           },
           refreshButton: 'リフレッシュ',
-          loadingMedias: 'キャッシュされたメディア プレビューを読み込んでいます...',
         },
         mediasCounter: 'メディア数',
         settings: {
@@ -7492,7 +7455,6 @@ module.exports = (Plugin, Library) => {
             error: '미디어를 캐싱하는 중 오류가 발생했습니다.',
           },
           refreshButton: '새로 고치다',
-          loadingMedias: '캐시된 미디어 미리보기 로드 중...',
         },
         mediasCounter: '미디어 수',
         settings: {
@@ -7764,7 +7726,6 @@ module.exports = (Plugin, Library) => {
             error: 'Klaida kaupiant laikmeną talpykloje',
           },
           refreshButton: 'Atnaujinti',
-          loadingMedias: 'Įkeliamos talpykloje saugomos medijos peržiūros...',
         },
         mediasCounter: 'Žiniasklaidos skaičius',
         settings: {
@@ -8036,7 +7997,6 @@ module.exports = (Plugin, Library) => {
             error: 'Fout bij het cachen van media',
           },
           refreshButton: 'Vernieuwen',
-          loadingMedias: 'In de cache opgeslagen mediavoorbeelden laden...',
         },
         mediasCounter: 'Aantal media',
         settings: {
@@ -8308,7 +8268,6 @@ module.exports = (Plugin, Library) => {
             error: 'Feil under bufring av media',
           },
           refreshButton: 'Forfriske',
-          loadingMedias: 'Laster inn bufrede medieforhåndsvisninger...',
         },
         mediasCounter: 'Antall medier',
         settings: {
@@ -8580,7 +8539,6 @@ module.exports = (Plugin, Library) => {
             error: 'Błąd podczas buforowania multimediów',
           },
           refreshButton: 'Odświeżać',
-          loadingMedias: 'Ładowanie podglądów multimediów z pamięci podręcznej...',
         },
         mediasCounter: 'Liczba mediów',
         settings: {
@@ -8852,7 +8810,6 @@ module.exports = (Plugin, Library) => {
             error: 'Falha ao armazenar mídia em cache',
           },
           refreshButton: 'Atualizar',
-          loadingMedias: 'Carregando visualizações de mídia em cache...',
         },
         mediasCounter: 'Número de mídias',
         settings: {
@@ -9124,7 +9081,6 @@ module.exports = (Plugin, Library) => {
             error: 'Eroare la stocarea în cache a media',
           },
           refreshButton: 'Reîmprospăta',
-          loadingMedias: 'Se încarcă previzualizările media stocate în cache...',
         },
         mediasCounter: 'Numărul de medii',
         settings: {
@@ -9396,7 +9352,6 @@ module.exports = (Plugin, Library) => {
             error: 'Сбой при кэшировании мультимедиа',
           },
           refreshButton: 'Обновить',
-          loadingMedias: 'Загрузка кэшированных превью мультимедиа...',
         },
         mediasCounter: 'Количество носителей',
         settings: {
@@ -9672,7 +9627,6 @@ module.exports = (Plugin, Library) => {
             error: 'Napaka med predpomnjenjem medija',
           },
           refreshButton: 'Osveži',
-          loadingMedias: 'Nalaganje predpomnjenih predstavnostnih predogledov ...',
         },
         mediasCounter: 'Število medijev',
         settings: {
@@ -9944,7 +9898,6 @@ module.exports = (Plugin, Library) => {
             error: 'Fel vid cachelagring av media',
           },
           refreshButton: 'Uppdatera',
-          loadingMedias: 'Laddar cachade mediaförhandsvisningar...',
         },
         mediasCounter: 'Antal media',
         settings: {
@@ -10216,7 +10169,6 @@ module.exports = (Plugin, Library) => {
             error: 'ล้มเหลวขณะแคชสื่อ',
           },
           refreshButton: 'รีเฟรช',
-          loadingMedias: 'กำลังโหลดตัวอย่างสื่อที่แคชไว้...',
         },
         mediasCounter: 'จำนวนสื่อ',
         settings: {
@@ -10488,7 +10440,6 @@ module.exports = (Plugin, Library) => {
             error: 'Medyayı önbelleğe alırken hata oluştu',
           },
           refreshButton: 'Yenile',
-          loadingMedias: 'Önbelleğe alınmış medya önizlemeleri yükleniyor...',
         },
         mediasCounter: 'Ortam sayısı',
         settings: {
@@ -10760,7 +10711,6 @@ module.exports = (Plugin, Library) => {
             error: 'Помилка під час кешування медіа',
           },
           refreshButton: 'Оновити',
-          loadingMedias: 'Завантаження кешованих попередніх переглядів медіа...',
         },
         mediasCounter: 'Кількість медіа',
         settings: {
@@ -11032,7 +10982,6 @@ module.exports = (Plugin, Library) => {
             error: 'Lỗi khi lưu vào bộ nhớ đệm phương tiện',
           },
           refreshButton: 'Làm cho khỏe lại',
-          loadingMedias: 'Đang tải bản xem trước phương tiện được lưu trong bộ nhớ đệm...',
         },
         mediasCounter: 'Số lượng phương tiện truyền thông',
         settings: {
@@ -11304,7 +11253,6 @@ module.exports = (Plugin, Library) => {
             error: '缓存媒体时失败',
           },
           refreshButton: '刷新',
-          loadingMedias: '正在加载缓存的媒体预览...',
         },
         mediasCounter: '媒体数量',
         settings: {
