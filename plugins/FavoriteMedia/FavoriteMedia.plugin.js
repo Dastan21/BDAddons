@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.10.1
+ * @version 1.10.2
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -37,7 +37,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "1.10.1",
+    version: "1.10.2",
     description: "Allows to favorite GIFs, images, videos, audios and files.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -350,26 +350,6 @@ const config = {
                     note: "Uploads media as file instead of sending a link",
                     value: false
                 }
-            ]
-        }
-    ],
-    changelog: [
-        {
-            title: "Features",
-            type: "added",
-            items: [
-                "Added new medias type: `file`",
-                "Added medias previews cache (go to Local database, near media search, and do 'Cache all medias')",
-                "Added medias import",
-                "Added fixed category thumbnail (not random)",
-                "Added settings translations"
-            ]
-        },
-        {
-            title: "Bugs",
-            type: "fixed",
-            items: [
-                "Fixed wheel/middle-click on images not working"
             ]
         }
     ]
@@ -1645,14 +1625,18 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     }
 
     async loadStats () {
-      this.setState({ loadingStats: true })
-      const values = await fmdb.getAll()
-      const totalSize = values.reduce((t, v) => { t += v.byteLength; return t }, 0)
-      this.setState({
-        count: values.length,
-        size: FMDB.sizeOf(totalSize),
-        loadingStats: false,
-      })
+      try {
+        this.setState({ loadingStats: true })
+        const values = await fmdb.getAll()
+        const totalSize = values.reduce((t, v) => { t += v.byteLength; return t }, 0)
+        this.setState({
+          count: values.length,
+          size: FMDB.sizeOf(totalSize),
+          loadingStats: false,
+        })
+      } catch (err) {
+        console.error(`[${config.name}]`, err.message ?? err)
+      }
     }
 
     getSettingsPanel () {
@@ -1692,7 +1676,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           this.setState({ loadingCache: true })
           MediaPicker.fetchMediasIntoDB().then((count) => {
             if (count > 0) this.loadStats()
-            showToast(plugin.instance.strings.cache.cacheAll.noMedia, { type: 'info' })
+            else showToast(plugin.instance.strings.cache.cacheAll.noMedia, { type: 'info' })
             this.setState({ loadingCache: false })
           })
         },
@@ -2907,8 +2891,12 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           url: '/attachments/refresh-urls',
           body: { attachment_urls: chunkUrls },
           trackedActionData: {},
-        }).catch((err) => console.warn(`[${config.name}]`, 'Could not load medias:', chunkUrls, `(${err.message ?? err}):`))
-        if (response.ok) ret.push(...response.body.refreshed_urls)
+        }).catch((res) => {
+          let err
+          try { err = JSON.parse(res.text) } catch (error) { console.error(error) }
+          console.warn(`[${config.name}]`, 'Could not load medias:', chunkUrls, err)
+        })
+        if (response != null && response.ok) ret.push(...response.body.refreshed_urls)
 
         // to prevent rate-limit
         await wait(500)

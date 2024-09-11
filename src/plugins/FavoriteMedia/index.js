@@ -1247,14 +1247,18 @@ module.exports = (Plugin, Library) => {
     }
 
     async loadStats () {
-      this.setState({ loadingStats: true })
-      const values = await fmdb.getAll()
-      const totalSize = values.reduce((t, v) => { t += v.byteLength; return t }, 0)
-      this.setState({
-        count: values.length,
-        size: FMDB.sizeOf(totalSize),
-        loadingStats: false,
-      })
+      try {
+        this.setState({ loadingStats: true })
+        const values = await fmdb.getAll()
+        const totalSize = values.reduce((t, v) => { t += v.byteLength; return t }, 0)
+        this.setState({
+          count: values.length,
+          size: FMDB.sizeOf(totalSize),
+          loadingStats: false,
+        })
+      } catch (err) {
+        console.error(`[${config.name}]`, err.message ?? err)
+      }
     }
 
     getSettingsPanel () {
@@ -1294,7 +1298,7 @@ module.exports = (Plugin, Library) => {
           this.setState({ loadingCache: true })
           MediaPicker.fetchMediasIntoDB().then((count) => {
             if (count > 0) this.loadStats()
-            showToast(plugin.instance.strings.cache.cacheAll.noMedia, { type: 'info' })
+            else showToast(plugin.instance.strings.cache.cacheAll.noMedia, { type: 'info' })
             this.setState({ loadingCache: false })
           })
         },
@@ -2509,8 +2513,12 @@ module.exports = (Plugin, Library) => {
           url: '/attachments/refresh-urls',
           body: { attachment_urls: chunkUrls },
           trackedActionData: {},
-        }).catch((err) => console.warn(`[${config.name}]`, 'Could not load medias:', chunkUrls, `(${err.message ?? err}):`))
-        if (response.ok) ret.push(...response.body.refreshed_urls)
+        }).catch((res) => {
+          let err
+          try { err = JSON.parse(res.text) } catch (error) { console.error(error) }
+          console.warn(`[${config.name}]`, 'Could not load medias:', chunkUrls, err)
+        })
+        if (response != null && response.ok) ret.push(...response.body.refreshed_urls)
 
         // to prevent rate-limit
         await wait(500)
