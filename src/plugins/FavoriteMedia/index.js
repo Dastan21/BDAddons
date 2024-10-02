@@ -1297,8 +1297,12 @@ module.exports = (Plugin, Library) => {
         onConfirm: () => {
           this.setState({ loadingCache: true })
           MediaPicker.fetchMediasIntoDB().then((count) => {
-            if (count > 0) this.loadStats()
-            else showToast(plugin.instance.strings.cache.cacheAll.noMedia, { type: 'info' })
+            if (count > 0) {
+              this.loadStats()
+              showToast(plugin.instance.strings.cache.cacheAll.success, { type: 'success' })
+            } else {
+              showToast(plugin.instance.strings.cache.cacheAll.noMedia, { type: 'info' })
+            }
             this.setState({ loadingCache: false })
           })
         },

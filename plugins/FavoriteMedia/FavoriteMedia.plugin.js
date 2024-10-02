@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.10.2
+ * @version 1.10.3
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -37,7 +37,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "1.10.2",
+    version: "1.10.3",
     description: "Allows to favorite GIFs, images, videos, audios and files.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -1675,8 +1675,12 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         onConfirm: () => {
           this.setState({ loadingCache: true })
           MediaPicker.fetchMediasIntoDB().then((count) => {
-            if (count > 0) this.loadStats()
-            else showToast(plugin.instance.strings.cache.cacheAll.noMedia, { type: 'info' })
+            if (count > 0) {
+              this.loadStats()
+              showToast(plugin.instance.strings.cache.cacheAll.success, { type: 'success' })
+            } else {
+              showToast(plugin.instance.strings.cache.cacheAll.noMedia, { type: 'info' })
+            }
             this.setState({ loadingCache: false })
           })
         },
