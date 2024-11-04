@@ -3428,7 +3428,7 @@ module.exports = (Plugin, Library) => {
           else if (props.target.parentElement.firstElementChild.tagName === 'VIDEO') type = 'video'
           else if (props.target.closest('[class*="wrapperAudio_"]')) {
             type = 'audio'
-            props.target = props.target.closest('[class*="attachment_"]')
+            props.target = props.target.closest('[class*="wrapperAudio_"]')
           } else if (props.target.closest('[class*="attachment_"]')) {
             type = 'file'
             props.target = props.target.closest('[class*="attachment_"]')

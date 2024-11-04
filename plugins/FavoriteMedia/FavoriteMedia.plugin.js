@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.10.3
+ * @version 1.10.4
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -37,7 +37,7 @@ const config = {
     author: "Dastan",
     authorId: "310450863845933057",
     authorLink: "",
-    version: "1.10.3",
+    version: "1.10.4",
     description: "Allows to favorite GIFs, images, videos, audios and files.",
     website: "",
     source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
@@ -3806,7 +3806,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           else if (props.target.parentElement.firstElementChild.tagName === 'VIDEO') type = 'video'
           else if (props.target.closest('[class*="wrapperAudio_"]')) {
             type = 'audio'
-            props.target = props.target.closest('[class*="attachment_"]')
+            props.target = props.target.closest('[class*="wrapperAudio_"]')
           } else if (props.target.closest('[class*="attachment_"]')) {
             type = 'file'
             props.target = props.target.closest('[class*="attachment_"]')
