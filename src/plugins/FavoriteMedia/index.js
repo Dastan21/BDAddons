@@ -21,7 +21,6 @@ module.exports = (Plugin, Library) => {
       SelectedChannelStore,
       ChannelStore,
       Permissions,
-      Strings,
     }, Patcher,
   } = Library
   const { mkdir, lstat, readFileSync, writeFileSync } = require('fs')
@@ -634,7 +633,7 @@ module.exports = (Plugin, Library) => {
     }
 
     componentDidMount () {
-      this.tooltipFav = createTooltip(this.refs.tooltipFav, this.isFavorited ? Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES, { style: 'primary' })
+      this.tooltipFav = createTooltip(this.refs.tooltipFav, this.isFavorited ? 'Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES' : 'Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES', { style: 'primary' })
       Dispatcher.subscribe('FM_FAVORITE_MEDIA', this.updateFavorite)
     }
 
@@ -673,7 +672,7 @@ module.exports = (Plugin, Library) => {
       if (!MediaFavButton.checkSameUrl(data.url, this.props.url)) return
       const fav = this.isFavorited
       this.setState({ favorited: fav })
-      this.tooltipFav.label = fav ? Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES
+      this.tooltipFav.label = fav ? 'Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES' : 'Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES'
     }
 
     async changeFavorite () {
@@ -682,7 +681,7 @@ module.exports = (Plugin, Library) => {
         if (!props.fromPicker) this.setState({ favorited: this.isFavorited })
         Dispatcher.dispatch({ type: 'FM_FAVORITE_MEDIA', url: props.url })
         if (props.fromPicker) return
-        this.tooltipFav.label = this.state.favorited ? Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES : Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES
+        this.tooltipFav.label = this.state.favorited ? 'Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES' : 'Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES'
         this.tooltipFav.hide()
         this.tooltipFav.show()
         this.setState({ pulse: true })
@@ -908,7 +907,7 @@ module.exports = (Plugin, Library) => {
       ),
       React.createElement('div', {
         className: classes.result.emptyHintText,
-      }, this.props.type === 'gif' ? Strings.Messages.NO_GIF_FAVORITES_HOW_TO_FAVORITE : plugin.instance.strings.media.emptyHint[this.props.type])
+      }, this.props.type === 'gif' ? 'Strings.Messages.NO_GIF_FAVORITES_HOW_TO_FAVORITE' : plugin.instance.strings.media.emptyHint[this.props.type])
       )
       ),
       React.createElement('div', {
@@ -2092,7 +2091,7 @@ module.exports = (Plugin, Library) => {
           modalRef: ref => { modal = ref },
         }),
         {
-          confirmText: op === 'create' ? plugin.instance.strings.create : Strings.Messages.EDIT,
+          confirmText: op === 'create' ? plugin.instance.strings.create : 'Strings.Messages.EDIT',
           onConfirm: () => {
             let res = false
             if (op === 'create') res = createCategory(type, modal.getValues(), categoryId)
@@ -2360,13 +2359,13 @@ module.exports = (Plugin, Library) => {
         render: () => React.createElement(MediaMenuItemInput, { id: mediaId, type: this.props.type, loadMedias: this.loadMedias }),
       }, {
         id: 'media-copy-url',
-        label: Strings.Messages.COPY_MEDIA_LINK,
+        label: 'Strings.Messages.COPY_MEDIA_LINK',
         action: () => ElectronModule.copy(media.url),
       }]
       if (media.message != null) {
         items.push({
           id: 'media-copy-message',
-          label: Strings.Messages.COPY_MESSAGE_LINK,
+          label: 'Strings.Messages.COPY_MESSAGE_LINK',
           action: () => ElectronModule.copy(media.message ?? ''),
         })
       }
@@ -2379,7 +2378,7 @@ module.exports = (Plugin, Library) => {
       }
       items.push({
         id: 'media-send-title',
-        label: Strings.Messages.USER_POPOUT_MESSAGE,
+        label: 'Strings.Messages.USER_POPOUT_MESSAGE',
         action: (e) => this.sendMedia(e, mediaId),
       }, {
         id: 'media-upload-title',
@@ -2396,7 +2395,7 @@ module.exports = (Plugin, Library) => {
         }],
       }, {
         id: 'media-download',
-        label: Strings.Messages.DOWNLOAD,
+        label: 'Strings.Messages.DOWNLOAD',
         action: () => MediaPicker.downloadMedia(media, this.props.type),
       })
       const itemsCategories = this.categoriesItems(media)
@@ -3464,7 +3463,7 @@ module.exports = (Plugin, Library) => {
           data.favorited = this.isFavorited(data.type, data.url)
           const menuItems = [{
             id: `media-${data.favorited ? 'un' : ''}favorite`,
-            label: data.favorited ? Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES : Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES,
+            label: data.favorited ? 'Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES' : 'Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES',
             icon: () => React.createElement(StarSVG, { filled: !data.favorited }),
             action: async () => {
               const switchFavorite = data.favorited ? MediaFavButton.unfavoriteMedia : MediaFavButton.favoriteMedia
@@ -3477,13 +3476,13 @@ module.exports = (Plugin, Library) => {
           }]
           menuItems.push({
             id: 'media-copy-url',
-            label: Strings.Messages.COPY_MEDIA_LINK,
+            label: 'Strings.Messages.COPY_MEDIA_LINK',
             action: () => ElectronModule.copy(data.url),
           })
           if (data.message != null) {
             menuItems.push({
               id: 'media-copy-message',
-              label: Strings.Messages.COPY_MESSAGE_LINK,
+              label: 'Strings.Messages.COPY_MESSAGE_LINK',
               action: () => ElectronModule.copy(data.message ?? ''),
             })
           }
@@ -3496,7 +3495,7 @@ module.exports = (Plugin, Library) => {
           }
           menuItems.push({
             id: 'media-download',
-            label: Strings.Messages.DOWNLOAD,
+            label: 'Strings.Messages.DOWNLOAD',
             action: () => {
               const media = { url: data.url, name: getUrlName(data.url) }
               MediaPicker.downloadMedia(media, data.type)
@@ -3572,7 +3571,7 @@ module.exports = (Plugin, Library) => {
               type: 'submenu',
               items: mediaTypes.map((type) => ({
                 id: `category-create-${type}`,
-                label: type === 'gif' ? Strings.Messages.GIF : plugin.instance.strings.tabName[type],
+                label: type === 'gif' ? 'Strings.Messages.GIF' : plugin.instance.strings.tabName[type],
                 type: 'submenu',
                 items: (() => {
                   const items = [{
