@@ -200,6 +200,7 @@ module.exports = (Plugin, Library) => {
   const MessagesManager = Webpack.getModule(Webpack.Filters.byProps('sendMessage'))
   const PageControl = Webpack.getModule(m => typeof m === 'function' && m.toString()?.includes('totalCount'), { searchExports: true })
   const DiscordComponents = Webpack.getByKeys('Button', 'Card', 'Modal')
+  const DiscordIntl = Webpack.getModule(m => m.intl)
 
   const DEFAULT_BACKGROUND_COLOR = '#202225'
   const ImageSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 384 384', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M341.333,0H42.667C19.093,0,0,19.093,0,42.667v298.667C0,364.907,19.093,384,42.667,384h298.667 C364.907,384,384,364.907,384,341.333V42.667C384,19.093,364.907,0,341.333,0z M42.667,320l74.667-96l53.333,64.107L245.333,192l96,128H42.667z' }))
@@ -216,10 +217,22 @@ module.exports = (Plugin, Library) => {
 
   const RestAPI = Webpack.getModules(m => Object.keys(m).some(key => Object.prototype.hasOwnProperty.call(m[key] ?? {}, 'post')))?.slice(-1)?.[0]?.Z
 
+  const intlCodeToHash = {
+    GIF_TOOLTIP_ADD_TO_FAVORITES: '4wcdEx',
+    GIF_TOOLTIP_REMOVE_FROM_FAVORITES: '4VpUw8',
+    NO_GIF_FAVORITES_HOW_TO_FAVORITE: '3gyw4e',
+    EDIT: 'bt75u7',
+    GIF: 'I5gL2N',
+    DOWNLOAD: '1WjMbG',
+    USER_POPOUT_MESSAGE: 'GuUH7+',
+    COPY_MEDIA_LINK: '92CPQ0',
+    COPY_MESSAGE_LINK: 'Xrt5Pj',
+  }
   const allTypes = ['image', 'video', 'audio', 'file']
   const mediasCache = {}
 
   function getMediaFromCache (key) {
+    if (!plugin.instance.settings.allowCaching) return key
     return mediasCache[key] ?? key
   }
 
@@ -393,6 +406,10 @@ module.exports = (Plugin, Library) => {
         $img.src = src
       }
     })
+  }
+
+  function getDiscordIntl (key) {
+    return DiscordIntl?.intl?.format(DiscordIntl.t[intlCodeToHash[key]]) ?? key
   }
 
   function loadModules () {
@@ -633,7 +650,7 @@ module.exports = (Plugin, Library) => {
     }
 
     componentDidMount () {
-      this.tooltipFav = createTooltip(this.refs.tooltipFav, this.isFavorited ? 'Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES' : 'Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES', { style: 'primary' })
+      this.tooltipFav = createTooltip(this.refs.tooltipFav, this.isFavorited ? getDiscordIntl('GIF_TOOLTIP_REMOVE_FROM_FAVORITES') : getDiscordIntl('GIF_TOOLTIP_ADD_TO_FAVORITES'), { style: 'primary' })
       Dispatcher.subscribe('FM_FAVORITE_MEDIA', this.updateFavorite)
     }
 
@@ -672,7 +689,7 @@ module.exports = (Plugin, Library) => {
       if (!MediaFavButton.checkSameUrl(data.url, this.props.url)) return
       const fav = this.isFavorited
       this.setState({ favorited: fav })
-      this.tooltipFav.label = fav ? 'Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES' : 'Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES'
+      this.tooltipFav.label = fav ? getDiscordIntl('GIF_TOOLTIP_REMOVE_FROM_FAVORITES') : getDiscordIntl('GIF_TOOLTIP_ADD_TO_FAVORITES')
     }
 
     async changeFavorite () {
@@ -681,7 +698,7 @@ module.exports = (Plugin, Library) => {
         if (!props.fromPicker) this.setState({ favorited: this.isFavorited })
         Dispatcher.dispatch({ type: 'FM_FAVORITE_MEDIA', url: props.url })
         if (props.fromPicker) return
-        this.tooltipFav.label = this.state.favorited ? 'Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES' : 'Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES'
+        this.tooltipFav.label = this.state.favorited ? getDiscordIntl('GIF_TOOLTIP_ADD_TO_FAVORITES') : getDiscordIntl('GIF_TOOLTIP_REMOVE_FROM_FAVORITES')
         this.tooltipFav.hide()
         this.tooltipFav.show()
         this.setState({ pulse: true })
@@ -907,7 +924,7 @@ module.exports = (Plugin, Library) => {
       ),
       React.createElement('div', {
         className: classes.result.emptyHintText,
-      }, this.props.type === 'gif' ? 'Strings.Messages.NO_GIF_FAVORITES_HOW_TO_FAVORITE' : plugin.instance.strings.media.emptyHint[this.props.type])
+      }, this.props.type === 'gif' ? getDiscordIntl('NO_GIF_FAVORITES_HOW_TO_FAVORITE') : plugin.instance.strings.media.emptyHint[this.props.type])
       )
       ),
       React.createElement('div', {
@@ -1533,6 +1550,8 @@ module.exports = (Plugin, Library) => {
     async onError () {
       console.warn(`[${config.name}]`, 'Could not load media:', this.state.src, this.thumbnail)
 
+      if (!plugin.instance.settings.allowCaching) return
+
       const key = this.thumbnail
       const media = await fmdb.get(key)
       if (media == null) {
@@ -1743,6 +1762,9 @@ module.exports = (Plugin, Library) => {
       if (e.target.tagName !== 'IMG' || mediasCache[this.src] != null) return
 
       console.warn(`[${config.name}]`, 'Could not load media:', this.src)
+
+      if (!plugin.instance.settings.allowCaching) return
+
       const key = this.src
       const media = await fmdb.get(key)
       if (media == null) return
@@ -2091,7 +2113,7 @@ module.exports = (Plugin, Library) => {
           modalRef: ref => { modal = ref },
         }),
         {
-          confirmText: op === 'create' ? plugin.instance.strings.create : 'Strings.Messages.EDIT',
+          confirmText: op === 'create' ? plugin.instance.strings.create : getDiscordIntl('EDIT'),
           onConfirm: () => {
             let res = false
             if (op === 'create') res = createCategory(type, modal.getValues(), categoryId)
@@ -2195,6 +2217,14 @@ module.exports = (Plugin, Library) => {
           action: () => MediaPicker.downloadCategory({ type: this.props.type, name: this.state.category?.name, categoryId: this.state.category?.id }),
         },
       ]
+
+      if (!plugin.instance.settings.allowCaching && this.state.category == null && this.props.type !== 'gif') {
+        items.push({
+          id: 'media-refresh-urls',
+          label: plugin.instance.strings.category.refreshUrls,
+          action: () => MediaPicker.refreshMediasUrls(this.props.type, this.state.medias, this.state.categories),
+        })
+      }
 
       ContextMenu.openContextMenu(e,
         ContextMenu.buildMenu([{
@@ -2359,13 +2389,13 @@ module.exports = (Plugin, Library) => {
         render: () => React.createElement(MediaMenuItemInput, { id: mediaId, type: this.props.type, loadMedias: this.loadMedias }),
       }, {
         id: 'media-copy-url',
-        label: 'Strings.Messages.COPY_MEDIA_LINK',
+        label: getDiscordIntl('COPY_MEDIA_LINK'),
         action: () => ElectronModule.copy(media.url),
       }]
       if (media.message != null) {
         items.push({
           id: 'media-copy-message',
-          label: 'Strings.Messages.COPY_MESSAGE_LINK',
+          label: getDiscordIntl('COPY_MESSAGE_LINK'),
           action: () => ElectronModule.copy(media.message ?? ''),
         })
       }
@@ -2378,7 +2408,7 @@ module.exports = (Plugin, Library) => {
       }
       items.push({
         id: 'media-send-title',
-        label: 'Strings.Messages.USER_POPOUT_MESSAGE',
+        label: getDiscordIntl('USER_POPOUT_MESSAGE'),
         action: (e) => this.sendMedia(e, mediaId),
       }, {
         id: 'media-upload-title',
@@ -2395,7 +2425,7 @@ module.exports = (Plugin, Library) => {
         }],
       }, {
         id: 'media-download',
-        label: 'Strings.Messages.DOWNLOAD',
+        label: getDiscordIntl('DOWNLOAD'),
         action: () => MediaPicker.downloadMedia(media, this.props.type),
       })
       const itemsCategories = this.categoriesItems(media)
@@ -2528,6 +2558,45 @@ module.exports = (Plugin, Library) => {
       }
 
       return ret
+    }
+
+    static async refreshMediasUrls (type, medias, categories) {
+      const urls = [
+        ...medias.map(m => m.url),
+        ...medias.filter(m => m.poster != null).map(m => m.poster),
+        ...medias.filter(m => m.src != null).map(m => m.src),
+        ...categories.filter(c => c.thumbnail != null).map(c => c.thumbnail),
+      ]
+      const refreshedUrls = await MediaPicker.refreshUrls(urls)
+      const typeData = Utilities.loadData(config.name, type, { categories: [], medias: [] })
+      for (const refreshedUrl of refreshedUrls) {
+        const newUrl = refreshedUrl.refreshed ?? refreshedUrl.original
+
+        // Medias
+        const media = typeData.medias.find((m) => m.url?.includes(refreshedUrl.original))
+        if (media != null) media.url = newUrl
+
+        if (type === 'video') {
+          const mediaVideo = typeData.medias.find((m) => m.poster?.includes(refreshedUrl.original))
+          if (mediaVideo != null) mediaVideo.poster = newUrl
+        }
+
+        if (type === 'gif') {
+          const mediaGif = typeData.medias.find((m) => m.src?.includes(refreshedUrl.original))
+          if (mediaGif != null) mediaGif.src = newUrl
+        }
+
+        // Categories
+        const category = typeData.medias.find((c) => c.thumbnail?.includes(refreshedUrl.original))
+        if (category != null) category.thumbnail = newUrl
+      }
+
+      Utilities.saveData(config.name, type, typeData)
+
+      if (refreshedUrls.length > 0) {
+        showToast(plugin.instance.strings.category.success.refreshUrls, { type: 'success' })
+        EPS.closeExpressionPicker()
+      }
     }
 
     render () {
@@ -3463,7 +3532,7 @@ module.exports = (Plugin, Library) => {
           data.favorited = this.isFavorited(data.type, data.url)
           const menuItems = [{
             id: `media-${data.favorited ? 'un' : ''}favorite`,
-            label: data.favorited ? 'Strings.Messages.GIF_TOOLTIP_REMOVE_FROM_FAVORITES' : 'Strings.Messages.GIF_TOOLTIP_ADD_TO_FAVORITES',
+            label: data.favorited ? getDiscordIntl('GIF_TOOLTIP_REMOVE_FROM_FAVORITES') : getDiscordIntl('GIF_TOOLTIP_ADD_TO_FAVORITES'),
             icon: () => React.createElement(StarSVG, { filled: !data.favorited }),
             action: async () => {
               const switchFavorite = data.favorited ? MediaFavButton.unfavoriteMedia : MediaFavButton.favoriteMedia
@@ -3476,13 +3545,13 @@ module.exports = (Plugin, Library) => {
           }]
           menuItems.push({
             id: 'media-copy-url',
-            label: 'Strings.Messages.COPY_MEDIA_LINK',
+            label: getDiscordIntl('COPY_MEDIA_LINK'),
             action: () => ElectronModule.copy(data.url),
           })
           if (data.message != null) {
             menuItems.push({
               id: 'media-copy-message',
-              label: 'Strings.Messages.COPY_MESSAGE_LINK',
+              label: getDiscordIntl('COPY_MESSAGE_LINK'),
               action: () => ElectronModule.copy(data.message ?? ''),
             })
           }
@@ -3495,7 +3564,7 @@ module.exports = (Plugin, Library) => {
           }
           menuItems.push({
             id: 'media-download',
-            label: 'Strings.Messages.DOWNLOAD',
+            label: getDiscordIntl('DOWNLOAD'),
             action: () => {
               const media = { url: data.url, name: getUrlName(data.url) }
               MediaPicker.downloadMedia(media, data.type)
@@ -3571,7 +3640,7 @@ module.exports = (Plugin, Library) => {
               type: 'submenu',
               items: mediaTypes.map((type) => ({
                 id: `category-create-${type}`,
-                label: type === 'gif' ? 'Strings.Messages.GIF' : plugin.instance.strings.tabName[type],
+                label: type === 'gif' ? getDiscordIntl('GIF') : plugin.instance.strings.tabName[type],
                 type: 'submenu',
                 items: (() => {
                   const items = [{
@@ -3663,12 +3732,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Изтриване на категорията',
           deleteConfirm: 'Тази категория съдържа подкатегории. Всички те ще бъдат изтрити. Сигурни ли сте, че искате да изтриете категории?',
           download: 'Изтеглете мултимедия',
+          refreshUrls: 'Опресняване на URL адресите',
           placeholder: 'Име на категория',
           move: 'Ход',
           moveNext: 'След',
           movePrevious: 'Преди',
           color: 'Цвят',
           copyColor: 'Копиране на цвят',
+          setThumbnail: 'Задайте като миниатюра',
+          unsetThumbnail: 'Премахване на миниатюра',
           error: {
             needName: 'Името не може да бъде празно',
             invalidNameLength: 'Името трябва да съдържа максимум 20 знака',
@@ -3683,6 +3755,9 @@ module.exports = (Plugin, Library) => {
             edit: 'Категорията е променена!',
             move: 'Категорията е преместена!',
             download: 'Медиите са качени!',
+            setThumbnail: 'Комплект миниатюри за категория!',
+            unsetThumbnail: 'Премахната миниатюра за категорията!',
+            refreshUrls: 'URL адресите са обновени!',
           },
           emptyHint: 'Щракнете с десния бутон, за да създадете категория!',
         },
@@ -3934,6 +4009,7 @@ module.exports = (Plugin, Library) => {
           delete: 'Smazat kategorii',
           deleteConfirm: 'Tato kategorie obsahuje podkategorie. Všechny budou smazány. Opravdu chcete smazat kategorie?',
           download: 'Stáhněte si média',
+          refreshUrls: 'Obnovit adresy URL',
           placeholder: 'Název Kategorie',
           move: 'Hýbat se',
           moveNext: 'Po',
@@ -3958,6 +4034,7 @@ module.exports = (Plugin, Library) => {
             download: 'Média byla nahrána!',
             setThumbnail: 'Sada náhledů pro kategorii!',
             unsetThumbnail: 'Miniatura kategorie odstraněna!',
+            refreshUrls: 'Adresy URL byly aktualizovány!',
           },
           emptyHint: 'Kliknutím pravým tlačítkem vytvoříte kategorii!',
         },
@@ -4209,12 +4286,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Slet kategori',
           deleteConfirm: 'Denne kategori indeholder underkategorier. De vil alle blive slettet. Er du sikker på, at du vil slette kategorier?',
           download: 'Download medier',
+          refreshUrls: 'Opdater URL\'er',
           placeholder: 'Kategorinavn',
           move: 'Bevæge sig',
           moveNext: 'Efter',
           movePrevious: 'Før',
           color: 'Farve',
           copyColor: 'Kopier farve',
+          setThumbnail: 'Indstil som thumbnail',
+          unsetThumbnail: 'Fjern thumbnail',
           error: {
             needName: 'Navnet kan ikke være tomt',
             invalidNameLength: 'Navnet skal maksimalt indeholde 20 tegn',
@@ -4229,6 +4309,9 @@ module.exports = (Plugin, Library) => {
             edit: 'Kategorien er blevet ændret!',
             move: 'Kategorien er flyttet!',
             download: 'Medierne er blevet uploadet!',
+            setThumbnail: 'Miniature sæt for kategori!',
+            unsetThumbnail: 'Thumbnail fjernet for kategorien!',
+            refreshUrls: 'URL\'er opdateret!',
           },
           emptyHint: 'Højreklik for at oprette en kategori!',
         },
@@ -4480,12 +4563,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Kategorie löschen',
           deleteConfirm: 'Diese Kategorie enthält Unterkategorien. Sie werden alle gelöscht. Möchten Sie Kategorien wirklich löschen?',
           download: 'Medien herunterladen',
+          refreshUrls: 'URLs aktualisieren',
           placeholder: 'Kategoriename',
           move: 'Bewegung',
           moveNext: 'Nach dem',
           movePrevious: 'Vor',
           color: 'Farbe',
           copyColor: 'Farbe kopieren',
+          setThumbnail: 'Als Miniaturansicht festlegen',
+          unsetThumbnail: 'Miniaturansicht entfernen',
           error: {
             needName: 'Name darf nicht leer sein',
             invalidNameLength: 'Der Name darf maximal 20 Zeichen lang sein',
@@ -4500,6 +4586,9 @@ module.exports = (Plugin, Library) => {
             edit: 'Die Kategorie wurde geändert!',
             move: 'Die Kategorie wurde verschoben!',
             download: 'Die Medien wurden hochgeladen!',
+            setThumbnail: 'Miniaturansichten für die Kategorie festgelegt!',
+            unsetThumbnail: 'Miniaturansicht für die Kategorie entfernt!',
+            refreshUrls: 'URLs aktualisiert!',
           },
           emptyHint: 'Rechtsklick um eine Kategorie zu erstellen!',
         },
@@ -4751,12 +4840,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Διαγραφή κατηγορίας',
           deleteConfirm: 'Αυτή η κατηγορία περιέχει υποκατηγορίες. Θα διαγραφούν όλα. Είστε βέβαιοι ότι θέλετε να διαγράψετε κατηγορίες;',
           download: 'Λήψη μέσων',
+          refreshUrls: 'Ανανέωση διευθύνσεων URL',
           placeholder: 'Ονομα κατηγορίας',
           move: 'Κίνηση',
           moveNext: 'Μετά',
           movePrevious: 'Πριν',
           color: 'Χρώμα',
           copyColor: 'Αντιγραφή χρώματος',
+          setThumbnail: 'Ορισμός ως μικρογραφία',
+          unsetThumbnail: 'Αφαιρέστε τη μικρογραφία',
           error: {
             needName: 'Το όνομα δεν μπορεί να είναι κενό',
             invalidNameLength: 'Το όνομα πρέπει να περιέχει έως και 20 χαρακτήρες',
@@ -4771,6 +4863,9 @@ module.exports = (Plugin, Library) => {
             edit: 'Η κατηγορία άλλαξε!',
             move: 'Η κατηγορία έχει μετακινηθεί!',
             download: 'Τα μέσα έχουν ανέβει!',
+            setThumbnail: 'Σετ μικρογραφιών για την κατηγορία!',
+            unsetThumbnail: 'Η μικρογραφία καταργήθηκε για την κατηγορία!',
+            refreshUrls: 'Οι διευθύνσεις URL ανανεώθηκαν!',
           },
           emptyHint: 'Κάντε δεξί κλικ για να δημιουργήσετε μια κατηγορία!',
         },
@@ -5022,6 +5117,7 @@ module.exports = (Plugin, Library) => {
           delete: 'Delete Category',
           deleteConfirm: 'This category contains sub-categories. They will all get deleted. Are you sure you want to delete the categories?',
           download: 'Download Medias',
+          refreshUrls: 'Refresh urls',
           placeholder: 'Category Name',
           move: 'Move',
           moveNext: 'Next',
@@ -5046,6 +5142,7 @@ module.exports = (Plugin, Library) => {
             download: 'Medias downloaded!',
             setThumbnail: 'Category thumbnail set!',
             unsetThumbnail: 'Category thumbnail unset!',
+            refreshUrls: 'Urls refreshed!',
           },
           emptyHint: 'Right-click to create a category!',
         },
@@ -5171,12 +5268,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Eliminar categoría',
           deleteConfirm: 'Esta categoría contiene subcategorías. Todos serán eliminados. ¿Seguro que quieres eliminar categorías?',
           download: 'Descargar medios',
+          refreshUrls: 'Actualizar URL',
           placeholder: 'Nombre de la categoría',
           move: 'Moverse',
           moveNext: 'Después',
           movePrevious: 'Antes',
           color: 'Color',
           copyColor: 'Copiar color',
+          setThumbnail: 'Establecer como miniatura',
+          unsetThumbnail: 'Quitar miniatura',
           error: {
             needName: 'El nombre no puede estar vacío',
             invalidNameLength: 'El nombre debe contener un máximo de 20 caracteres.',
@@ -5191,6 +5291,9 @@ module.exports = (Plugin, Library) => {
             edit: '¡La categoría ha sido cambiada!',
             move: '¡La categoría ha sido movida!',
             download: '¡Los medios han sido cargados!',
+            setThumbnail: '¡Miniaturas configuradas para categoría!',
+            unsetThumbnail: '¡Miniatura eliminada para la categoría!',
+            refreshUrls: '¡URL actualizadas!',
           },
           emptyHint: '¡Haz clic derecho para crear una categoría!',
         },
@@ -5442,12 +5545,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Poista luokka',
           deleteConfirm: 'Tämä luokka sisältää alaluokkia. Ne kaikki poistetaan. Haluatko varmasti poistaa luokkia?',
           download: 'Lataa media',
+          refreshUrls: 'Päivitä URL-osoitteet',
           placeholder: 'Kategorian nimi',
           move: 'Liikkua',
           moveNext: 'Jälkeen',
           movePrevious: 'Ennen',
           color: 'Väri',
           copyColor: 'Kopioi väri',
+          setThumbnail: 'Aseta pikkukuvaksi',
+          unsetThumbnail: 'Poista pikkukuva',
           error: {
             needName: 'Nimi ei voi olla tyhjä',
             invalidNameLength: 'Nimi saa sisältää enintään 20 merkkiä',
@@ -5462,6 +5568,9 @@ module.exports = (Plugin, Library) => {
             edit: 'Luokkaa on muutettu!',
             move: 'Luokka on siirretty!',
             download: 'Media on ladattu!',
+            setThumbnail: 'Pikkukuva asetettu kategoriaan!',
+            unsetThumbnail: 'Luokan pikkukuva poistettu!',
+            refreshUrls: 'URL-osoitteet päivitetty!',
           },
           emptyHint: 'Napsauta hiiren kakkospainikkeella luodaksesi luokan!',
         },
@@ -5713,6 +5822,7 @@ module.exports = (Plugin, Library) => {
           delete: 'Supprimer la catégorie',
           deleteConfirm: 'Cette catégorie contient des sous-catégories. Elles vont toutes être supprimées. Voulez-vous vraiment supprimer les catégories ?',
           download: 'Télécharger les médias',
+          refreshUrls: 'Rafraîchir les liens',
           placeholder: 'Nom de la catégorie',
           move: 'Déplacer',
           moveNext: 'Après',
@@ -5737,6 +5847,7 @@ module.exports = (Plugin, Library) => {
             download: 'Les médias ont été téléchargés !',
             setThumbnail: 'Miniature définie pour la catégorie !',
             unsetThumbnail: 'Miniature retirée pour la catégorie !',
+            refreshUrls: 'Les liens ont été rafraîchis !',
           },
           emptyHint: 'Fais un clique-droit pour créer une catégorie !',
         },
@@ -5988,6 +6099,7 @@ module.exports = (Plugin, Library) => {
           delete: 'श्रेणी हटाएँ',
           deleteConfirm: 'इस श्रेणी में उपश्रेणियाँ शामिल हैं। वे सभी हटा दिए जाएंगे. क्या आप वाकई श्रेणियां हटाना चाहते हैं?',
           download: 'मीडिया डाउनलोड करें',
+          refreshUrls: 'यूआरएल ताज़ा करें',
           placeholder: 'श्रेणी नाम',
           move: 'कदम',
           moveNext: 'बाद',
@@ -6012,6 +6124,7 @@ module.exports = (Plugin, Library) => {
             download: 'मीडिया अपलोड कर दिया गया है!',
             setThumbnail: 'श्रेणी के लिए थंबनेल सेट!',
             unsetThumbnail: 'श्रेणी के लिए थंबनेल हटा दिया गया!',
+            refreshUrls: 'यूआरएल ताज़ा!',
           },
           emptyHint: 'श्रेणी बनाने के लिए राइट-क्लिक करें!',
         },
@@ -6263,12 +6376,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Izbriši kategoriju',
           deleteConfirm: 'Ova kategorija sadrži potkategorije. Svi će biti izbrisani. Jeste li sigurni da želite izbrisati kategorije?',
           download: 'Preuzmite medije',
+          refreshUrls: 'Osvježi URL-ove',
           placeholder: 'Ime kategorije',
           move: 'Potez',
           moveNext: 'Nakon',
           movePrevious: 'Prije',
           color: 'Boja',
           copyColor: 'Kopiraj u boji',
+          setThumbnail: 'Postavi kao sličicu',
+          unsetThumbnail: 'Ukloni sličicu',
           error: {
             needName: 'Ime ne može biti prazno',
             invalidNameLength: 'Ime mora sadržavati najviše 20 znakova',
@@ -6283,6 +6399,9 @@ module.exports = (Plugin, Library) => {
             edit: 'Izmijenjena je kategorija!',
             move: 'Kategorija je premještena!',
             download: 'Mediji su učitani!',
+            setThumbnail: 'Postavljena sličica za kategoriju!',
+            unsetThumbnail: 'Sličica uklonjena za kategoriju!',
+            refreshUrls: 'URL-ovi osvježeni!',
           },
           emptyHint: 'Desni klik za stvaranje kategorije!',
         },
@@ -6534,12 +6653,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Kategória törlése',
           deleteConfirm: 'Ez a kategória alkategóriákat tartalmaz. Mindegyik törlődik. Biztosan törölni szeretné a kategóriákat?',
           download: 'Média letöltése',
+          refreshUrls: 'URL-ek frissítése',
           placeholder: 'Kategória név',
           move: 'Mozog',
           moveNext: 'Utána',
           movePrevious: 'Előtt',
           color: 'Szín',
           copyColor: 'Szín másolása',
+          setThumbnail: 'Beállítás indexképként',
+          unsetThumbnail: 'Indexkép eltávolítása',
           error: {
             needName: 'A név nem lehet üres',
             invalidNameLength: 'A név legfeljebb 20 karakterből állhat',
@@ -6554,6 +6676,9 @@ module.exports = (Plugin, Library) => {
             edit: 'A kategória megváltozott!',
             move: 'A kategória áthelyezve!',
             download: 'A média feltöltve!',
+            setThumbnail: 'Miniatűr készlet a kategóriához!',
+            unsetThumbnail: 'A kategória miniatűrje eltávolítva!',
+            refreshUrls: 'Az URL-ek frissítve!',
           },
           emptyHint: 'Kattintson jobb gombbal a kategória létrehozásához!',
         },
@@ -6805,12 +6930,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Elimina categoria',
           deleteConfirm: 'Questa categoria contiene sottocategorie. Saranno tutti cancellati. Sei sicuro di voler eliminare le categorie?',
           download: 'Scarica file multimediali',
+          refreshUrls: 'Aggiorna URL',
           placeholder: 'Nome della categoria',
           move: 'Spostare',
           moveNext: 'Dopo',
           movePrevious: 'Prima',
           color: 'Colore',
           copyColor: 'Copia colore',
+          setThumbnail: 'Imposta come miniatura',
+          unsetThumbnail: 'Rimuovi la miniatura',
           error: {
             needName: 'Il nome non può essere vuoto',
             invalidNameLength: 'Il nome deve contenere un massimo di 20 caratteri',
@@ -6825,6 +6953,9 @@ module.exports = (Plugin, Library) => {
             edit: 'La categoria è stata cambiata!',
             move: 'La categoria è stata spostata!',
             download: 'Il supporto è stato caricato!',
+            setThumbnail: 'Set di miniature per categoria!',
+            unsetThumbnail: 'Miniatura rimossa per la categoria!',
+            refreshUrls: 'URL aggiornati!',
           },
           emptyHint: 'Fare clic con il tasto destro per creare una categoria!',
         },
@@ -7076,12 +7207,15 @@ module.exports = (Plugin, Library) => {
           delete: 'カテゴリを削除',
           deleteConfirm: 'このカテゴリにはサブカテゴリが含まれています。 それらはすべて削除されます。 カテゴリを削除してもよろしいですか?',
           download: 'メディアをダウンロード',
+          refreshUrls: 'URLを更新する',
           placeholder: '種別名',
           move: '移動',
           moveNext: '後',
           movePrevious: '前',
           color: '色',
           copyColor: 'コピーカラー',
+          setThumbnail: 'サムネイルとして設定',
+          unsetThumbnail: 'サムネイルを削除する',
           error: {
             needName: '名前を空にすることはできません',
             invalidNameLength: '名前には最大20文字を含める必要があります',
@@ -7096,6 +7230,9 @@ module.exports = (Plugin, Library) => {
             edit: 'カテゴリが変更されました！',
             move: 'カテゴリが移動しました！',
             download: 'メディアがアップしました！',
+            setThumbnail: 'カテゴリにサムネイルを設定しました！',
+            unsetThumbnail: 'カテゴリのサムネイルが削除されました。',
+            refreshUrls: 'URLが更新されました！',
           },
           emptyHint: '右クリックしてカテゴリを作成してください！',
         },
@@ -7347,12 +7484,15 @@ module.exports = (Plugin, Library) => {
           delete: '카테고리 삭제',
           deleteConfirm: '이 범주에는 하위 범주가 포함되어 있습니다. 모두 삭제됩니다. 카테고리를 삭제하시겠습니까?',
           download: '미디어 다운로드',
+          refreshUrls: 'URL 새로 고침',
           placeholder: '카테고리 이름',
           move: '움직임',
           moveNext: '후',
           movePrevious: '전에',
           color: '색깔',
           copyColor: '색상 복사',
+          setThumbnail: '썸네일로 설정',
+          unsetThumbnail: '미리보기 이미지 삭제',
           error: {
             needName: '이름은 비워 둘 수 없습니다.',
             invalidNameLength: '이름은 최대 20 자 여야합니다.',
@@ -7367,6 +7507,9 @@ module.exports = (Plugin, Library) => {
             edit: '카테고리가 변경되었습니다!',
             move: '카테고리가 이동되었습니다!',
             download: '미디어가 업로드되었습니다!',
+            setThumbnail: '카테고리별 썸네일이 설정되었습니다!',
+            unsetThumbnail: '카테고리의 미리보기 이미지가 삭제되었습니다.',
+            refreshUrls: 'URL이 새로 고쳐졌습니다.',
           },
           emptyHint: '카테고리를 만들려면 마우스 오른쪽 버튼을 클릭하십시오!',
         },
@@ -7618,12 +7761,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Ištrinti kategoriją',
           deleteConfirm: 'Šioje kategorijoje yra subkategorijų. Jie visi bus ištrinti. Ar tikrai norite ištrinti kategorijas?',
           download: 'Parsisiųsti mediją',
+          refreshUrls: 'Atnaujinkite URL',
           placeholder: 'Kategorijos pavadinimas',
           move: 'Perkelti',
           moveNext: 'Po',
           movePrevious: 'Anksčiau',
           color: 'Spalva',
           copyColor: 'Kopijuoti spalvą',
+          setThumbnail: 'Nustatyti kaip miniatiūrą',
+          unsetThumbnail: 'Pašalinti miniatiūrą',
           error: {
             needName: 'Pavadinimas negali būti tuščias',
             invalidNameLength: 'Pavadinime gali būti ne daugiau kaip 20 simbolių',
@@ -7638,6 +7784,9 @@ module.exports = (Plugin, Library) => {
             edit: 'Kategorija pakeista!',
             move: 'Kategorija perkelta!',
             download: 'Žiniasklaida įkelta!',
+            setThumbnail: 'Miniatiūros nustatyta kategorijai!',
+            unsetThumbnail: 'Kategorijos miniatiūra pašalinta!',
+            refreshUrls: 'URL atnaujinti!',
           },
           emptyHint: 'Dešiniuoju pelės mygtuku spustelėkite norėdami sukurti kategoriją!',
         },
@@ -7889,12 +8038,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Categorie verwijderen',
           deleteConfirm: 'Deze categorie bevat subcategorieën. Ze worden allemaal verwijderd. Weet u zeker dat u categorieën wilt verwijderen?',
           download: 'Media downloaden',
+          refreshUrls: 'Vernieuw URL\'s',
           placeholder: 'Categorie naam',
           move: 'Verplaatsen, verschuiven',
           moveNext: 'Na',
           movePrevious: 'Voordat',
           color: 'Kleur',
           copyColor: 'Kopieer kleur',
+          setThumbnail: 'Instellen als miniatuur',
+          unsetThumbnail: 'Miniatuur verwijderen',
           error: {
             needName: 'Naam mag niet leeg zijn',
             invalidNameLength: 'De naam mag maximaal 20 tekens bevatten',
@@ -7909,6 +8061,9 @@ module.exports = (Plugin, Library) => {
             edit: 'De categorie is gewijzigd!',
             move: 'De categorie is verplaatst!',
             download: 'De media is geüpload!',
+            setThumbnail: 'Miniatuurset voor categorie!',
+            unsetThumbnail: 'Miniatuur verwijderd voor de categorie!',
+            refreshUrls: 'URL\'s vernieuwd!',
           },
           emptyHint: 'Klik met de rechtermuisknop om een categorie aan te maken!',
         },
@@ -8160,12 +8315,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Slett kategori',
           deleteConfirm: 'Denne kategorien inneholder underkategorier. De vil alle bli slettet. Er du sikker på at du vil slette kategorier?',
           download: 'Last ned media',
+          refreshUrls: 'Oppdater nettadresser',
           placeholder: 'Kategori navn',
           move: 'Bevege seg',
           moveNext: 'Etter',
           movePrevious: 'Før',
           color: 'Farge',
           copyColor: 'Kopier farge',
+          setThumbnail: 'Angi som miniatyrbilde',
+          unsetThumbnail: 'Fjern miniatyrbilde',
           error: {
             needName: 'Navnet kan ikke være tomt',
             invalidNameLength: 'Navnet må inneholde maksimalt 20 tegn',
@@ -8180,6 +8338,9 @@ module.exports = (Plugin, Library) => {
             edit: 'Kategorien er endret!',
             move: 'Kategorien er flyttet!',
             download: 'Mediene er lastet opp!',
+            setThumbnail: 'Miniatyrbildesett for kategori!',
+            unsetThumbnail: 'Miniatyrbilde fjernet for kategorien!',
+            refreshUrls: 'URL-er oppdatert!',
           },
           emptyHint: 'Høyreklikk for å opprette en kategori!',
         },
@@ -8431,12 +8592,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Usuń kategorię',
           deleteConfirm: 'Ta kategoria zawiera podkategorie. Wszystkie zostaną usunięte. Czy na pewno chcesz usunąć kategorie?',
           download: 'Pobierz multimedia',
+          refreshUrls: 'Odśwież adresy URL',
           placeholder: 'Nazwa Kategorii',
           move: 'Ruszaj się',
           moveNext: 'Po',
           movePrevious: 'Przed',
           color: 'Kolor',
           copyColor: 'Kopiuj kolor',
+          setThumbnail: 'Ustaw jako miniaturę',
+          unsetThumbnail: 'Usuń miniaturę',
           error: {
             needName: 'Nazwa nie może być pusta',
             invalidNameLength: 'Nazwa musi zawierać maksymalnie 20 znaków',
@@ -8451,6 +8615,9 @@ module.exports = (Plugin, Library) => {
             edit: 'Kategoria została zmieniona!',
             move: 'Kategoria została przeniesiona!',
             download: 'Media zostały przesłane!',
+            setThumbnail: 'Miniatura ustawiona dla kategorii!',
+            unsetThumbnail: 'Miniatura została usunięta dla kategorii!',
+            refreshUrls: 'Adresy URL zostały odświeżone!',
           },
           emptyHint: 'Kliknij prawym przyciskiem myszy, aby utworzyć kategorię!',
         },
@@ -8702,12 +8869,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Apagar categoria',
           deleteConfirm: 'Esta categoria contém subcategorias. Todos eles serão excluídos. Tem certeza de que deseja excluir as categorias?',
           download: 'Baixar mídia',
+          refreshUrls: 'Atualizar URLs',
           placeholder: 'Nome da Categoria',
           move: 'Mover',
           moveNext: 'Após',
           movePrevious: 'Antes',
           color: 'Cor',
           copyColor: 'Cor da cópia',
+          setThumbnail: 'Definir como miniatura',
+          unsetThumbnail: 'Remover miniatura',
           error: {
             needName: 'O nome não pode estar vazio',
             invalidNameLength: 'O nome deve conter no máximo 20 caracteres',
@@ -8722,6 +8892,9 @@ module.exports = (Plugin, Library) => {
             edit: 'A categoria foi alterada!',
             move: 'A categoria foi movida!',
             download: 'A mídia foi carregada!',
+            setThumbnail: 'Conjunto de miniaturas para categoria!',
+            unsetThumbnail: 'Miniatura removida da categoria!',
+            refreshUrls: 'URLs atualizados!',
           },
           emptyHint: 'Clique com o botão direito para criar uma categoria!',
         },
@@ -8973,12 +9146,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Ștergeți categoria',
           deleteConfirm: 'Această categorie conține subcategorii. Toate vor fi șterse. Sigur doriți să ștergeți categoriile?',
           download: 'Descărcați conținut media',
+          refreshUrls: 'Reîmprospătați adresele URL',
           placeholder: 'Numele categoriei',
           move: 'Mișcare',
           moveNext: 'După',
           movePrevious: 'Inainte de',
           color: 'Culoare',
           copyColor: 'Copiați culoarea',
+          setThumbnail: 'Setați ca miniatură',
+          unsetThumbnail: 'Eliminați miniatura',
           error: {
             needName: 'Numele nu poate fi gol',
             invalidNameLength: 'Numele trebuie să conțină maximum 20 de caractere',
@@ -8993,6 +9169,9 @@ module.exports = (Plugin, Library) => {
             edit: 'Categoria a fost schimbată!',
             move: 'Categoria a fost mutată!',
             download: 'Media a fost încărcată!',
+            setThumbnail: 'Set de miniaturi pentru categorie!',
+            unsetThumbnail: 'Miniatura eliminată pentru categorie!',
+            refreshUrls: 'Adresele URL au fost reîmprospătate!',
           },
           emptyHint: 'Faceți clic dreapta pentru a crea o categorie!',
         },
@@ -9244,12 +9423,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Удалить категорию',
           deleteConfirm: 'Эта категория содержит подкатегории. Все они будут удалены. Вы уверены, что хотите удалить категории?',
           download: 'Скачать медиа',
+          refreshUrls: 'Обновить URL-адреса',
           placeholder: 'Название категории',
           move: 'Двигаться',
           moveNext: 'После',
           movePrevious: 'Перед',
           color: 'Цвет',
           copyColor: 'Цвет копии',
+          setThumbnail: 'Установить как миниатюру',
+          unsetThumbnail: 'Удалить миниатюру',
           error: {
             needName: 'Имя не может быть пустым',
             invalidNameLength: 'Имя должно содержать не более 20 символов.',
@@ -9264,6 +9446,9 @@ module.exports = (Plugin, Library) => {
             edit: 'Категория изменена!',
             move: 'Категория перемещена!',
             download: 'Медиа загружена!',
+            setThumbnail: 'Набор миниатюр для категории!',
+            unsetThumbnail: 'Миниатюра удалена из категории!',
+            refreshUrls: 'URL-адреса обновлены!',
           },
           emptyHint: 'Щелкните правой кнопкой мыши, чтобы создать категорию!',
         },
@@ -9515,6 +9700,7 @@ module.exports = (Plugin, Library) => {
           delete: 'Izbriši kategorijo',
           deleteConfirm: 'Ta kategorija vsebuje podkategorije. Vsi bodo izbrisani. Ali ste prepričani, da želite izbrisati kategorije?',
           download: 'Prenesite medije',
+          refreshUrls: 'Obnoviť adresy URL',
           placeholder: 'Ime kategorije',
           move: 'Premakni se',
           moveNext: 'Po',
@@ -9539,6 +9725,7 @@ module.exports = (Plugin, Library) => {
             download: 'Predstavnost je bila naložena!',
             setThumbnail: 'Sličica za kategorijo!',
             unsetThumbnail: 'Odstranjena sličica za kategorijo!',
+            refreshUrls: 'Webové adresy boli obnovené!',
           },
           emptyHint: 'Z desnim klikom ustvarite kategorijo!',
         },
@@ -9790,12 +9977,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Ta bort kategori',
           deleteConfirm: 'Denna kategori innehåller underkategorier. De kommer alla att raderas. Är du säker på att du vill ta bort kategorier?',
           download: 'Ladda ner media',
+          refreshUrls: 'Uppdatera webbadresser',
           placeholder: 'Kategori namn',
           move: 'Flytta',
           moveNext: 'Efter',
           movePrevious: 'Innan',
           color: 'Färg',
           copyColor: 'Kopiera färg',
+          setThumbnail: 'Ställ in som miniatyrbild',
+          unsetThumbnail: 'Ta bort miniatyrbild',
           error: {
             needName: 'Namnet kan inte vara tomt',
             invalidNameLength: 'Namnet måste innehålla högst 20 tecken',
@@ -9810,6 +10000,9 @@ module.exports = (Plugin, Library) => {
             edit: 'Kategorin har ändrats!',
             move: 'Kategorin har flyttats!',
             download: 'Media har laddats upp!',
+            setThumbnail: 'Miniatyruppsättning för kategori!',
+            unsetThumbnail: 'Miniatyren har tagits bort för kategorin!',
+            refreshUrls: 'Webbadresser uppdaterade!',
           },
           emptyHint: 'Högerklicka för att skapa en kategori!',
         },
@@ -10061,12 +10254,15 @@ module.exports = (Plugin, Library) => {
           delete: 'ลบหมวดหมู่',
           deleteConfirm: 'หมวดหมู่นี้มีหมวดหมู่ย่อย พวกเขาทั้งหมดจะถูกลบ คุณแน่ใจหรือไม่ว่าต้องการลบหมวดหมู่',
           download: 'ดาวน์โหลดสื่อ',
+          refreshUrls: 'รีเฟรช URL',
           placeholder: 'ชื่อหมวดหมู่',
           move: 'ย้าย',
           moveNext: 'หลังจาก',
           movePrevious: 'ก่อน',
           color: 'สี',
           copyColor: 'คัดลอกสี',
+          setThumbnail: 'ตั้งเป็นรูปขนาดย่อ',
+          unsetThumbnail: 'ลบภาพขนาดย่อ',
           error: {
             needName: 'ชื่อไม่สามารถเว้นว่างได้',
             invalidNameLength: 'ชื่อต้องมีอักขระไม่เกิน 20 ตัว',
@@ -10081,6 +10277,9 @@ module.exports = (Plugin, Library) => {
             edit: 'หมวดหมู่มีการเปลี่ยนแปลง!',
             move: 'หมวดหมู่ถูกย้าย!',
             download: 'สื่อได้รับการอัปโหลด!',
+            setThumbnail: 'รูปย่อที่ตั้งไว้สำหรับหมวดหมู่!',
+            unsetThumbnail: 'ลบภาพขนาดย่อสำหรับหมวดหมู่แล้ว!',
+            refreshUrls: 'รีเฟรช URL แล้ว!',
           },
           emptyHint: 'คลิกขวาเพื่อสร้างหมวดหมู่!',
         },
@@ -10332,12 +10531,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Kategoriyi sil',
           deleteConfirm: 'Bu kategori alt kategorileri içerir. Hepsi silinecek. Kategorileri silmek istediğinizden emin misiniz?',
           download: 'Medyayı indir',
+          refreshUrls: 'URL\'leri yenile',
           placeholder: 'Kategori adı',
           move: 'Hareket',
           moveNext: 'Sonra',
           movePrevious: 'Önce',
           color: 'Renk',
           copyColor: 'rengi kopyala',
+          setThumbnail: '',
+          unsetThumbnail: '',
           error: {
             needName: 'Ad boş olamaz',
             invalidNameLength: 'Ad en fazla 20 karakter içermelidir',
@@ -10352,6 +10554,9 @@ module.exports = (Plugin, Library) => {
             edit: 'Kategori değiştirildi!',
             move: 'Kategori taşındı!',
             download: 'Medya yüklendi!',
+            setThumbnail: '',
+            unsetThumbnail: '',
+            refreshUrls: 'URL\'ler yenilendi!',
           },
           emptyHint: 'Kategori oluşturmak için sağ tıklayın!',
         },
@@ -10603,12 +10808,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Видалити категорію',
           deleteConfirm: 'Ця категорія містить підкатегорії. Усі вони будуть видалені. Ви впевнені, що хочете видалити категорії?',
           download: 'Завантажити медіафайли',
+          refreshUrls: 'Оновити URL-адреси',
           placeholder: 'Назва категорії',
           move: 'Рухайся',
           moveNext: 'Після',
           movePrevious: 'Раніше',
           color: 'Колір',
           copyColor: 'Копіювати кольорові',
+          setThumbnail: 'Küçük resim olarak ayarla',
+          unsetThumbnail: 'Küçük resmi kaldır',
           error: {
             needName: 'Ім\'я не може бути порожнім',
             invalidNameLength: 'Назва повинна містити максимум 20 символів',
@@ -10623,6 +10831,9 @@ module.exports = (Plugin, Library) => {
             edit: 'Категорію змінено!',
             move: 'Категорію переміщено!',
             download: 'ЗМІ завантажено!',
+            setThumbnail: 'Kategori için küçük resim ayarlandı!',
+            unsetThumbnail: 'Kategorinin küçük resmi kaldırıldı!',
+            refreshUrls: 'URL-адреси оновлено!',
           },
           emptyHint: 'Клацніть правою кнопкою миші, щоб створити категорію!',
         },
@@ -10874,12 +11085,15 @@ module.exports = (Plugin, Library) => {
           delete: 'Xóa danh mục',
           deleteConfirm: 'Thể loại này chứa các thể loại con. Tất cả chúng sẽ bị xóa. Bạn có chắc chắn muốn xóa danh mục không?',
           download: 'Завантажити медіафайли',
+          refreshUrls: 'Làm mới URL',
           placeholder: 'Tên danh mục',
           move: 'Di chuyển',
           moveNext: 'Sau',
           movePrevious: 'Trước',
           color: 'Màu sắc',
           copyColor: 'Sao chép màu',
+          setThumbnail: 'Đặt làm hình thu nhỏ',
+          unsetThumbnail: 'Xóa hình thu nhỏ',
           error: {
             needName: 'Tên không được để trống',
             invalidNameLength: 'Tên phải chứa tối đa 20 ký tự',
@@ -10894,6 +11108,9 @@ module.exports = (Plugin, Library) => {
             edit: 'Danh mục đã được thay đổi!',
             move: 'Danh mục đã được di chuyển!',
             download: 'ЗМІ завантажено!',
+            setThumbnail: 'Đặt hình thu nhỏ cho danh mục!',
+            unsetThumbnail: 'Đã xóa hình thu nhỏ cho danh mục!',
+            refreshUrls: 'Đã làm mới URL!',
           },
           emptyHint: 'Nhấp chuột phải để tạo một danh mục!',
         },
@@ -11145,12 +11362,15 @@ module.exports = (Plugin, Library) => {
           delete: '删除类别',
           deleteConfirm: '此类别包含子类别。 它们都将被删除。 您确定要删除类别吗？',
           download: '下载媒体',
+          refreshUrls: '刷新网址',
           placeholder: '分类名称',
           move: '移动',
           moveNext: '后',
           movePrevious: '前',
           color: '颜色',
           copyColor: '复印颜色',
+          setThumbnail: '设置为缩略图',
+          unsetThumbnail: '删除缩略图',
           error: {
             needName: '名称不能为空',
             invalidNameLength: '名称必须最多包含 20 个字符',
@@ -11165,6 +11385,9 @@ module.exports = (Plugin, Library) => {
             edit: '类别已更改！',
             move: '类别已移动！',
             download: '媒体已上传！',
+            setThumbnail: '类别缩略图设置！',
+            unsetThumbnail: '该类别的缩略图已删除！',
+            refreshUrls: '网址已刷新！',
           },
           emptyHint: '右键创建一个类别！',
         },
