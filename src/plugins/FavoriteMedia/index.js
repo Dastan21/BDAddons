@@ -425,7 +425,7 @@ module.exports = (Plugin, Library) => {
 
     Object.entries(EPSModules).forEach(([key, fn]) => {
       const code = String(fn)
-      if (code.includes('useDebugValue') && fn.getState) {
+      if (fn.getState && fn.setState) {
         EPS.useExpressionPickerStore = fn
       } else if (code.includes('activeView===')) {
         EPS.toggleExpressionPicker = fn
