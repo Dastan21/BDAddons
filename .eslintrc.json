@@ -3,7 +3,6 @@
     "browser": true,
     "es2021": true
   },
-  "ignorePatterns": ["/plugins/"],
   "extends": "standard",
   "parserOptions": {
     "ecmaVersion": "latest",

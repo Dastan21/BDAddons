@@ -1,1899 +1,1990 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.11.1
+ * @version 1.12.0
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  * @donate https://ko-fi.com/dastan
  */
-/*@cc_on
-@if (@_jscript)
-    
-    // Offer to self-install for clueless users that try to run this directly.
-    var shell = WScript.CreateObject("WScript.Shell");
-    var fs = new ActiveXObject("Scripting.FileSystemObject");
-    var pathPlugins = shell.ExpandEnvironmentStrings("%APPDATA%\\BetterDiscord\\plugins");
-    var pathSelf = WScript.ScriptFullName;
-    // Put the user at ease by addressing them in the first person
-    shell.Popup("It looks like you've mistakenly tried to run me directly. \n(Don't do that!)", 0, "I'm a plugin for BetterDiscord", 0x30);
-    if (fs.GetParentFolderName(pathSelf) === fs.GetAbsolutePathName(pathPlugins)) {
-        shell.Popup("I'm in the correct folder already.", 0, "I'm already installed", 0x40);
-    } else if (!fs.FolderExists(pathPlugins)) {
-        shell.Popup("I can't find the BetterDiscord plugins folder.\nAre you sure it's even installed?", 0, "Can't install myself", 0x10);
-    } else if (shell.Popup("Should I copy myself to BetterDiscord's plugins folder for you?", 0, "Do you need some help?", 0x34) === 6) {
-        fs.CopyFile(pathSelf, fs.BuildPath(pathPlugins, fs.GetFileName(pathSelf)), true);
-        // Show the user where to put plugins in the future
-        shell.Exec("explorer " + pathPlugins);
-        shell.Popup("I'm installed!", 0, "Successfully installed", 0x40);
-    }
-    WScript.Quit();
 
-@else@*/
-const config = {
-    main: "index.js",
-    id: "",
-    name: "FavoriteMedia",
-    author: "Dastan",
-    authorId: "310450863845933057",
-    authorLink: "",
-    version: "1.11.1",
-    description: "Allows to favorite GIFs, images, videos, audios and files.",
-    website: "",
-    source: "https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia",
-    patreon: "",
-    donate: "https://ko-fi.com/dastan",
-    invite: "",
-    defaultConfig: [
-        {
-            type: "switch",
-            id: "hideUnsortedMedias",
-            name: "Hide medias",
-            note: "Hide medias in the picker tab which are in a category",
-            value: true
-        },
-        {
-            type: "switch",
-            id: "hideThumbnail",
-            name: "Hide thumbnail",
-            note: "Show the category color instead of a random media thumbnail",
-            value: false
-        },
-        {
-            type: "switch",
-            id: "allowCaching",
-            name: "Allow medias preview caching",
-            note: "Uses local offline database to cache medias preview",
-            value: true
-        },
-        {
-            type: "slider",
-            id: "mediaVolume",
-            name: "Preview media volume",
-            note: "Volume of the previews medias on the picker tab",
-            min: 0,
-            max: 100,
-            markers: [
-                0,
-                10,
-                20,
-                30,
-                40,
-                50,
-                60,
-                70,
-                80,
-                90,
-                100
-            ],
-            value: 10
-        },
-        {
-            type: "dropdown",
-            id: "maxMediasPerPage",
-            name: "Max medias per page",
-            note: "The maximum amount of displayed medias per page in the picker tab",
-            value: 50,
-            options: [
-                {
-                    label: "20",
-                    value: 20
-                },
-                {
-                    label: "50",
-                    value: 50
-                },
-                {
-                    label: "100",
-                    value: 100
-                }
-            ]
-        },
-        {
-            type: "category",
-            id: "position",
-            name: "Buttons position",
-            collapsible: true,
-            shown: false,
-            settings: [
-                {
-                    type: "dropdown",
-                    id: "btnsPositionKey",
-                    name: "Buttons relative position",
-                    note: "Near which other button the buttons have to be placed",
-                    value: "emoji",
-                    options: [
-                        {
-                            label: "Gift",
-                            value: "gift"
-                        },
-                        {
-                            label: "GIF",
-                            value: "gif"
-                        },
-                        {
-                            label: "Sticker",
-                            value: "sticker"
-                        },
-                        {
-                            label: "Emoji",
-                            value: "emoji"
-                        }
-                    ]
-                },
-                {
-                    type: "dropdown",
-                    id: "btnsPosition",
-                    name: "Buttons direction",
-                    note: "Direction of the buttons on the chat",
-                    value: "right",
-                    options: [
-                        {
-                            label: "Right",
-                            value: "right"
-                        },
-                        {
-                            label: "Left",
-                            value: "left"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            type: "category",
-            id: "gif",
-            name: "GIFs settings",
-            collapsible: true,
-            shown: false,
-            settings: [
-                {
-                    type: "switch",
-                    id: "enabled",
-                    name: "General",
-                    note: "Replace Discord GIFs tab",
-                    value: true
-                },
-                {
-                    type: "switch",
-                    id: "alwaysSendInstantly",
-                    name: "Instant send",
-                    note: "Send instantly medias links and/or files",
-                    value: true
-                },
-                {
-                    type: "switch",
-                    id: "alwaysUploadFile",
-                    name: "Always upload as file",
-                    note: "Uploads media as file instead of sending a link",
-                    value: false
-                }
-            ]
-        },
-        {
-            type: "category",
-            id: "image",
-            name: "Images settings",
-            collapsible: true,
-            shown: false,
-            settings: [
-                {
-                    type: "switch",
-                    id: "enabled",
-                    name: "General",
-                    note: "Enable this type of media",
-                    value: true
-                },
-                {
-                    type: "switch",
-                    id: "showBtn",
-                    name: "Button",
-                    note: "Show button on chat",
-                    value: true
-                },
-                {
-                    type: "switch",
-                    id: "showStar",
-                    name: "Star",
-                    note: "Show favorite star on medias",
-                    value: true
-                },
-                {
-                    type: "switch",
-                    id: "alwaysSendInstantly",
-                    name: "Instant send",
-                    note: "Send instantly medias links and/or files",
-                    value: true
-                },
-                {
-                    type: "switch",
-                    id: "alwaysUploadFile",
-                    name: "Upload",
-                    note: "Uploads media as file instead of sending a link",
-                    value: false
-                }
-            ]
-        },
-        {
-            type: "category",
-            id: "video",
-            name: "Videos settings",
-            collapsible: true,
-            shown: false,
-            settings: [
-                {
-                    type: "switch",
-                    id: "enabled",
-                    name: "General",
-                    note: "Enable this type of media",
-                    value: true
-                },
-                {
-                    type: "switch",
-                    id: "showBtn",
-                    name: "Button",
-                    note: "Show button on chat",
-                    value: true
-                },
-                {
-                    type: "switch",
-                    id: "showStar",
-                    name: "Star",
-                    note: "Show favorite star on medias",
-                    value: true
-                },
-                {
-                    type: "switch",
-                    id: "alwaysSendInstantly",
-                    name: "Instant send",
-                    note: "Send instantly medias links and/or files",
-                    value: true
-                },
-                {
-                    type: "switch",
-                    id: "alwaysUploadFile",
-                    name: "Upload",
-                    note: "Uploads media as file instead of sending a link",
-                    value: false
-                }
-            ]
-        },
-        {
-            type: "category",
-            id: "audio",
-            name: "Audios settings",
-            collapsible: true,
-            shown: false,
-            settings: [
-                {
-                    type: "switch",
-                    id: "enabled",
-                    name: "General",
-                    note: "Enable this type of media",
-                    value: true
-                },
-                {
-                    type: "switch",
-                    id: "showBtn",
-                    name: "Button",
-                    note: "Show button on chat",
-                    value: true
-                },
-                {
-                    type: "switch",
-                    id: "showStar",
-                    name: "Star",
-                    note: "Show favorite star on medias",
-                    value: true
-                }
-            ]
-        },
-        {
-            type: "category",
-            id: "file",
-            name: "Files settings",
-            collapsible: true,
-            shown: false,
-            settings: [
-                {
-                    type: "switch",
-                    id: "enabled",
-                    name: "General",
-                    note: "Enable this type of media",
-                    value: true
-                },
-                {
-                    type: "switch",
-                    id: "showBtn",
-                    name: "Button",
-                    note: "Show button on chat",
-                    value: true
-                },
-                {
-                    type: "switch",
-                    id: "showStar",
-                    name: "Star",
-                    note: "Show favorite star on medias",
-                    value: true
-                },
-                {
-                    type: "switch",
-                    id: "alwaysSendInstantly",
-                    name: "Instant send",
-                    note: "Send instantly medias links and/or files",
-                    value: true
-                },
-                {
-                    type: "switch",
-                    id: "alwaysUploadFile",
-                    name: "Upload",
-                    note: "Uploads media as file instead of sending a link",
-                    value: false
-                }
-            ]
-        }
-    ]
-};
-class Dummy {
-    constructor() {this._config = config;}
-    start() {}
-    stop() {}
+/* global BdApi */
+
+const { mkdir, lstat, readFileSync, writeFileSync } = require('fs')
+const path = require('path')
+
+const DEFAULT_BACKGROUND_COLOR = '#202225'
+const INTL_CODE_HASH = {
+  GIF_TOOLTIP_ADD_TO_FAVORITES: '4wcdEx',
+  GIF_TOOLTIP_REMOVE_FROM_FAVORITES: '4VpUw8',
+  NO_GIF_FAVORITES_HOW_TO_FAVORITE: '3gyw4e',
+  EDIT: 'bt75u7',
+  GIF: 'I5gL2N',
+  DOWNLOAD: '1WjMbG',
+  USER_POPOUT_MESSAGE: 'GuUH7+',
+  COPY_MEDIA_LINK: '92CPQ0',
+  COPY_MESSAGE_LINK: 'Xrt5Pj',
 }
- 
-if (!global.ZeresPluginLibrary) {
-    BdApi.showConfirmationModal("Library Missing", `The library plugin needed for ${config.name ?? config.info.name} is missing. Please click Download Now to install it.`, {
-        confirmText: "Download Now",
-        cancelText: "Cancel",
-        onConfirm: () => {
-            require("request").get("https://betterdiscord.app/gh-redirect?id=9", async (err, resp, body) => {
-                if (err) return require("electron").shell.openExternal("https://betterdiscord.app/Download?id=9");
-                if (resp.statusCode === 302) {
-                    require("request").get(resp.headers.location, async (error, response, content) => {
-                        if (error) return require("electron").shell.openExternal("https://betterdiscord.app/Download?id=9");
-                        await new Promise(r => require("fs").writeFile(require("path").join(BdApi.Plugins.folder, "0PluginLibrary.plugin.js"), content, r));
-                    });
-                }
-                else {
-                    await new Promise(r => require("fs").writeFile(require("path").join(BdApi.Plugins.folder, "0PluginLibrary.plugin.js"), body, r));
-                }
-            });
-        }
-    });
+const ALL_TYPES = ['image', 'video', 'audio', 'file']
+
+const StarSVG = (props) => BdApi.React.createElement('svg', { className: classes.gif.icon, 'aria-hidden': 'false', viewBox: '0 0 24 24', width: '20', height: '20' }, props.filled ? BdApi.React.createElement('path', { fill: 'currentColor', d: 'M10.81 2.86c.38-1.15 2-1.15 2.38 0l1.89 5.83h6.12c1.2 0 1.71 1.54.73 2.25l-4.95 3.6 1.9 5.82a1.25 1.25 0 0 1-1.93 1.4L12 18.16l-4.95 3.6c-.98.7-2.3-.25-1.92-1.4l1.89-5.82-4.95-3.6a1.25 1.25 0 0 1 .73-2.25h6.12l1.9-5.83Z' }) : BdApi.React.createElement('path', { fill: 'currentColor', 'fill-rule': 'evenodd', 'clip-rule': 'evenodd', d: 'M2.07 10.94a1.25 1.25 0 0 1 .73-2.25h6.12l1.9-5.83c.37-1.15 2-1.15 2.37 0l1.89 5.83h6.12c1.2 0 1.71 1.54.73 2.25l-4.95 3.6 1.9 5.82a1.25 1.25 0 0 1-1.93 1.4L12 18.16l-4.95 3.6c-.98.7-2.3-.25-1.92-1.4l1.89-5.82-4.95-3.6Zm11.55-.25h5.26l-4.25 3.09 1.62 5-4.25-3.1-4.25 3.1 1.62-5-4.25-3.1h5.26l1.62-5 1.62 5Z' }))
+const ImageSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 384 384', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M341.333,0H42.667C19.093,0,0,19.093,0,42.667v298.667C0,364.907,19.093,384,42.667,384h298.667 C364.907,384,384,364.907,384,341.333V42.667C384,19.093,364.907,0,341.333,0z M42.667,320l74.667-96l53.333,64.107L245.333,192l96,128H42.667z' }))
+const VideoSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 298 298', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M298,33c0-13.255-10.745-24-24-24H24C10.745,9,0,19.745,0,33v232c0,13.255,10.745,24,24,24h250c13.255,0,24-10.745,24-24V33zM91,39h43v34H91V39z M61,259H30v-34h31V259z M61,73H30V39h31V73z M134,259H91v-34h43V259z M123,176.708v-55.417c0-8.25,5.868-11.302,12.77-6.783l40.237,26.272c6.902,4.519,6.958,11.914,0.056,16.434l-40.321,26.277C128.84,188.011,123,184.958,123,176.708z M207,259h-43v-34h43V259z M207,73h-43V39h43V73z M268,259h-31v-34h31V259z M268,73h-31V39h31V73z' }))
+const AudioSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 115.3 115.3', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M47.9,14.306L26,30.706H6c-3.3,0-6,2.7-6,6v41.8c0,3.301,2.7,6,6,6h20l21.9,16.4c4,3,9.6,0.2,9.6-4.8v-77C57.5,14.106,51.8,11.306,47.9,14.306z' }), BdApi.React.createElement('path', { fill: 'currentColor', d: 'M77.3,24.106c-2.7-2.7-7.2-2.7-9.899,0c-2.7,2.7-2.7,7.2,0,9.9c13,13,13,34.101,0,47.101c-2.7,2.7-2.7,7.2,0,9.899c1.399,1.4,3.199,2,4.899,2s3.601-0.699,4.9-2.1C95.8,72.606,95.8,42.606,77.3,24.106z' }), BdApi.React.createElement('path', { fill: 'currentColor', d: 'M85.1,8.406c-2.699,2.7-2.699,7.2,0,9.9c10.5,10.5,16.301,24.4,16.301,39.3s-5.801,28.8-16.301,39.3c-2.699,2.7-2.699,7.2,0,9.9c1.4,1.399,3.2,2.1,4.9,2.1c1.8,0,3.6-0.7,4.9-2c13.1-13.1,20.399-30.6,20.399-49.2c0-18.6-7.2-36-20.399-49.2C92.3,5.706,87.9,5.706,85.1,8.406z' }))
+const FileSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '2 2 20 20', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M16,2l4,4H16ZM14,2H5A1,1,0,0,0,4,3V21a1,1,0,0,0,1,1H19a1,1,0,0,0,1-1V8H14Z' }))
+const ImportSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 24 24', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M6.29289 9.70711L11.2929 14.7071L12 15.4142L12.7071 14.7071L17.7071 9.70711L16.2929 8.29289L13 11.5858V4H18C19.1046 4 20 4.89543 20 6V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V6C4 4.89543 4.89543 4 6 4H11L11 11.5858L7.70711 8.29289L6.29289 9.70711Z' }))
+const DatabaseSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 -8 72 72', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M36,4.07c-11.85,0-21.46,3.21-21.46,7.19v5.89c0,4,9.61,7.19,21.46,7.19s21.45-3.21,21.45-7.19V11.26C57.46,7.28,47.85,4.07,36,4.07Z' }), BdApi.React.createElement('path', { fill: 'currentColor', d: 'M36,27.78c-11.32,0-20.64-2.93-21.46-6.66,0,.18,0,9.75,0,9.75,0,4,9.61,7.18,21.46,7.18s21.45-3.21,21.45-7.18c0,0,0-9.57,0-9.75C56.63,24.85,47.32,27.78,36,27.78Z' }), BdApi.React.createElement('path', { fill: 'currentColor', d: 'M57.44,35c-.82,3.72-10.12,6.66-21.43,6.66S15.37,38.72,14.55,35v9.75c0,4,9.61,7.18,21.46,7.18s21.45-3.21,21.45-7.18Z' }))
+const CogSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '-15 -15 30 30', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M-1.4420000314712524,-10.906000137329102 C-1.8949999809265137,-10.847000122070312 -2.1470000743865967,-10.375 -2.078000068664551,-9.92300033569336 C-1.899999976158142,-8.756999969482422 -2.265000104904175,-7.7210001945495605 -3.061000108718872,-7.390999794006348 C-3.8570001125335693,-7.060999870300293 -4.8480000495910645,-7.534999847412109 -5.546000003814697,-8.484999656677246 C-5.816999912261963,-8.852999687194824 -6.329999923706055,-9.008999824523926 -6.691999912261963,-8.730999946594238 C-7.458000183105469,-8.142999649047852 -8.142999649047852,-7.458000183105469 -8.730999946594238,-6.691999912261963 C-9.008999824523926,-6.329999923706055 -8.852999687194824,-5.816999912261963 -8.484999656677246,-5.546000003814697 C-7.534999847412109,-4.8480000495910645 -7.060999870300293,-3.8570001125335693 -7.390999794006348,-3.061000108718872 C-7.7210001945495605,-2.265000104904175 -8.756999969482422,-1.899999976158142 -9.92300033569336,-2.078000068664551 C-10.375,-2.1470000743865967 -10.847000122070312,-1.8949999809265137 -10.906000137329102,-1.4420000314712524 C-10.968000411987305,-0.9700000286102295 -11,-0.48899999260902405 -11,0 C-11,0.48899999260902405 -10.968000411987305,0.9700000286102295 -10.906000137329102,1.4420000314712524 C-10.847000122070312,1.8949999809265137 -10.375,2.1470000743865967 -9.92300033569336,2.078000068664551 C-8.756999969482422,1.899999976158142 -7.7210001945495605,2.265000104904175 -7.390999794006348,3.061000108718872 C-7.060999870300293,3.8570001125335693 -7.534999847412109,4.8470001220703125 -8.484999656677246,5.546000003814697 C-8.852999687194824,5.816999912261963 -9.008999824523926,6.328999996185303 -8.730999946594238,6.691999912261963 C-8.142999649047852,7.458000183105469 -7.458000183105469,8.142999649047852 -6.691999912261963,8.730999946594238 C-6.329999923706055,9.008999824523926 -5.816999912261963,8.852999687194824 -5.546000003814697,8.484999656677246 C-4.8480000495910645,7.534999847412109 -3.8570001125335693,7.060999870300293 -3.061000108718872,7.390999794006348 C-2.265000104904175,7.7210001945495605 -1.899999976158142,8.756999969482422 -2.078000068664551,9.92300033569336 C-2.1470000743865967,10.375 -1.8949999809265137,10.847000122070312 -1.4420000314712524,10.906000137329102 C-0.9700000286102295,10.968000411987305 -0.48899999260902405,11 0,11 C0.48899999260902405,11 0.9700000286102295,10.968000411987305 1.4420000314712524,10.906000137329102 C1.8949999809265137,10.847000122070312 2.1470000743865967,10.375 2.078000068664551,9.92300033569336 C1.899999976158142,8.756999969482422 2.2660000324249268,7.7210001945495605 3.062000036239624,7.390999794006348 C3.8580000400543213,7.060999870300293 4.8480000495910645,7.534999847412109 5.546000003814697,8.484999656677246 C5.816999912261963,8.852999687194824 6.328999996185303,9.008999824523926 6.691999912261963,8.730999946594238 C7.458000183105469,8.142999649047852 8.142999649047852,7.458000183105469 8.730999946594238,6.691999912261963 C9.008999824523926,6.328999996185303 8.852999687194824,5.816999912261963 8.484999656677246,5.546000003814697 C7.534999847412109,4.8480000495910645 7.060999870300293,3.8570001125335693 7.390999794006348,3.061000108718872 C7.7210001945495605,2.265000104904175 8.756999969482422,1.899999976158142 9.92300033569336,2.078000068664551 C10.375,2.1470000743865967 10.847000122070312,1.8949999809265137 10.906000137329102,1.4420000314712524 C10.968000411987305,0.9700000286102295 11,0.48899999260902405 11,0 C11,-0.48899999260902405 10.968000411987305,-0.9700000286102295 10.906000137329102,-1.4420000314712524 C10.847000122070312,-1.8949999809265137 10.375,-2.1470000743865967 9.92300033569336,-2.078000068664551 C8.756999969482422,-1.899999976158142 7.7210001945495605,-2.265000104904175 7.390999794006348,-3.061000108718872 C7.060999870300293,-3.8570001125335693 7.534999847412109,-4.8480000495910645 8.484999656677246,-5.546000003814697 C8.852999687194824,-5.816999912261963 9.008999824523926,-6.329999923706055 8.730999946594238,-6.691999912261963 C8.142999649047852,-7.458000183105469 7.458000183105469,-8.142999649047852 6.691999912261963,-8.730999946594238 C6.328999996185303,-9.008999824523926 5.817999839782715,-8.852999687194824 5.546999931335449,-8.484999656677246 C4.848999977111816,-7.534999847412109 3.8580000400543213,-7.060999870300293 3.062000036239624,-7.390999794006348 C2.2660000324249268,-7.7210001945495605 1.9010000228881836,-8.756999969482422 2.0789999961853027,-9.92300033569336 C2.1480000019073486,-10.375 1.8949999809265137,-10.847000122070312 1.4420000314712524,-10.906000137329102 C0.9700000286102295,-10.968000411987305 0.48899999260902405,-11 0,-11 C-0.48899999260902405,-11 -0.9700000286102295,-10.968000411987305 -1.4420000314712524,-10.906000137329102z M4,0 C4,2.2090001106262207 2.2090001106262207,4 0,4 C-2.2090001106262207,4 -4,2.2090001106262207 -4,0 C-4,-2.2090001106262207 -2.2090001106262207,-4 0,-4 C2.2090001106262207,-4 4,-2.2090001106262207 4,0z' }))
+const MusicNoteSVG = (props) => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': false, viewBox: '0 0 500 500', width: '16', height: '16', ...props }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M328.712,264.539c12.928-21.632,21.504-48.992,23.168-76.064c1.056-17.376-2.816-35.616-11.2-52.768c-13.152-26.944-35.744-42.08-57.568-56.704c-16.288-10.912-31.68-21.216-42.56-35.936l-1.952-2.624c-6.432-8.64-13.696-18.432-14.848-26.656c-1.152-8.32-8.704-14.24-16.96-13.76c-8.384,0.576-14.88,7.52-14.88,15.936v285.12c-13.408-8.128-29.92-13.12-48-13.12c-44.096,0-80,28.704-80,64s35.904,64,80,64s80-28.704,80-64V165.467c24.032,9.184,63.36,32.576,74.176,87.2c-2.016,2.976-3.936,6.176-6.176,8.736c-5.856,6.624-5.216,16.736,1.44,22.56c6.592,5.888,16.704,5.184,22.56-1.44c4.288-4.864,8.096-10.56,11.744-16.512C328.04,265.563,328.393,265.083,328.712,264.539z' }))
+const MiniFileSVG = (props) => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': false, viewBox: '-32 0 512 512', width: '16', height: '16', ...props }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M96 448Q81 448 73 440 64 431 64 416L64 96Q64 81 73 73 81 64 96 64L217 64Q240 64 256 80L368 192Q384 208 384 231L384 416Q384 431 376 440 367 448 352 448L96 448ZM336 400L336 240 208 240 208 112 112 112 112 400 336 400Z' }))
+const RefreshSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 24 24', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', d: 'M3 12C3 16.9706 7.02944 21 12 21C14.3051 21 16.4077 20.1334 18 18.7083L21 16M21 12C21 7.02944 16.9706 3 12 3C9.69494 3 7.59227 3.86656 6 5.29168L3 8M21 21V16M21 16H16M3 3V8M3 8H8' }))
+
+const classModules = {
+  icon: BdApi.Webpack.getByKeys('icon', 'active', 'buttonWrapper'),
+  menu: BdApi.Webpack.getByKeys('menu', 'labelContainer', 'colorDefault'),
+  result: BdApi.Webpack.getByKeys('result', 'emptyHints', 'emptyHintText'),
+  input: BdApi.Webpack.getByKeys('inputDefault', 'inputWrapper', 'inputPrefix'),
+  role: BdApi.Webpack.getByKeys('roleCircle', 'dot'),
+  gif: BdApi.Webpack.getByKeys('icon', 'gifFavoriteButton', 'selected'),
+  gif2: BdApi.Webpack.getByKeys('container', 'gifFavoriteButton', 'embedWrapper'),
+  file: BdApi.Webpack.getByKeys('size', 'file', 'fileInner'),
+  image: BdApi.Webpack.getByKeys('clickable', 'imageWrapper', 'imageAccessory'),
+  control: BdApi.Webpack.getByKeys('container', 'labelRow', 'control'),
+  category: BdApi.Webpack.getByKeys('container', 'categoryFade', 'categoryName'),
+  textarea: BdApi.Webpack.getByKeys('channelTextArea', 'buttonContainer', 'button'),
+  gutter: BdApi.Webpack.getByKeys('header', 'backButton', 'searchHeader'),
+  horizontal: BdApi.Webpack.getByKeys('flex', 'flexChild', 'horizontal'),
+  flex: BdApi.Webpack.getByKeys('flex', 'alignStart', 'alignEnd'),
+  title: BdApi.Webpack.getByKeys('title', 'h1', 'h5'),
+  container: BdApi.Webpack.getByKeys('container', 'inner', 'pointer'),
+  scroller: BdApi.Webpack.getByKeys('disableScrollAnchor', 'thin', 'fade'),
+  look: BdApi.Webpack.getByKeys('button', 'lookBlank', 'colorBrand'),
+  audio: BdApi.Webpack.getByKeys('wrapperAudio', 'wrapperPaused', 'wrapperPlaying'),
+  contentWrapper: BdApi.Webpack.getByKeys('contentWrapper', 'nav', 'positionLayer'),
+  buttons: BdApi.Webpack.getByKeys('profileBioInput', 'buttons', 'attachButton'),
+  upload: BdApi.Webpack.getByKeys('actionBarContainer', 'actionBar', 'upload'),
+  button: BdApi.Webpack.getByKeys('button', 'separator', 'dangerous'),
+  color: BdApi.Webpack.getByKeys('colorStandard', 'colorBrand', 'colorError'),
+  visual: BdApi.Webpack.getByKeys('nonVisualMediaItemContainer', 'nonVisualMediaItem', 'visualMediaItemContainer'),
+  code: BdApi.Webpack.getByKeys('newMosaicStyle', 'attachmentName', 'codeView'),
 }
- 
-module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
-     const plugin = (Plugin, Library) => {
-  const {
-    ReactComponents,
-    ContextMenu,
-    Utilities,
-    ColorConverter,
-    DOMTools,
-    ReactTools,
-    Settings,
-    DiscordModules: {
-      React,
-      ElectronModule,
-      Dispatcher,
-      MessageStore,
-      SelectedChannelStore,
-      ChannelStore,
-      Permissions,
-    }, Patcher,
-  } = Library
-  const { mkdir, lstat, readFileSync, writeFileSync } = require('fs')
-  const path = require('path')
-  const BdApi = new window.BdApi(config.name)
-  const { Webpack, Net, Plugins, ContextMenu: BDContextMenu, UI: { openDialog, showToast, createTooltip, showConfirmationModal } } = BdApi
-  const plugin = Plugins.get(config.name)
 
-  const classModules = {
-    icon: Webpack.getByKeys('icon', 'active', 'buttonWrapper'),
-    menu: Webpack.getByKeys('menu', 'labelContainer', 'colorDefault'),
-    result: Webpack.getByKeys('result', 'emptyHints', 'emptyHintText'),
-    input: Webpack.getByKeys('inputDefault', 'inputWrapper', 'inputPrefix'),
-    role: Webpack.getByKeys('roleCircle', 'dot'),
-    gif: Webpack.getByKeys('size', 'gifFavoriteButton', 'selected'),
-    gif2: Webpack.getByKeys('container', 'gifFavoriteButton', 'embedWrapper'),
-    image: Webpack.getByKeys('clickable', 'imageWrapper', 'imageAccessory'),
-    control: Webpack.getByKeys('container', 'labelRow', 'control'),
-    category: Webpack.getByKeys('container', 'categoryFade', 'categoryName'),
-    textarea: Webpack.getByKeys('channelTextArea', 'buttonContainer', 'button'),
-    gutter: Webpack.getByKeys('header', 'backButton', 'searchHeader'),
-    horizontal: Webpack.getByKeys('flex', 'flexChild', 'horizontal'),
-    flex: Webpack.getByKeys('flex', 'alignStart', 'alignEnd'),
-    title: Webpack.getByKeys('title', 'h1', 'h5'),
-    container: Webpack.getByKeys('container', 'inner', 'pointer'),
-    scroller: Webpack.getByKeys('disableScrollAnchor', 'thin', 'fade'),
-    look: Webpack.getByKeys('button', 'lookBlank', 'colorBrand'),
-    audio: Webpack.getByKeys('wrapperAudio', 'wrapperPaused', 'wrapperPlaying'),
-    contentWrapper: Webpack.getByKeys('contentWrapper', 'nav', 'positionLayer'),
-    buttons: Webpack.getByKeys('profileBioInput', 'buttons', 'attachButton'),
-    upload: Webpack.getByKeys('actionBarContainer', 'actionBar', 'upload'),
-    button: Webpack.getByKeys('button', 'separator', 'dangerous'),
-    color: Webpack.getByKeys('colorStandard', 'colorBrand', 'colorError'),
-    visual: Webpack.getByKeys('nonVisualMediaItemContainer', 'nonVisualMediaItem', 'visualMediaItemContainer'),
-    code: Webpack.getByKeys('newMosaicStyle', 'attachmentName', 'codeView'),
-  }
-  const classes = {
-    icon: {
-      icon: classModules.icon.icon,
-      active: classModules.icon.active,
-      button: classModules.icon.button,
-      buttonWrapper: classModules.icon.buttonWrapper,
-    },
-    menu: {
-      item: classModules.menu.item,
-      labelContainer: classModules.menu.labelContainer,
-      label: classModules.menu.label,
-      colorDefault: classModules.menu.colorDefault,
-      focused: classModules.menu.focused,
-    },
-    result: {
-      result: classModules.result.result,
-      favButton: classModules.result.favButton,
-      emptyHints: classModules.result.emptyHints,
-      emptyHint: classModules.result.emptyHint,
-      emptyHintCard: classModules.result.emptyHintCard,
-      emptyHintFavorite: classModules.result.emptyHintFavorite,
-      emptyHintText: classModules.result.emptyHintText,
-      gif: classModules.result.gif,
-      endContainer: classModules.result.endContainer,
-    },
-    input: {
-      inputDefault: classModules.input.inputDefault,
-      inputWrapper: classModules.input.inputWrapper,
-    },
-    roleCircle: classModules.role.roleCircle,
-    gif: {
-      gifFavoriteButton1: classModules.gif2.gifFavoriteButton,
-      size: classModules.gif.size,
-      gifFavoriteButton2: classModules.gif.gifFavoriteButton,
-      selected: classModules.gif.selected,
-      showPulse: classModules.gif.showPulse,
-      icon: classModules.gif.icon,
-    },
-    image: {
-      imageAccessory: classModules.image.imageAccessory,
-      clickable: classModules.image.clickable,
-      embedWrapper: classModules.gif2.embedWrapper,
-      imageWrapper: classModules.image.imageWrapper,
-    },
-    control: classModules.control.control,
-    category: {
-      categoryFade: classModules.category.categoryFade,
-      categoryText: classModules.category.categoryText,
-      categoryName: classModules.category.categoryName,
-      categoryIcon: classModules.category.categoryIcon,
-      container: classModules.category.container,
-    },
-    textarea: {
-      channelTextArea: classModules.textarea.channelTextArea,
-      buttonContainer: classModules.textarea.buttonContainer,
-      button: classModules.textarea.button,
-    },
-    gutter: {
-      header: classModules.gutter.header,
-      backButton: classModules.gutter.backButton,
-      searchHeader: classModules.gutter.searchHeader,
-      searchBar: classModules.gutter.searchBar,
-      content: classModules.gutter.content,
-      container: classModules.gutter.container,
-    },
-    flex: {
-      flex: classModules.horizontal.flex,
-      horizontal: classModules.horizontal.horizontal,
-      justifyStart: classModules.flex.justifyStart,
-      alignCenter: classModules.flex.alignCenter,
-      noWrap: classModules.flex.noWrap,
-    },
-    h5: classModules.title.h5,
-    container: {
-      container: classModules.container.container,
-      medium: classModules.container.medium,
-      inner: classModules.container.inner,
-      input: classModules.container.input,
-      iconLayout: classModules.container.iconLayout,
-      iconContainer: classModules.container.iconContainer,
-      pointer: classModules.container.pointer,
-      clear: classModules.container.clear,
-      visible: classModules.container.visible,
-    },
-    scroller: {
-      thin: classModules.scroller.thin,
-      fade: classModules.scroller.fade,
-      content: classModules.scroller.content,
-    },
-    look: {
-      button: classModules.look.button,
-      lookBlank: classModules.look.lookBlank,
-      colorBrand: classModules.look.colorBrand,
-      grow: classModules.look.grow,
-      contents: classModules.look.contents,
-    },
-    audio: {
-      wrapperAudio: classModules.audio.wrapperAudio,
-    },
-    contentWrapper: {
-      contentWrapper: classModules.contentWrapper.contentWrapper,
-    },
-    buttons: {
-      buttons: classModules.buttons.buttons,
-      button: classModules.button.button,
-    },
-    upload: {
-      actionBarContainer: classModules.upload.actionBarContainer,
-    },
-    color: {
-      colorStandard: classModules.color.colorStandard,
-    },
-    visual: {
-      nonVisualMediaItemContainer: classModules.visual.nonVisualMediaItemContainer,
-    },
-    code: {
-      newMosaicStyle: classModules.code.newMosaicStyle,
-    },
-  }
+const classes = {
+  icon: {
+    icon: classModules.icon.icon,
+    active: classModules.icon.active,
+    button: classModules.icon.button,
+    buttonWrapper: classModules.icon.buttonWrapper,
+  },
+  menu: {
+    item: classModules.menu.item,
+    labelContainer: classModules.menu.labelContainer,
+    label: classModules.menu.label,
+    colorDefault: classModules.menu.colorDefault,
+    focused: classModules.menu.focused,
+  },
+  result: {
+    result: classModules.result.result,
+    favButton: classModules.result.favButton,
+    emptyHints: classModules.result.emptyHints,
+    emptyHint: classModules.result.emptyHint,
+    emptyHintCard: classModules.result.emptyHintCard,
+    emptyHintFavorite: classModules.result.emptyHintFavorite,
+    emptyHintText: classModules.result.emptyHintText,
+    gif: classModules.result.gif,
+    endContainer: classModules.result.endContainer,
+  },
+  input: {
+    inputDefault: classModules.input.inputDefault,
+    inputWrapper: classModules.input.inputWrapper,
+  },
+  roleCircle: classModules.role.roleCircle,
+  gif: {
+    gifFavoriteButton1: classModules.gif2.gifFavoriteButton,
+    size: classModules.file.size,
+    gifFavoriteButton2: classModules.gif.gifFavoriteButton,
+    selected: classModules.gif.selected,
+    showPulse: classModules.gif.showPulse,
+    icon: classModules.gif.icon,
+  },
+  image: {
+    imageAccessory: classModules.image.imageAccessory,
+    clickable: classModules.image.clickable,
+    embedWrapper: classModules.gif2.embedWrapper,
+    imageWrapper: classModules.image.imageWrapper,
+  },
+  control: classModules.control.control,
+  category: {
+    categoryFade: classModules.category.categoryFade,
+    categoryText: classModules.category.categoryText,
+    categoryName: classModules.category.categoryName,
+    categoryIcon: classModules.category.categoryIcon,
+    container: classModules.category.container,
+  },
+  textarea: {
+    channelTextArea: classModules.textarea.channelTextArea,
+    buttonContainer: classModules.textarea.buttonContainer,
+    button: classModules.textarea.button,
+  },
+  gutter: {
+    header: classModules.gutter.header,
+    backButton: classModules.gutter.backButton,
+    searchHeader: classModules.gutter.searchHeader,
+    searchBar: classModules.gutter.searchBar,
+    content: classModules.gutter.content,
+    container: classModules.gutter.container,
+  },
+  flex: {
+    flex: classModules.horizontal.flex,
+    horizontal: classModules.horizontal.horizontal,
+    justifyStart: classModules.flex.justifyStart,
+    alignCenter: classModules.flex.alignCenter,
+    noWrap: classModules.flex.noWrap,
+  },
+  h5: classModules.title.h5,
+  container: {
+    container: classModules.container.container,
+    medium: classModules.container.medium,
+    inner: classModules.container.inner,
+    input: classModules.container.input,
+    iconLayout: classModules.container.iconLayout,
+    iconContainer: classModules.container.iconContainer,
+    pointer: classModules.container.pointer,
+    clear: classModules.container.clear,
+    visible: classModules.container.visible,
+  },
+  scroller: {
+    thin: classModules.scroller.thin,
+    fade: classModules.scroller.fade,
+    content: classModules.scroller.content,
+  },
+  look: {
+    button: classModules.look.button,
+    lookBlank: classModules.look.lookBlank,
+    colorBrand: classModules.look.colorBrand,
+    grow: classModules.look.grow,
+    contents: classModules.look.contents,
+  },
+  audio: {
+    wrapperAudio: classModules.audio.wrapperAudio,
+  },
+  contentWrapper: {
+    contentWrapper: classModules.contentWrapper.contentWrapper,
+  },
+  buttons: {
+    buttons: classModules.buttons.buttons,
+    button: classModules.button.button,
+  },
+  upload: {
+    actionBarContainer: classModules.upload.actionBarContainer,
+  },
+  color: {
+    colorStandard: classModules.color.colorStandard,
+  },
+  visual: {
+    nonVisualMediaItemContainer: classModules.visual.nonVisualMediaItemContainer,
+  },
+  code: {
+    newMosaicStyle: classModules.code.newMosaicStyle,
+  },
+}
 
-  const canClosePicker = { context: '', value: true }
-  let currentChannelId = ''
-  let currentTextareaInput = null
-  let closeExpressionPickerKey = ''
+const Dispatcher = BdApi.Webpack.getByKeys('dispatch', 'subscribe')
+const ElectronModule = BdApi.Webpack.getByKeys('setBadge')
+const MessageStore = BdApi.Webpack.getByKeys('getMessage', 'getMessages')
+const ChannelStore = BdApi.Webpack.getByKeys('getChannel', 'getDMFromUserId')
+const SelectedChannelStore = BdApi.Webpack.getByKeys('getLastSelectedChannelId')
+const ComponentDispatch = BdApi.Webpack.getAllByKeys('safeDispatch', 'dispatchToLastSubscribed', { searchExports: true })?.slice(-1)?.[0]
+const LocaleStore = BdApi.Webpack.getByKeys('locale', 'initialize')
+const EPS = {}
+const EPSModules = BdApi.Webpack.getModule(m => Object.keys(m).some(key => m[key]?.toString?.().includes('isSearchSuggestion')))
+const EPSConstants = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byProps('FORUM_CHANNEL_GUIDELINES', 'CREATE_FORUM_POST'), { searchExports: true })
+const GIFUtils = {
+  favorite: BdApi.Webpack.getByStrings('Object.values(t.gifs)', { searchExports: true }),
+  unfavorite: BdApi.Webpack.getByStrings('delete t.gifs', { searchExports: true }),
+}
+const Permissions = BdApi.Webpack.getByKeys('computePermissions')
+const PermissionsConstants = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byProps('ADD_REACTIONS'), { searchExports: true })
+const MediaPlayerModule = BdApi.Webpack.getModule(m => m.Types?.VIDEO, { searchExports: true })
+const ImageModule = BdApi.Webpack.getAllByStrings('readyState', 'zoomable', 'minHeight', { searchExports: true })?.slice(-1)?.[0]
+const FileModule = BdApi.Webpack.getByStrings('fileName', 'fileSize', 'renderAdjacentContent', { defaultExport: false })
+const FileRenderedModule = BdApi.Webpack.getByStrings('getObscureReason', 'mediaLayoutType', { defaultExport: false })
+const FilesUpload = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byProps('addFiles'))
+const MessagesManager = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byProps('sendMessage'))
+const PageControl = BdApi.Webpack.getModule(m => typeof m === 'function' && m.toString()?.includes('totalCount'), { searchExports: true })
+const DiscordComponents = BdApi.Webpack.getByKeys('Button', 'Card', 'Modal')
+const DiscordIntl = BdApi.Webpack.getModule(m => m.intl)
+const RestAPI = BdApi.Webpack.getModules(m => Object.keys(m).some(key => Object.prototype.hasOwnProperty.call(m[key] ?? {}, 'post')))?.slice(-1)?.[0]?.Z
 
-  let ChannelTextAreaButtons
-  const ComponentDispatch = Webpack.getAllByKeys('safeDispatch', 'dispatchToLastSubscribed', { searchExports: true })?.slice(-1)?.[0]
-  const EPS = {}
-  const EPSModules = Webpack.getModule(m => Object.keys(m).some(key => m[key]?.toString?.().includes('isSearchSuggestion')))
-  const EPSConstants = Webpack.getModule(Webpack.Filters.byProps('FORUM_CHANNEL_GUIDELINES', 'CREATE_FORUM_POST'), { searchExports: true })
-  const GIFUtils = {
-    favorite: Webpack.getByStrings('Object.values(t.gifs)', { searchExports: true }),
-    unfavorite: Webpack.getByStrings('delete t.gifs', { searchExports: true }),
-  }
-  const PermissionsConstants = Webpack.getModule(Webpack.Filters.byProps('ADD_REACTIONS'), { searchExports: true })
-  const MediaPlayerModule = Webpack.getModule(m => m.Types?.VIDEO, { searchExports: true })
-  const ImageModule = Webpack.getAllByStrings('readyState', 'zoomable', 'minHeight', { searchExports: true })?.slice(-1)?.[0]
-  const FileModule = Webpack.getByStrings('fileName', 'fileSize', 'renderAdjacentContent', { defaultExport: false })
-  const FileRenderedModule = Webpack.getByStrings('getObscureReason', 'mediaLayoutType', { defaultExport: false })
-  const FilesUpload = Webpack.getModule(Webpack.Filters.byProps('addFiles'))
-  const MessagesManager = Webpack.getModule(Webpack.Filters.byProps('sendMessage'))
-  const PageControl = Webpack.getModule(m => typeof m === 'function' && m.toString()?.includes('totalCount'), { searchExports: true })
-  const DiscordComponents = Webpack.getByKeys('Button', 'Card', 'Modal')
-  const DiscordIntl = Webpack.getModule(m => m.intl)
+let ChannelTextAreaButtons = null
+const canClosePicker = { context: '', value: true }
+let currentChannelId = ''
+let currentTextareaInput = null
+let closeExpressionPickerKey = ''
 
-  const DEFAULT_BACKGROUND_COLOR = '#202225'
-  const ImageSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 384 384', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M341.333,0H42.667C19.093,0,0,19.093,0,42.667v298.667C0,364.907,19.093,384,42.667,384h298.667 C364.907,384,384,364.907,384,341.333V42.667C384,19.093,364.907,0,341.333,0z M42.667,320l74.667-96l53.333,64.107L245.333,192l96,128H42.667z' }))
-  const VideoSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 298 298', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M298,33c0-13.255-10.745-24-24-24H24C10.745,9,0,19.745,0,33v232c0,13.255,10.745,24,24,24h250c13.255,0,24-10.745,24-24V33zM91,39h43v34H91V39z M61,259H30v-34h31V259z M61,73H30V39h31V73z M134,259H91v-34h43V259z M123,176.708v-55.417c0-8.25,5.868-11.302,12.77-6.783l40.237,26.272c6.902,4.519,6.958,11.914,0.056,16.434l-40.321,26.277C128.84,188.011,123,184.958,123,176.708z M207,259h-43v-34h43V259z M207,73h-43V39h43V73z M268,259h-31v-34h31V259z M268,73h-31V39h31V73z' }))
-  const AudioSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 115.3 115.3', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M47.9,14.306L26,30.706H6c-3.3,0-6,2.7-6,6v41.8c0,3.301,2.7,6,6,6h20l21.9,16.4c4,3,9.6,0.2,9.6-4.8v-77C57.5,14.106,51.8,11.306,47.9,14.306z' }), React.createElement('path', { fill: 'currentColor', d: 'M77.3,24.106c-2.7-2.7-7.2-2.7-9.899,0c-2.7,2.7-2.7,7.2,0,9.9c13,13,13,34.101,0,47.101c-2.7,2.7-2.7,7.2,0,9.899c1.399,1.4,3.199,2,4.899,2s3.601-0.699,4.9-2.1C95.8,72.606,95.8,42.606,77.3,24.106z' }), React.createElement('path', { fill: 'currentColor', d: 'M85.1,8.406c-2.699,2.7-2.699,7.2,0,9.9c10.5,10.5,16.301,24.4,16.301,39.3s-5.801,28.8-16.301,39.3c-2.699,2.7-2.699,7.2,0,9.9c1.4,1.399,3.2,2.1,4.9,2.1c1.8,0,3.6-0.7,4.9-2c13.1-13.1,20.399-30.6,20.399-49.2c0-18.6-7.2-36-20.399-49.2C92.3,5.706,87.9,5.706,85.1,8.406z' }))
-  const FileSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '2 2 20 20', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M16,2l4,4H16ZM14,2H5A1,1,0,0,0,4,3V21a1,1,0,0,0,1,1H19a1,1,0,0,0,1-1V8H14Z' }))
-  const ImportSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 24 24', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M6.29289 9.70711L11.2929 14.7071L12 15.4142L12.7071 14.7071L17.7071 9.70711L16.2929 8.29289L13 11.5858V4H18C19.1046 4 20 4.89543 20 6V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V6C4 4.89543 4.89543 4 6 4H11L11 11.5858L7.70711 8.29289L6.29289 9.70711Z' }))
-  const DatabaseSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 -8 72 72', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M36,4.07c-11.85,0-21.46,3.21-21.46,7.19v5.89c0,4,9.61,7.19,21.46,7.19s21.45-3.21,21.45-7.19V11.26C57.46,7.28,47.85,4.07,36,4.07Z' }), React.createElement('path', { fill: 'currentColor', d: 'M36,27.78c-11.32,0-20.64-2.93-21.46-6.66,0,.18,0,9.75,0,9.75,0,4,9.61,7.18,21.46,7.18s21.45-3.21,21.45-7.18c0,0,0-9.57,0-9.75C56.63,24.85,47.32,27.78,36,27.78Z' }), React.createElement('path', { fill: 'currentColor', d: 'M57.44,35c-.82,3.72-10.12,6.66-21.43,6.66S15.37,38.72,14.55,35v9.75c0,4,9.61,7.18,21.46,7.18s21.45-3.21,21.45-7.18Z' }))
-  const CogSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '-15 -15 30 30', width: '24', height: '24' }, React.createElement('path', { fill: 'currentColor', d: 'M-1.4420000314712524,-10.906000137329102 C-1.8949999809265137,-10.847000122070312 -2.1470000743865967,-10.375 -2.078000068664551,-9.92300033569336 C-1.899999976158142,-8.756999969482422 -2.265000104904175,-7.7210001945495605 -3.061000108718872,-7.390999794006348 C-3.8570001125335693,-7.060999870300293 -4.8480000495910645,-7.534999847412109 -5.546000003814697,-8.484999656677246 C-5.816999912261963,-8.852999687194824 -6.329999923706055,-9.008999824523926 -6.691999912261963,-8.730999946594238 C-7.458000183105469,-8.142999649047852 -8.142999649047852,-7.458000183105469 -8.730999946594238,-6.691999912261963 C-9.008999824523926,-6.329999923706055 -8.852999687194824,-5.816999912261963 -8.484999656677246,-5.546000003814697 C-7.534999847412109,-4.8480000495910645 -7.060999870300293,-3.8570001125335693 -7.390999794006348,-3.061000108718872 C-7.7210001945495605,-2.265000104904175 -8.756999969482422,-1.899999976158142 -9.92300033569336,-2.078000068664551 C-10.375,-2.1470000743865967 -10.847000122070312,-1.8949999809265137 -10.906000137329102,-1.4420000314712524 C-10.968000411987305,-0.9700000286102295 -11,-0.48899999260902405 -11,0 C-11,0.48899999260902405 -10.968000411987305,0.9700000286102295 -10.906000137329102,1.4420000314712524 C-10.847000122070312,1.8949999809265137 -10.375,2.1470000743865967 -9.92300033569336,2.078000068664551 C-8.756999969482422,1.899999976158142 -7.7210001945495605,2.265000104904175 -7.390999794006348,3.061000108718872 C-7.060999870300293,3.8570001125335693 -7.534999847412109,4.8470001220703125 -8.484999656677246,5.546000003814697 C-8.852999687194824,5.816999912261963 -9.008999824523926,6.328999996185303 -8.730999946594238,6.691999912261963 C-8.142999649047852,7.458000183105469 -7.458000183105469,8.142999649047852 -6.691999912261963,8.730999946594238 C-6.329999923706055,9.008999824523926 -5.816999912261963,8.852999687194824 -5.546000003814697,8.484999656677246 C-4.8480000495910645,7.534999847412109 -3.8570001125335693,7.060999870300293 -3.061000108718872,7.390999794006348 C-2.265000104904175,7.7210001945495605 -1.899999976158142,8.756999969482422 -2.078000068664551,9.92300033569336 C-2.1470000743865967,10.375 -1.8949999809265137,10.847000122070312 -1.4420000314712524,10.906000137329102 C-0.9700000286102295,10.968000411987305 -0.48899999260902405,11 0,11 C0.48899999260902405,11 0.9700000286102295,10.968000411987305 1.4420000314712524,10.906000137329102 C1.8949999809265137,10.847000122070312 2.1470000743865967,10.375 2.078000068664551,9.92300033569336 C1.899999976158142,8.756999969482422 2.2660000324249268,7.7210001945495605 3.062000036239624,7.390999794006348 C3.8580000400543213,7.060999870300293 4.8480000495910645,7.534999847412109 5.546000003814697,8.484999656677246 C5.816999912261963,8.852999687194824 6.328999996185303,9.008999824523926 6.691999912261963,8.730999946594238 C7.458000183105469,8.142999649047852 8.142999649047852,7.458000183105469 8.730999946594238,6.691999912261963 C9.008999824523926,6.328999996185303 8.852999687194824,5.816999912261963 8.484999656677246,5.546000003814697 C7.534999847412109,4.8480000495910645 7.060999870300293,3.8570001125335693 7.390999794006348,3.061000108718872 C7.7210001945495605,2.265000104904175 8.756999969482422,1.899999976158142 9.92300033569336,2.078000068664551 C10.375,2.1470000743865967 10.847000122070312,1.8949999809265137 10.906000137329102,1.4420000314712524 C10.968000411987305,0.9700000286102295 11,0.48899999260902405 11,0 C11,-0.48899999260902405 10.968000411987305,-0.9700000286102295 10.906000137329102,-1.4420000314712524 C10.847000122070312,-1.8949999809265137 10.375,-2.1470000743865967 9.92300033569336,-2.078000068664551 C8.756999969482422,-1.899999976158142 7.7210001945495605,-2.265000104904175 7.390999794006348,-3.061000108718872 C7.060999870300293,-3.8570001125335693 7.534999847412109,-4.8480000495910645 8.484999656677246,-5.546000003814697 C8.852999687194824,-5.816999912261963 9.008999824523926,-6.329999923706055 8.730999946594238,-6.691999912261963 C8.142999649047852,-7.458000183105469 7.458000183105469,-8.142999649047852 6.691999912261963,-8.730999946594238 C6.328999996185303,-9.008999824523926 5.817999839782715,-8.852999687194824 5.546999931335449,-8.484999656677246 C4.848999977111816,-7.534999847412109 3.8580000400543213,-7.060999870300293 3.062000036239624,-7.390999794006348 C2.2660000324249268,-7.7210001945495605 1.9010000228881836,-8.756999969482422 2.0789999961853027,-9.92300033569336 C2.1480000019073486,-10.375 1.8949999809265137,-10.847000122070312 1.4420000314712524,-10.906000137329102 C0.9700000286102295,-10.968000411987305 0.48899999260902405,-11 0,-11 C-0.48899999260902405,-11 -0.9700000286102295,-10.968000411987305 -1.4420000314712524,-10.906000137329102z M4,0 C4,2.2090001106262207 2.2090001106262207,4 0,4 C-2.2090001106262207,4 -4,2.2090001106262207 -4,0 C-4,-2.2090001106262207 -2.2090001106262207,-4 0,-4 C2.2090001106262207,-4 4,-2.2090001106262207 4,0z' }))
-  const MusicNoteSVG = (props) => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': false, viewBox: '0 0 500 500', width: '16', height: '16', ...props }, React.createElement('path', { fill: 'currentColor', d: 'M328.712,264.539c12.928-21.632,21.504-48.992,23.168-76.064c1.056-17.376-2.816-35.616-11.2-52.768c-13.152-26.944-35.744-42.08-57.568-56.704c-16.288-10.912-31.68-21.216-42.56-35.936l-1.952-2.624c-6.432-8.64-13.696-18.432-14.848-26.656c-1.152-8.32-8.704-14.24-16.96-13.76c-8.384,0.576-14.88,7.52-14.88,15.936v285.12c-13.408-8.128-29.92-13.12-48-13.12c-44.096,0-80,28.704-80,64s35.904,64,80,64s80-28.704,80-64V165.467c24.032,9.184,63.36,32.576,74.176,87.2c-2.016,2.976-3.936,6.176-6.176,8.736c-5.856,6.624-5.216,16.736,1.44,22.56c6.592,5.888,16.704,5.184,22.56-1.44c4.288-4.864,8.096-10.56,11.744-16.512C328.04,265.563,328.393,265.083,328.712,264.539z' }))
-  const MiniFileSVG = (props) => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': false, viewBox: '-32 0 512 512', width: '16', height: '16', ...props }, React.createElement('path', { fill: 'currentColor', d: 'M96 448Q81 448 73 440 64 431 64 416L64 96Q64 81 73 73 81 64 96 64L217 64Q240 64 256 80L368 192Q384 208 384 231L384 416Q384 431 376 440 367 448 352 448L96 448ZM336 400L336 240 208 240 208 112 112 112 112 400 336 400Z' }))
-  const RefreshSVG = () => React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 24 24', width: '24', height: '24' }, React.createElement('path', { fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', d: 'M3 12C3 16.9706 7.02944 21 12 21C14.3051 21 16.4077 20.1334 18 18.7083L21 16M21 12C21 7.02944 16.9706 3 12 3C9.69494 3 7.59227 3.86656 6 5.29168L3 8M21 21V16M21 16H16M3 3V8M3 8H8' }))
-  const ColorDot = props => React.createElement('div', { className: classes.roleCircle + ' fm-colorDot', style: { 'background-color': props.color || DEFAULT_BACKGROUND_COLOR } })
+const plugin = BdApi.Plugins.get('FavoriteMedia')
 
-  const RestAPI = Webpack.getModules(m => Object.keys(m).some(key => Object.prototype.hasOwnProperty.call(m[key] ?? {}, 'post')))?.slice(-1)?.[0]?.Z
+class FMDB {
+  static DB_NAME = 'FavoriteMedia'
+  static STORE_NAME = 'FMCache'
 
-  const intlCodeToHash = {
-    GIF_TOOLTIP_ADD_TO_FAVORITES: '4wcdEx',
-    GIF_TOOLTIP_REMOVE_FROM_FAVORITES: '4VpUw8',
-    NO_GIF_FAVORITES_HOW_TO_FAVORITE: '3gyw4e',
-    EDIT: 'bt75u7',
-    GIF: 'I5gL2N',
-    DOWNLOAD: '1WjMbG',
-    USER_POPOUT_MESSAGE: 'GuUH7+',
-    COPY_MEDIA_LINK: '92CPQ0',
-    COPY_MESSAGE_LINK: 'Xrt5Pj',
-  }
-  const allTypes = ['image', 'video', 'audio', 'file']
-  const mediasCache = {}
-
-  function getMediaFromCache (key) {
-    if (!plugin.instance.settings.allowCaching) return key
-    return mediasCache[key] ?? key
-  }
-
-  function getUrlName (url) {
-    // tenor case, otherwise it would always return 'tenor'
-    if (url.startsWith('https://tenor.com/view/') || url.startsWith('https://media.tenor.com/view/')) return url.match(/view\/(.*)-gif-/)?.[1]
-    return url.replace(/(\.|\/)([^./]*)$/gm, '').split('/').pop()
-  }
-
-  function getUrlExt (url, type) {
-    const ext = url.match(/\.([0-9a-z]+)(?=[?#])|(\.)(?:[\w]+)$/gmi)?.[0]
-    if (ext != null) return ext
-    return {
-      image: '.png',
-      video: '.mp4',
-      audio: '.mp3',
-      gif: '.gif',
-    }[type] ?? ''
-  }
-
-  function cleanUrl (url) {
-    if (url == null) return
-    try {
-      const urlObj = new URL(url)
-      urlObj.searchParams.delete('width')
-      urlObj.searchParams.delete('height')
-      urlObj.searchParams.delete('quality')
-      urlObj.searchParams.delete('format')
-      urlObj.searchParams.delete('')
-      // force cdn link because on PC media link videos can't be played
-      return urlObj.toString().replace('media.discordapp.net', 'cdn.discordapp.com')
-    } catch {
-      return url
-    }
-  }
-
-  function removeProxyUrl (url) {
-    const tmpUrl = url?.split('https/')[1]
-    if (tmpUrl == null) return url
-    return 'https://' + tmpUrl
-  }
-
-  async function sendInTextarea (clear = false) {
+  async open () {
+    const openRequest = window.indexedDB.open(FMDB.DB_NAME, 4)
     return await new Promise((resolve, reject) => {
-      try {
-        const enterEvent = new window.KeyboardEvent('keydown', { charCode: 13, keyCode: 13, bubbles: true })
-        setTimeout(() => {
-          currentTextareaInput?.dispatchEvent(enterEvent)
-          if (clear) ComponentDispatch.dispatchToLastSubscribed('CLEAR_TEXT')
-          resolve()
-        })
-      } catch (error) {
-        reject(error)
+      openRequest.onerror = () => { reject(new Error(`Error loading database: ${FMDB.DB_NAME}`)) }
+      openRequest.onsuccess = () => { resolve(openRequest.result) }
+      openRequest.onupgradeneeded = () => {
+        openRequest.result.onerror = () => { reject(new Error(`Error loading database: ${FMDB.DB_NAME}`)) }
+        const request = openRequest.result.createObjectStore(FMDB.STORE_NAME)
+        request.transaction.oncomplete = () => { resolve(openRequest.result) }
       }
     })
   }
 
-  function uploadFile (type, buffer, media) {
-    // if the textarea has not been patched, file uploading will fail
-    if (currentTextareaInput == null || !document.body.contains(currentTextareaInput)) return console.error(`[${config.name}]`, 'Could not find current textarea, upload file canceled.')
-
-    const isGIF = type === 'gif'
-    const ext = getUrlExt(media.url, type)
-    const fileName = `${isGIF ? getUrlName(media.url).replace(/ /g, '_') : media.name}${ext}`
-    const mime = `${isGIF ? 'image' : type}/${ext.slice(1)}`
-    const file = new File([buffer], fileName, { type: mime })
-    FilesUpload.addFiles({
-      channelId: currentChannelId,
-      draftType: 0,
-      files: [{ file, platform: 1 }],
-      showLargeMessageDialog: false,
-    })
-  }
-
-  async function fetchMedia (media) {
-    media = structuredClone(media)
-
-    let mediaBuffer = await fmdb.get(media.url)
-    if (mediaBuffer != null) return new Uint8Array(mediaBuffer)
-
-    const fetchUrl = (media.url.startsWith('//') ? 'https:' : '') + media.url
-    mediaBuffer = await Net.fetch(fetchUrl).then((r) => r.arrayBuffer())
-    const td = new TextDecoder('utf-8')
-    // no longer cached on Discord CDN
-    if (td.decode(mediaBuffer.slice(0, 5)) === '<?xml') throw new Error('Media no longer cached on the server')
-    // tenor GIF case
-    if (media.url.startsWith('https://tenor.com/view/')) {
-      if (td.decode(mediaBuffer.slice(0, 15)) === '<!DOCTYPE html>') {
-        const url = td.decode(mediaBuffer).match(/src="(https:\/\/media([^.]*)\.tenor\.com\/[^"]*)"/)?.[1]
-        if (url == null) throw new Error('GIF no longer exists on tenor')
-        media.url = url
-        media.name = url.match(/view\/(.*)-gif-/)?.[1]
-        mediaBuffer = await Net.fetch(media.url).then((r) => r.arrayBuffer())
-      }
-    }
-
-    // not resolving external link
-    if (td.decode(mediaBuffer.slice(0, 15)) === '<!DOCTYPE html>') return null
-
-    return new Uint8Array(mediaBuffer)
-  }
-
-  function findTextareaInput ($button = document.getElementsByClassName(classes.textarea.buttonContainer).item(0)) {
-    return $button?.closest(`.${classes.textarea.channelTextArea}`)?.querySelector('[role="textbox"]')
-  }
-
-  function findSpoilerButton () {
-    return currentTextareaInput?.closest(`.${classes.textarea.channelTextArea}`)?.querySelector(`.${classes.upload.actionBarContainer} [role="button"]:first-child`)
-  }
-
-  function findMessageIds ($target) {
-    if ($target == null) return [null, null]
-    const ids = $target.closest('[id^="chat-messages-"]')?.getAttribute('id').split('-')?.slice(2)
-    if (ids == null) return [null, null]
-    return ids
-  }
-
-  function findMessageLink ($target) {
-    if ($target == null) return
-    try {
-      const [channelId, messageId] = findMessageIds($target)
-      const guildId = window.location.href.match(/channels\/(\d+)/)?.[1]
-      return `${window.location.origin}/channels/${guildId}/${channelId}/${messageId}`
-    } catch (error) {
-      console.error(`[${config.name}]`, error)
-    }
-  }
-
-  function findSourceLink ($target, url) {
-    if ($target == null) return
-    try {
-      const [channelId, messageId] = findMessageIds($target)
-      const fields = ['image', 'thumbnail', 'video']
-      const embed = MessageStore.getMessage(channelId, messageId)?.embeds?.find((e) => {
-        if (e.type !== 'link') return false
-        return fields.some((f) => e[f]?.url?.startsWith(url) || e[f]?.proxyURL?.startsWith(url))
-      })
-      if (embed == null) return
-      return embed.url
-    } catch (error) {
-      console.error(`[${config.name}]`, error)
-    }
-  }
-
-  async function getMediaDimensions (props) {
-    if (props.width > 0 && props.height > 0) return { width: props.width, height: props.height }
-
-    const dimensions = { width: 0, height: 0 }
-    const $target = props.target?.current?.parentElement?.querySelector('img, video')
-    if ($target == null) return dimensions
-
-    const src = cleanUrl($target.src)
-    if (src == null) return dimensions
-    return new Promise((resolve) => {
-      if ($target.tagName === 'VIDEO') {
-        const $vid = document.createElement('video')
-        $vid.preload = 'metadata'
-        $vid.addEventListener('loadedmetadata', (e) => {
-          dimensions.width = e.target.videoWidth
-          dimensions.height = e.target.videoHeight
-          resolve(dimensions)
-        })
-        $vid.src = src
-      } else if ($target.tagName === 'IMG') {
-        const $img = document.createElement('img')
-        $img.addEventListener('load', () => {
-          dimensions.width = $img.width
-          dimensions.height = $img.height
-          resolve(dimensions)
-        })
-        $img.src = src
-      }
-    })
-  }
-
-  function getDiscordIntl (key) {
-    return DiscordIntl?.intl?.format(DiscordIntl.t[intlCodeToHash[key]]) ?? key
-  }
-
-  function loadModules () {
-    loadEPS()
-    loadChannelTextAreaButtons()
-  }
-
-  function loadEPS () {
-    if (EPSModules == null) {
-      console.warn(`[${config.name}]`, 'Failed to load module ExpressionPickerStore')
-      return
-    }
-
-    Object.entries(EPSModules).forEach(([key, fn]) => {
-      const code = String(fn)
-      if (fn.getState && fn.setState) {
-        EPS.useExpressionPickerStore = fn
-      } else if (code.includes('activeView===')) {
-        EPS.toggleExpressionPicker = fn
-      } else if (code.includes('activeView:null')) {
-        EPS.closeExpressionPicker = fn
-        closeExpressionPickerKey = key
-      }
-    })
-  }
-
-  // https://github.com/Strencher/BetterDiscordStuff/blob/master/InvisibleTyping/InvisibleTyping.plugin.js#L483-L494
-  function loadChannelTextAreaButtons () {
-    const vnode = ReactTools.getReactInstance(document.querySelector(`.${classes.buttons.buttons}`))
-    if (!vnode) return
-    for (let curr = vnode, max = 100; curr !== null && max--; curr = curr.return) {
-      const tree = curr?.pendingProps?.children
-      let buttons
-      if (Array.isArray(tree) && (buttons = tree.find(s => s?.props?.type && s.props.channel && s.type?.$$typeof))) {
-        ChannelTextAreaButtons = buttons.type
-        return
-      }
-    }
-  }
-
-  const FMDB = class {
-    static DB_NAME = config.name
-    static STORE_NAME = 'FMCache'
-
-    async open () {
-      const openRequest = window.indexedDB.open(FMDB.DB_NAME, 4)
-      return await new Promise((resolve, reject) => {
-        openRequest.onerror = () => { reject(new Error(`Error loading database: ${FMDB.DB_NAME}`)) }
-        openRequest.onsuccess = () => { resolve(openRequest.result) }
-        openRequest.onupgradeneeded = () => {
-          openRequest.result.onerror = () => { reject(new Error(`Error loading database: ${FMDB.DB_NAME}`)) }
-          const request = openRequest.result.createObjectStore(FMDB.STORE_NAME)
-          request.transaction.oncomplete = () => { resolve(openRequest.result) }
-        }
-      })
-    }
-
-    async get (key) {
-      const db = await this.open()
-      let data
-      return await new Promise((resolve) => {
-        const transaction = db.transaction(FMDB.STORE_NAME)
-        const objectStore = transaction.objectStore(FMDB.STORE_NAME)
-        const request = objectStore.get(key)
-        request.onerror = () => { throw new Error(request.error?.message) }
-        request.onsuccess = () => { data = request.result }
-        transaction.onabort = () => { throw new Error(transaction.error?.message) }
-        transaction.oncomplete = () => {
-          db.close()
-          resolve(data)
-        }
-      })
-    }
-
-    async getAll () {
-      const db = await this.open()
-      let data
-      return await new Promise((resolve) => {
-        const transaction = db.transaction(FMDB.STORE_NAME)
-        const objectStore = transaction.objectStore(FMDB.STORE_NAME)
-        const request = objectStore.getAll()
-        request.onerror = () => { throw new Error(request.error?.message) }
-        request.onsuccess = () => { data = request.result }
-        transaction.onabort = () => { throw new Error(transaction.error?.message) }
-        transaction.oncomplete = () => {
-          db.close()
-          resolve(data)
-        }
-      })
-    }
-
-    async getKeys () {
-      const db = await this.open()
-      let data
-      return await new Promise((resolve) => {
-        const transaction = db.transaction(FMDB.STORE_NAME)
-        const objectStore = transaction.objectStore(FMDB.STORE_NAME)
-        const request = objectStore.getAllKeys()
-        request.onerror = () => { throw new Error(request.error?.message) }
-        request.onsuccess = () => { data = request.result }
-        transaction.onabort = () => { throw new Error(transaction.error?.message) }
-        transaction.oncomplete = () => {
-          db.close()
-          resolve(data)
-        }
-      })
-    }
-
-    async set (key, data) {
-      if (data == null) throw new Error('Data is null')
-      const db = await this.open()
-      const transaction = db.transaction(FMDB.STORE_NAME, 'readwrite')
+  async get (key) {
+    const db = await this.open()
+    let data
+    return await new Promise((resolve) => {
+      const transaction = db.transaction(FMDB.STORE_NAME)
       const objectStore = transaction.objectStore(FMDB.STORE_NAME)
-      objectStore.put(data, key)
+      const request = objectStore.get(key)
+      request.onerror = () => { throw new Error(request.error?.message) }
+      request.onsuccess = () => { data = request.result }
       transaction.onabort = () => { throw new Error(transaction.error?.message) }
-      transaction.oncomplete = () => { db.close() }
-    }
+      transaction.oncomplete = () => {
+        db.close()
+        resolve(data)
+      }
+    })
+  }
 
-    async delete (key) {
-      const db = await this.open()
-      const transaction = db.transaction(FMDB.STORE_NAME, 'readwrite')
+  async getAll () {
+    const db = await this.open()
+    let data
+    return await new Promise((resolve) => {
+      const transaction = db.transaction(FMDB.STORE_NAME)
       const objectStore = transaction.objectStore(FMDB.STORE_NAME)
-      objectStore.delete(key)
+      const request = objectStore.getAll()
+      request.onerror = () => { throw new Error(request.error?.message) }
+      request.onsuccess = () => { data = request.result }
       transaction.onabort = () => { throw new Error(transaction.error?.message) }
-      transaction.oncomplete = () => { db.close() }
-    }
+      transaction.oncomplete = () => {
+        db.close()
+        resolve(data)
+      }
+    })
+  }
 
-    async clear () {
-      await new Promise((resolve, reject) => {
-        const deleteRequest = window.indexedDB.deleteDatabase(FMDB.DB_NAME)
-        deleteRequest.onerror = () => { reject(new Error(`Error deleting database: ${FMDB.DB_NAME}`)) }
-        deleteRequest.onsuccess = () => { resolve() }
-      })
-    }
+  async getKeys () {
+    const db = await this.open()
+    let data
+    return await new Promise((resolve) => {
+      const transaction = db.transaction(FMDB.STORE_NAME)
+      const objectStore = transaction.objectStore(FMDB.STORE_NAME)
+      const request = objectStore.getAllKeys()
+      request.onerror = () => { throw new Error(request.error?.message) }
+      request.onsuccess = () => { data = request.result }
+      transaction.onabort = () => { throw new Error(transaction.error?.message) }
+      transaction.oncomplete = () => {
+        db.close()
+        resolve(data)
+      }
+    })
+  }
 
-    async cache (url) {
-      const data = await this.get(url)
-      if (data != null) return
+  async set (key, data) {
+    if (data == null) throw new Error('Data is null')
+    const db = await this.open()
+    const transaction = db.transaction(FMDB.STORE_NAME, 'readwrite')
+    const objectStore = transaction.objectStore(FMDB.STORE_NAME)
+    objectStore.put(data, key)
+    transaction.onabort = () => { throw new Error(transaction.error?.message) }
+    transaction.oncomplete = () => { db.close() }
+  }
 
-      const buf = await fetchMedia({ url })
-      if (buf == null) return
+  async delete (key) {
+    const db = await this.open()
+    const transaction = db.transaction(FMDB.STORE_NAME, 'readwrite')
+    const objectStore = transaction.objectStore(FMDB.STORE_NAME)
+    objectStore.delete(key)
+    transaction.onabort = () => { throw new Error(transaction.error?.message) }
+    transaction.oncomplete = () => { db.close() }
+  }
 
-      await this.set(url, buf)
-      const blob = new Blob([buf])
-      mediasCache[url] = URL.createObjectURL(blob)
-    }
+  async clear () {
+    await new Promise((resolve, reject) => {
+      const deleteRequest = window.indexedDB.deleteDatabase(FMDB.DB_NAME)
+      deleteRequest.onerror = () => { reject(new Error(`Error deleting database: ${FMDB.DB_NAME}`)) }
+      deleteRequest.onsuccess = () => { resolve() }
+    })
+  }
 
-    static sizeOf (bytes) {
-      if (bytes === 0) return '0.00 B'
-      const e = Math.floor(Math.log(bytes) / Math.log(1024))
-      return (bytes / Math.pow(1024, e)).toFixed(2) + ' ' + ' KMGTP'.charAt(e) + 'B'
+  async cache (url) {
+    const data = await this.get(url)
+    if (data != null) return
+
+    const buf = await fetchMedia({ url })
+    if (buf == null) return
+
+    await this.set(url, buf)
+    const blob = new Blob([buf])
+    mediasCache[url] = URL.createObjectURL(blob)
+  }
+
+  static sizeOf (bytes) {
+    if (bytes === 0) return '0.00 B'
+    const e = Math.floor(Math.log(bytes) / Math.log(1024))
+    return (bytes / Math.pow(1024, e)).toFixed(2) + ' ' + ' KMGTP'.charAt(e) + 'B'
+  }
+}
+
+const mediasCache = {}
+const fmdb = new FMDB()
+
+class MediaMenuItemInput extends BdApi.React.Component {
+  componentDidMount () {
+    const media = BdApi.Data.load(plugin.name, this.props.type, { medias: [] }).medias[this.props.id]
+    this.refs.inputName.value = media.name || ''
+    this.refs.inputName.onkeydown = (e) => {
+      // allow space input
+      if (e.key === ' ') {
+        const cursor = e.target.selectionStart
+        this.refs.inputName.value = this.refs.inputName.value.slice(0, cursor) + ' ' + this.refs.inputName.value.slice(cursor)
+        this.refs.inputName.setSelectionRange(cursor + 1, cursor + 1)
+      }
+      e.stopPropagation()
     }
   }
 
-  const fmdb = new FMDB()
+  componentWillUnmount () {
+    const name = this.refs.inputName.value
+    if (!name || name === '') return
+    const typeData = BdApi.Data.load(plugin.name, this.props.type, { medias: [] })
+    if (!typeData.medias.length) return
+    if (!typeData.medias[this.props.id]) return
+    typeData.medias[this.props.id].name = name
+    BdApi.Data.save(plugin.name, this.props.type, typeData)
+    this.props.loadMedias()
+  }
 
-  const MediaMenuItemInput = class extends React.Component {
-    componentDidMount () {
-      const media = Utilities.loadData(config.name, this.props.type, { medias: [] }).medias[this.props.id]
-      this.refs.inputName.value = media.name || ''
-      this.refs.inputName.onkeydown = (e) => {
-        // allow space input
-        if (e.key === ' ') {
-          const cursor = e.target.selectionStart
-          this.refs.inputName.value = this.refs.inputName.value.slice(0, cursor) + ' ' + this.refs.inputName.value.slice(cursor)
-          this.refs.inputName.setSelectionRange(cursor + 1, cursor + 1)
-        }
-        e.stopPropagation()
-      }
-    }
+  render () {
+    return BdApi.React.createElement('div', {
+      className: `${classes.menu.item} ${classes.menu.labelContainer}`,
+      role: 'menuitem',
+      id: 'media-input',
+      tabindex: '-1',
+    },
+    BdApi.React.createElement('input', {
+      className: classes.input.inputDefault,
+      name: 'media-name',
+      type: 'text',
+      placeholder: plugin.instance.strings.media.placeholder[this.props.type],
+      maxlength: '40',
+      ref: 'inputName',
+    })
+    )
+  }
+}
 
-    componentWillUnmount () {
-      const name = this.refs.inputName.value
-      if (!name || name === '') return
-      const typeData = Utilities.loadData(config.name, this.props.type, { medias: [] })
-      if (!typeData.medias.length) return
-      if (!typeData.medias[this.props.id]) return
-      typeData.medias[this.props.id].name = name
-      Utilities.saveData(config.name, this.props.type, typeData)
-      this.props.loadMedias()
-    }
+class CategoryMenuItem extends BdApi.React.Component {
+  constructor (props) {
+    super(props)
 
-    render () {
-      return React.createElement('div', {
-        className: `${classes.menu.item} ${classes.menu.labelContainer}`,
-        role: 'menuitem',
-        id: 'media-input',
-        tabindex: '-1',
-      },
-      React.createElement('input', {
-        className: classes.input.inputDefault,
-        name: 'media-name',
-        type: 'text',
-        placeholder: plugin.instance.strings.media.placeholder[this.props.type],
-        maxlength: '40',
-        ref: 'inputName',
-      })
-      )
+    this.state = {
+      focused: false,
     }
   }
 
-  const CategoryMenuItem = class extends React.Component {
-    constructor (props) {
-      super(props)
+  render () {
+    return BdApi.React.createElement('div', {
+      className: `${classes.menu.item} ${classes.menu.labelContainer} ${classes.menu.colorDefault}${this.state.focused ? ` ${classes.menu.focused}` : ''}`,
+      role: 'menuitem',
+      id: `${this.props.name}-${this.props.key}`,
+      tabindex: '-1',
+      onMouseOver: () => this.setState({ focused: true }),
+      onMouseOut: () => this.setState({ focused: false }),
+    },
+    BdApi.React.createElement('div', { className: classes.roleCircle + ' fm-colorDot', style: { 'background-color': this.props.color || DEFAULT_BACKGROUND_COLOR } }),
+    BdApi.React.createElement('div', { className: classes.menu.label }, this.props.name)
+    )
+  }
+}
 
-      this.state = {
-        focused: false,
-      }
+class MediaFavButton extends BdApi.React.Component {
+  constructor (props) {
+    super(props)
+
+    this.state = {
+      favorited: this.isFavorited,
+      pulse: false,
     }
 
-    render () {
-      return React.createElement('div', {
-        className: `${classes.menu.item} ${classes.menu.labelContainer} ${classes.menu.colorDefault}${this.state.focused ? ` ${classes.menu.focused}` : ''}`,
-        role: 'menuitem',
-        id: `${this.props.name}-${this.props.key}`,
-        tabindex: '-1',
-        onMouseOver: () => this.setState({ focused: true }),
-        onMouseOut: () => this.setState({ focused: false }),
-      },
-      React.createElement(ColorDot, { color: this.props.color }),
-      React.createElement('div', { className: classes.menu.label }, this.props.name)
-      )
+    this.updateFavorite = this.updateFavorite.bind(this)
+    this.changeFavorite = this.changeFavorite.bind(this)
+    this.favButton = this.favButton.bind(this)
+  }
+
+  componentDidMount () {
+    this.tooltipFav = BdApi.UI.createTooltip(this.refs.tooltipFav, this.isFavorited ? getDiscordIntl('GIF_TOOLTIP_REMOVE_FROM_FAVORITES') : getDiscordIntl('GIF_TOOLTIP_ADD_TO_FAVORITES'), { style: 'primary' })
+    Dispatcher.subscribe('FM_FAVORITE_MEDIA', this.updateFavorite)
+  }
+
+  componentWillUnmount () {
+    Dispatcher.unsubscribe('FM_FAVORITE_MEDIA', this.updateFavorite)
+  }
+
+  get isFavorited () {
+    if (!this.props.url) return false
+    return BdApi.Data.load(plugin.name, this.props.type, { medias: [] }).medias.find(e => MediaFavButton.checkSameUrl(e.url, this.props.url)) !== undefined
+  }
+
+  static checkSameUrl (url1, url2) {
+    return url1 === url2 || url1.split('?')[0] === url2.split('?')[0]
+  }
+
+  static getThumbnail (type, media) {
+    switch (type) {
+      case 'video': return media.poster
+      case 'gif': return media.src
+      case 'image': return media.url
+      default: return null
     }
   }
 
-  const MediaFavButton = class extends React.Component {
-    constructor (props) {
-      super(props)
-
-      this.state = {
-        favorited: this.isFavorited,
-        pulse: false,
-      }
-
-      this.updateFavorite = this.updateFavorite.bind(this)
-      this.changeFavorite = this.changeFavorite.bind(this)
-      this.favButton = this.favButton.bind(this)
-    }
-
-    componentDidMount () {
-      this.tooltipFav = createTooltip(this.refs.tooltipFav, this.isFavorited ? getDiscordIntl('GIF_TOOLTIP_REMOVE_FROM_FAVORITES') : getDiscordIntl('GIF_TOOLTIP_ADD_TO_FAVORITES'), { style: 'primary' })
-      Dispatcher.subscribe('FM_FAVORITE_MEDIA', this.updateFavorite)
-    }
-
-    componentWillUnmount () {
-      Dispatcher.unsubscribe('FM_FAVORITE_MEDIA', this.updateFavorite)
-    }
-
-    get isFavorited () {
-      if (!this.props.url) return false
-      return Utilities.loadData(config.name, this.props.type, { medias: [] }).medias.find(e => MediaFavButton.checkSameUrl(e.url, this.props.url)) !== undefined
-    }
-
-    static checkSameUrl (url1, url2) {
-      return url1 === url2 || url1.split('?')[0] === url2.split('?')[0]
-    }
-
-    static getThumbnail (type, media) {
-      switch (type) {
-        case 'video': return media.poster
-        case 'gif': return media.src
-        case 'image': return media.url
-        default: return null
-      }
-    }
-
-    static hasPreview (type) {
-      return !['audio', 'file'].includes(type)
-    }
-
-    static isPlayable (type) {
-      return ['video', 'audio'].includes(type)
-    }
-
-    updateFavorite (data) {
-      if (this.props.fromPicker) return
-      if (!MediaFavButton.checkSameUrl(data.url, this.props.url)) return
-      const fav = this.isFavorited
-      this.setState({ favorited: fav })
-      this.tooltipFav.label = fav ? getDiscordIntl('GIF_TOOLTIP_REMOVE_FROM_FAVORITES') : getDiscordIntl('GIF_TOOLTIP_ADD_TO_FAVORITES')
-    }
-
-    async changeFavorite () {
-      const switchFavorite = this.state.favorited ? MediaFavButton.unfavoriteMedia : MediaFavButton.favoriteMedia
-      switchFavorite(this.props).then((props) => {
-        if (!props.fromPicker) this.setState({ favorited: this.isFavorited })
-        Dispatcher.dispatch({ type: 'FM_FAVORITE_MEDIA', url: props.url })
-        if (props.fromPicker) return
-        this.tooltipFav.label = this.state.favorited ? getDiscordIntl('GIF_TOOLTIP_ADD_TO_FAVORITES') : getDiscordIntl('GIF_TOOLTIP_REMOVE_FROM_FAVORITES')
-        this.tooltipFav.hide()
-        this.tooltipFav.show()
-        this.setState({ pulse: true })
-        setTimeout(() => {
-          this.setState({ pulse: false })
-        }, 200)
-      }).catch((err) => {
-        console.error(`[${config.name}]`, err.message ?? err)
-      })
-    }
-
-    static async getMediaDataFromProps (props) {
-      const dimensions = await getMediaDimensions(props)
-
-      if (!['audio', 'file'].includes(props.type) && (dimensions.width === 0 || dimensions.height === 0)) {
-        throw new Error('Could not fetch media dimensions')
-      }
-
-      switch (props.type) {
-        case 'gif':
-          return {
-            url: props.url,
-            src: props.src,
-            width: props.width || dimensions.width,
-            height: props.height || dimensions.height,
-            name: getUrlName(props.url),
-            message: props.message,
-            source: props.source,
-          }
-
-        case 'video':
-          return {
-            url: props.url,
-            poster: props.poster,
-            width: dimensions.width,
-            height: dimensions.height,
-            name: getUrlName(props.url),
-            message: props.message,
-            source: props.source,
-          }
-
-        case 'audio':
-          return {
-            url: props.url,
-            name: getUrlName(props.url),
-            ext: getUrlExt(props.url, 'audio'),
-            message: props.message,
-            source: props.source,
-          }
-
-        case 'file':
-          return {
-            url: props.url,
-            name: getUrlName(props.url),
-            message: props.message,
-            source: props.source,
-          }
-
-        default: // image
-          return {
-            url: props.url,
-            width: dimensions.width,
-            height: dimensions.height,
-            name: getUrlName(props.url),
-            message: props.message,
-            source: props.source,
-          }
-      }
-    }
-
-    static async favoriteMedia (props) {
-      // get message and source links
-      const $target = props.target?.current
-      if ($target != null) {
-        props.message = findMessageLink($target)
-        props.source = findSourceLink($target, props.url)
-      }
-      const typeData = Utilities.loadData(config.name, props.type, { medias: [] })
-      if (typeData.medias.find(m => MediaFavButton.checkSameUrl(m.url, props.url))) return
-      const data = await MediaFavButton.getMediaDataFromProps(props)
-      if (props.type === 'gif') await MediaFavButton.favoriteGIF(data)
-      typeData.medias.push(data)
-      Utilities.saveData(config.name, props.type, typeData)
-      if (plugin.instance.settings.allowCaching) MediaFavButton.cacheMedia(data.url)
-      return props
-    }
-
-    static async unfavoriteMedia (props) {
-      const typeData = Utilities.loadData(config.name, props.type, { medias: [], categories: [] })
-      if (!typeData.medias.length) return
-      typeData.medias = typeData.medias.filter(e => !MediaFavButton.checkSameUrl(e.url, props.url))
-      if (props.type === 'gif') await MediaFavButton.unfavoriteGIF(props)
-      typeData.categories.forEach((c) => {
-        if (c.thumbnail === MediaFavButton.getThumbnail(props.type, props)) {
-          c.thumbnail = undefined
-        }
-      })
-      Utilities.saveData(config.name, props.type, typeData)
-      if (props.fromPicker) Dispatcher.dispatch({ type: 'FM_UPDATE_MEDIAS' })
-      if (plugin.instance.settings.allowCaching) MediaFavButton.uncacheMedia(props.url)
-      return props
-    }
-
-    static async favoriteGIF (props) {
-      GIFUtils.favorite({
-        format: 2,
-        url: props.url,
-        src: props.src,
-        order: props.order,
-        width: props.width,
-        height: props.height,
-      })
-    }
-
-    static async unfavoriteGIF (props) {
-      GIFUtils.unfavorite(props.url)
-    }
-
-    static async cacheMedia (url) {
-      await fmdb.cache(url).then(() => {
-        console.info(`[${config.name}]`, 'Successfully cached media:', url)
-      }).catch((err) => {
-        console.warn(`[${config.name}]`, `Failed to cache media (${err.message ?? err}):`, url)
-      })
-    }
-
-    static async uncacheMedia (url) {
-      await fmdb.delete(url).then(() => {
-        console.info(`[${config.name}]`, 'Successfully uncached media:', url)
-      }).catch((err) => {
-        console.warn(`[${config.name}]`, `Failed to uncache media (${err.message ?? err}):`, url)
-      })
-    }
-
-    favButton () {
-      return React.createElement('div', {
-        className: `${this.props.fromPicker ? classes.result.favButton : classes.gif.gifFavoriteButton1} ${classes.gif.size} ${classes.gif.gifFavoriteButton2}${this.state.favorited ? ` ${classes.gif.selected}` : ''}${this.state.pulse ? ` ${classes.gif.showPulse}` : ''}`,
-        tabindex: '-1',
-        role: 'button',
-        ref: 'tooltipFav',
-        onClick: this.changeFavorite,
-      },
-      React.createElement(StarSVG, {
-        filled: this.state.favorited,
-      })
-      )
-    }
-
-    render () {
-      return this.props.fromPicker
-        ? this.favButton()
-        : React.createElement('div', {
-          className: `${classes.image.imageAccessory} ${classes.image.clickable} fm-favBtn fm-${this.props.type}${this.props.uploaded ? ' fm-uploaded' : ''}`,
-        }, this.favButton())
-    }
+  static hasPreview (type) {
+    return !['audio', 'file'].includes(type)
   }
 
-  const StarSVG = class extends React.Component {
-    render () {
-      return React.createElement('svg', {
-        className: classes.gif.icon,
-        'aria-hidden': 'false',
-        viewBox: '0 0 24 24',
-        width: '16',
-        height: '16',
-      },
-      this.props.filled
-        ? React.createElement('path', { fill: 'currentColor', d: 'M12.5,17.6l3.6,2.2a1,1,0,0,0,1.5-1.1l-1-4.1a1,1,0,0,1,.3-1l3.2-2.8A1,1,0,0,0,19.5,9l-4.2-.4a.87.87,0,0,1-.8-.6L12.9,4.1a1.05,1.05,0,0,0-1.9,0l-1.6,4a1,1,0,0,1-.8.6L4.4,9a1.06,1.06,0,0,0-.6,1.8L7,13.6a.91.91,0,0,1,.3,1l-1,4.1a1,1,0,0,0,1.5,1.1l3.6-2.2A1.08,1.08,0,0,1,12.5,17.6Z' })
-        : React.createElement('path', { fill: 'currentColor', d: 'M19.6,9l-4.2-0.4c-0.4,0-0.7-0.3-0.8-0.6l-1.6-3.9c-0.3-0.8-1.5-0.8-1.8,0L9.4,8.1C9.3,8.4,9,8.6,8.6,8.7L4.4,9 c-0.9,0.1-1.2,1.2-0.6,1.8L7,13.6c0.3,0.2,0.4,0.6,0.3,1l-1,4.1c-0.2,0.9,0.7,1.5,1.5,1.1l3.6-2.2c0.3-0.2,0.7-0.2,1,0l3.6,2.2 c0.8,0.5,1.7-0.2,1.5-1.1l-1-4.1c-0.1-0.4,0-0.7,0.3-1l3.2-2.8C20.9,10.2,20.5,9.1,19.6,9z M12,15.4l-3.8,2.3l1-4.3l-3.3-2.9 l4.4-0.4l1.7-4l1.7,4l4.4,0.4l-3.3,2.9l1,4.3L12,15.4z' })
-      )
-    }
+  static isPlayable (type) {
+    return ['video', 'audio'].includes(type)
   }
 
-  const ColorPicker = class extends React.Component {
-    componentDidMount () {
-      this.refs.inputColor.value = this.props.color || DEFAULT_BACKGROUND_COLOR
-      this.props.setRef(this.refs.inputColor)
-      this.refs.inputColor.parentNode.style['background-color'] = this.refs.inputColor.value
-    }
-
-    render () {
-      return React.createElement('div', {
-        className: 'category-input-color',
-        style: { width: '48px', height: '48px', 'margin-top': '8px', 'border-radius': '100%' },
-      },
-      React.createElement('input', {
-        type: 'color',
-        id: 'category-input-color',
-        name: 'category-input-color',
-        ref: 'inputColor',
-        onChange: e => { e.target.parentNode.style['background-color'] = e.target.value },
-      })
-      )
-    }
+  updateFavorite (data) {
+    if (this.props.fromPicker) return
+    if (!MediaFavButton.checkSameUrl(data.url, this.props.url)) return
+    const fav = this.isFavorited
+    this.setState({ favorited: fav })
+    this.tooltipFav.label = fav ? getDiscordIntl('GIF_TOOLTIP_REMOVE_FROM_FAVORITES') : getDiscordIntl('GIF_TOOLTIP_ADD_TO_FAVORITES')
   }
 
-  const EmptyFavorites = class extends React.Component {
-    render () {
-      return React.createElement('div', {
-        className: classes.result.emptyHints,
-      },
-      React.createElement('div', {
-        className: classes.result.emptyHint,
-      },
-      React.createElement('div', {
-        className: classes.result.emptyHintCard,
-      },
-      React.createElement('svg', {
-        className: classes.result.emptyHintFavorite,
-        'aria-hidden': 'false',
-        viewBox: '0 0 24 24',
-        width: '16',
-        height: '16',
-      },
-      React.createElement('path', {
-        d: 'M0,0H24V24H0Z',
-        fill: 'none',
-      }),
-      React.createElement('path', {
-        fill: 'currentColor',
-        d: 'M12.5,17.6l3.6,2.2a1,1,0,0,0,1.5-1.1l-1-4.1a1,1,0,0,1,.3-1l3.2-2.8A1,1,0,0,0,19.5,9l-4.2-.4a.87.87,0,0,1-.8-.6L12.9,4.1a1.05,1.05,0,0,0-1.9,0l-1.6,4a1,1,0,0,1-.8.6L4.4,9a1.06,1.06,0,0,0-.6,1.8L7,13.6a.91.91,0,0,1,.3,1l-1,4.1a1,1,0,0,0,1.5,1.1l3.6-2.2A1.08,1.08,0,0,1,12.5,17.6Z',
-      })
-      ),
-      React.createElement('div', {
-        className: classes.result.emptyHintText,
-      }, this.props.type === 'gif' ? getDiscordIntl('NO_GIF_FAVORITES_HOW_TO_FAVORITE') : plugin.instance.strings.media.emptyHint[this.props.type])
-      )
-      ),
-      React.createElement('div', {
-        className: classes.result.emptyHint,
-      },
-      React.createElement('div', {
-        className: classes.result.emptyHintCard,
-      },
-      React.createElement('div', {
-        className: classes.result.emptyHintText,
-      }, plugin.instance.strings.category.emptyHint)
-      )
-      )
-      )
-    }
+  async changeFavorite () {
+    const switchFavorite = this.state.favorited ? MediaFavButton.unfavoriteMedia : MediaFavButton.favoriteMedia
+    switchFavorite(this.props).then((props) => {
+      if (!props.fromPicker) this.setState({ favorited: this.isFavorited })
+      Dispatcher.dispatch({ type: 'FM_FAVORITE_MEDIA', url: props.url })
+      if (props.fromPicker) return
+      this.tooltipFav.label = this.state.favorited ? getDiscordIntl('GIF_TOOLTIP_ADD_TO_FAVORITES') : getDiscordIntl('GIF_TOOLTIP_REMOVE_FROM_FAVORITES')
+      this.tooltipFav.hide()
+      this.tooltipFav.show()
+      this.setState({ pulse: true })
+      setTimeout(() => {
+        this.setState({ pulse: false })
+      }, 200)
+    }).catch((err) => {
+      BdApi.Logger.error(plugin.name, err.message ?? err)
+    })
   }
 
-  const CategoryModal = class extends React.Component {
-    constructor (props) {
-      super(props)
+  static async getMediaDataFromProps (props) {
+    const dimensions = await getMediaDimensions(props)
 
-      this.setRef = this.setRef.bind(this)
-      this.getValues = this.getValues.bind(this)
+    if (!['audio', 'file'].includes(props.type) && (dimensions.width === 0 || dimensions.height === 0)) {
+      throw new Error('Could not fetch media dimensions')
     }
 
-    setRef (input) {
-      this.inputColor = input
-    }
-
-    componentDidMount () {
-      this.props.modalRef(this)
-      this.refs.inputName.value = this.props.name || ''
-    }
-
-    componentWillUnmount () {
-      this.props.modalRef(undefined)
-    }
-
-    getValues () {
-      return {
-        name: this.refs.inputName && this.refs.inputName.value,
-        color: this.inputColor && this.inputColor.value,
-      }
-    }
-
-    render () {
-      return React.createElement('div', {
-        className: classes.control,
-        style: { display: 'grid', 'grid-template-columns': 'auto 70px', 'margin-right': '-16px' },
-      },
-      React.createElement('div', {
-        className: classes.input.inputWrapper,
-        style: { padding: '1em 0', 'margin-right': '16px' },
-      },
-      React.createElement('input', {
-        className: classes.input.inputDefault,
-        name: 'category-name',
-        type: 'text',
-        placeholder: plugin.instance.strings.category.placeholder,
-        maxlength: '20',
-        ref: 'inputName',
-      })
-      ),
-      React.createElement(ColorPicker, {
-        color: this.props.color,
-        setRef: this.setRef,
-      })
-      )
-    }
-  }
-
-  const ImportPanel = class extends React.Component {
-    constructor (props) {
-      super(props)
-
-      this.state = {
-        loading: true,
-        imported: false,
-      }
-
-      this.initImport = this.initImport.bind(this)
-      this.importMedias = this.importMedias.bind(this)
-
-      this.data = {}
-    }
-
-    componentDidMount () {
-      this.initImport()
-    }
-
-    async initImport () {
-      for (const path of this.props.paths) {
-        try {
-          const conf = JSON.parse(readFileSync(path, { encoding: 'utf-8' }))
-          if (conf == null) continue
-
-          for (const mediaType of allTypes) {
-            this.data[mediaType] = { medias: [], categories: [] }
-            const typeData = conf[mediaType]
-            if (typeData == null) continue
-
-            const currentTypeData = Utilities.loadData(config.name, mediaType, { medias: [], categories: [] })
-
-            if (typeData.categories != null && Array.isArray(typeData.categories) && typeData.categories.length > 0) {
-              typeData.categories.forEach((category) => {
-                if (this.data[mediaType].categories.findIndex((c) => c.name === category.name) >= 0) return
-
-                const currentCategory = currentTypeData.categories.find((c) => c.name === category.name)
-                if (currentCategory != null) {
-                  typeData.medias.forEach((media) => {
-                    if (media.category_id === category.id) media.category_id = 'import_' + currentCategory.id
-                  })
-                  return
-                }
-
-                this.data[mediaType].categories.push(category)
-              })
-            }
-
-            if (typeData.medias != null && Array.isArray(typeData.medias) && typeData.medias.length > 0) {
-              typeData.medias.forEach((media) => {
-                if (this.data[mediaType].medias.findIndex((m) => MediaFavButton.checkSameUrl(m.url, media.url)) >= 0) return
-                if (currentTypeData.medias.findIndex((m) => MediaFavButton.checkSameUrl(m.url, media.url)) >= 0) return
-
-                this.data[mediaType].medias.push(media)
-              })
-            }
-          }
-        } catch (err) {
-          console.error(`[${config.name}]`, `Failed to load config (${err.message ?? err}):`, path)
-        }
-      }
-
-      this.setState({ loading: false })
-    }
-
-    importMedias () {
-      for (const mediaType of allTypes) {
-        const importTypeData = structuredClone(this.importData[mediaType])
-        if (importTypeData == null) continue
-
-        const currentTypeData = Utilities.loadData(config.name, mediaType, { medias: [], categories: [] })
-
-        importTypeData.categories.forEach((category) => {
-          const importCatId = category.id
-          category.id = getNewCategoryId(currentTypeData.categories)
-          importTypeData.medias.forEach((media) => {
-            if (media.category_id === importCatId) media.category_id = category.id
-          })
-
-          currentTypeData.categories.push(category)
-        })
-
-        importTypeData.medias.forEach((media) => {
-          if (/import_\d*/.test(media.category_id)) {
-            const oldCatId = Number(media.category_id.replace('import_', ''))
-            if (isNaN(oldCatId)) return
-
-            media.category_id = oldCatId
-          }
-
-          if (importTypeData.categories.findIndex((c) => c.id === media.category_id) < 0 && currentTypeData.categories.findIndex((c) => c.id === media.category_id) < 0) {
-            delete media.category_id
-          }
-        })
-
-        currentTypeData.medias = currentTypeData.medias.concat(importTypeData.medias)
-
-        Utilities.saveData(config.name, mediaType, currentTypeData)
-      }
-
-      this.setState({ imported: true })
-      Dispatcher.dispatch({ type: 'FM_UPDATE_MEDIAS' })
-      Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
-      showToast(plugin.instance.strings.import.success, { type: 'success' })
-      MediaPicker.fetchMediasIntoDB()
-    }
-
-    get importData () {
-      const data = structuredClone(this.data)
-
-      for (const mediaType of Object.keys(this.data)) {
-        const checkboxMedias = this.refs[`checkboxImport-medias-${mediaType}`]
-        if (checkboxMedias != null && !checkboxMedias.checked) {
-          data[mediaType].medias = []
+    switch (props.type) {
+      case 'gif':
+        return {
+          url: props.url,
+          src: props.src,
+          width: props.width || dimensions.width,
+          height: props.height || dimensions.height,
+          name: getUrlName(props.url),
+          message: props.message,
+          source: props.source,
         }
 
-        const checkboxCategories = this.refs[`checkboxImport-categories-${mediaType}`]
-        if (checkboxCategories != null && !checkboxCategories.checked) {
-          data[mediaType].categories = []
+      case 'video':
+        return {
+          url: props.url,
+          poster: props.poster,
+          width: dimensions.width,
+          height: dimensions.height,
+          name: getUrlName(props.url),
+          message: props.message,
+          source: props.source,
         }
-      }
 
-      return data
-    }
+      case 'audio':
+        return {
+          url: props.url,
+          name: getUrlName(props.url),
+          ext: getUrlExt(props.url, 'audio'),
+          message: props.message,
+          source: props.source,
+        }
 
-    get isEmpty () {
-      return Object.keys(this.data).reduce((t, k) => {
-        t += this.data[k].medias?.length ?? 0
-        t += this.data[k].categories?.length ?? 0
-        return t
-      }, 0) <= 0
-    }
+      case 'file':
+        return {
+          url: props.url,
+          name: getUrlName(props.url),
+          message: props.message,
+          source: props.source,
+        }
 
-    get getMediasCountLines () {
-      const $types = []
-      const $medias = []
-      const $categories = []
-
-      $types.push(React.createElement('span', {
-        className: 'fm-importLabel',
-      }, plugin.instance.strings.import.label.types))
-      $medias.push(React.createElement('span', {
-        className: 'fm-importLabel',
-      }, plugin.instance.strings.import.label.medias))
-      $categories.push(React.createElement('span', {
-        className: 'fm-importLabel',
-      }, plugin.instance.strings.import.label.categories))
-
-      for (const mediaType of Object.keys(this.data)) {
-        $types.push(React.createElement('span', {
-          className: 'fm-importValue',
-        },
-        plugin.instance.strings.tabName[mediaType]
-        ))
-
-        const mediasCount = Object.keys(this.data[mediaType].medias).length
-        $medias.push(React.createElement('span', {
-          className: 'fm-importValue',
-        },
-        !this.isEmpty && !this.state.imported
-          ? React.createElement('input', {
-            type: 'checkbox',
-            defaultChecked: true,
-            ref: `checkboxImport-medias-${mediaType}`,
-            style: { visibility: mediasCount > 0 ? 'visible' : 'hidden' },
-          })
-          : null,
-        mediasCount
-        ))
-
-        const categoriesCount = Object.keys(this.data[mediaType].categories).length
-        $categories.push(React.createElement('span', {
-          className: 'fm-importValue',
-        },
-        !this.isEmpty && !this.state.imported
-          ? React.createElement('input', {
-            type: 'checkbox',
-            defaultChecked: true,
-            ref: `checkboxImport-categories-${mediaType}`,
-            style: { visibility: categoriesCount > 0 ? 'visible' : 'hidden' },
-          })
-          : null,
-        categoriesCount
-        ))
-      }
-
-      return [
-        React.createElement('div', {
-          className: `${classes.color.colorStandard} fm-importLines`,
-        }, ...$types),
-        React.createElement('div', {
-          className: `${classes.color.colorStandard} fm-importLines`,
-        }, ...$medias),
-        React.createElement('div', {
-          className: `${classes.color.colorStandard} fm-importLines`,
-        }, ...$categories),
-      ]
-    }
-
-    render () {
-      return !this.state.loading
-        ? React.createElement('div', {
-          className: 'fm-importPanel',
-        },
-        React.createElement('div', {
-          className: 'fm-importRecap',
-        },
-        ...this.getMediasCountLines
-        ),
-        React.createElement('div', {
-          className: 'fm-importActions',
-        },
-        !this.isEmpty && !this.state.imported
-          ? React.createElement(DiscordComponents.Button, {
-            className: 'fm-importMediasButton',
-            onClick: this.importMedias,
-          }, plugin.instance.strings.import.buttonImport)
-          : null
-        )
-        )
-        : React.createElement(DiscordComponents.Spinner)
+      default: // image
+        return {
+          url: props.url,
+          width: dimensions.width,
+          height: dimensions.height,
+          name: getUrlName(props.url),
+          message: props.message,
+          source: props.source,
+        }
     }
   }
 
-  const DatabasePanel = class extends React.Component {
-    constructor (props) {
-      super(props)
+  static async favoriteMedia (props) {
+    // get message and source links
+    const $target = props.target?.current
+    if ($target != null) {
+      props.message = findMessageLink($target)
+      props.source = findSourceLink($target, props.url)
+    }
+    const typeData = BdApi.Data.load(plugin.name, props.type, { medias: [] })
+    if (typeData.medias.find(m => MediaFavButton.checkSameUrl(m.url, props.url))) return
+    const data = await MediaFavButton.getMediaDataFromProps(props)
+    if (props.type === 'gif') await MediaFavButton.favoriteGIF(data)
+    typeData.medias.push(data)
+    BdApi.Data.save(plugin.name, props.type, typeData)
+    if (plugin.instance.settings.allowCaching) MediaFavButton.cacheMedia(data.url)
+    return props
+  }
 
-      this.state = {
-        count: 0,
-        size: null,
-        loadingStats: true,
-        loadingCache: false,
-        fetchMediasProgress: '',
+  static async unfavoriteMedia (props) {
+    const typeData = BdApi.Data.load(plugin.name, props.type, { medias: [], categories: [] })
+    if (!typeData.medias.length) return
+    typeData.medias = typeData.medias.filter(e => !MediaFavButton.checkSameUrl(e.url, props.url))
+    if (props.type === 'gif') await MediaFavButton.unfavoriteGIF(props)
+    typeData.categories.forEach((c) => {
+      if (c.thumbnail === MediaFavButton.getThumbnail(props.type, props)) {
+        c.thumbnail = undefined
       }
+    })
+    BdApi.Data.save(plugin.name, props.type, typeData)
+    if (props.fromPicker) Dispatcher.dispatch({ type: 'FM_UPDATE_MEDIAS' })
+    if (plugin.instance.settings.allowCaching) MediaFavButton.uncacheMedia(props.url)
+    return props
+  }
 
-      this.loadStats = this.loadStats.bind(this)
-      this.getSettingsPanel = this.getSettingsPanel.bind(this)
-      this.saveSettings = this.saveSettings.bind(this)
-      this.openModalClearDatabase = this.openModalClearDatabase.bind(this)
-      this.clearDatabase = this.clearDatabase.bind(this)
-      this.openCacheMediasConfirm = this.openCacheMediasConfirm.bind(this)
-      this.updateFetchMediasProgress = this.updateFetchMediasProgress.bind(this)
+  static async favoriteGIF (props) {
+    GIFUtils.favorite({
+      format: 2,
+      url: props.url,
+      src: props.src,
+      order: props.order,
+      width: props.width,
+      height: props.height,
+    })
+  }
+
+  static async unfavoriteGIF (props) {
+    GIFUtils.unfavorite(props.url)
+  }
+
+  static async cacheMedia (url) {
+    await fmdb.cache(url).then(() => {
+      BdApi.Logger.info(plugin.name, 'Successfully cached media:', url)
+    }).catch((err) => {
+      BdApi.Logger.warn(plugin.name, `Failed to cache media (${err.message ?? err}):`, url)
+    })
+  }
+
+  static async uncacheMedia (url) {
+    await fmdb.delete(url).then(() => {
+      BdApi.Logger.info(plugin.name, 'Successfully uncached media:', url)
+    }).catch((err) => {
+      BdApi.Logger.warn(plugin.name, `Failed to uncache media (${err.message ?? err}):`, url)
+    })
+  }
+
+  favButton () {
+    return BdApi.React.createElement('div', {
+      className: `${this.props.fromPicker ? classes.result.favButton : classes.gif.gifFavoriteButton1} ${classes.gif.size} ${classes.gif.gifFavoriteButton2}${this.state.favorited ? ` ${classes.gif.selected}` : ''}${this.state.pulse ? ` ${classes.gif.showPulse}` : ''}`,
+      tabindex: '-1',
+      role: 'button',
+      ref: 'tooltipFav',
+      onClick: this.changeFavorite,
+    },
+    BdApi.React.createElement(StarSVG, {
+      filled: this.state.favorited,
+    })
+    )
+  }
+
+  render () {
+    return this.props.fromPicker
+      ? this.favButton()
+      : BdApi.React.createElement('div', {
+        className: `${classes.image.imageAccessory} ${classes.image.clickable} fm-favBtn fm-${this.props.type}${this.props.uploaded ? ' fm-uploaded' : ''}`,
+      }, this.favButton())
+  }
+}
+
+class ColorPicker extends BdApi.React.Component {
+  componentDidMount () {
+    this.refs.inputColor.value = this.props.color || DEFAULT_BACKGROUND_COLOR
+    this.props.setRef(this.refs.inputColor)
+    this.refs.inputColor.parentNode.style['background-color'] = this.refs.inputColor.value
+  }
+
+  render () {
+    return BdApi.React.createElement('div', {
+      className: 'category-input-color',
+      style: { width: '48px', height: '48px', 'margin-top': '8px', 'border-radius': '100%' },
+    },
+    BdApi.React.createElement('input', {
+      type: 'color',
+      id: 'category-input-color',
+      name: 'category-input-color',
+      ref: 'inputColor',
+      onChange: e => { e.target.parentNode.style['background-color'] = e.target.value },
+    })
+    )
+  }
+}
+
+class EmptyFavorites extends BdApi.React.Component {
+  render () {
+    return BdApi.React.createElement('div', {
+      className: classes.result.emptyHints,
+    },
+    BdApi.React.createElement('div', {
+      className: classes.result.emptyHint,
+    },
+    BdApi.React.createElement('div', {
+      className: classes.result.emptyHintCard,
+    },
+    BdApi.React.createElement('svg', {
+      className: classes.result.emptyHintFavorite,
+      'aria-hidden': 'false',
+      viewBox: '0 0 24 24',
+      width: '16',
+      height: '16',
+    },
+    BdApi.React.createElement('path', {
+      d: 'M0,0H24V24H0Z',
+      fill: 'none',
+    }),
+    BdApi.React.createElement('path', {
+      fill: 'currentColor',
+      d: 'M12.5,17.6l3.6,2.2a1,1,0,0,0,1.5-1.1l-1-4.1a1,1,0,0,1,.3-1l3.2-2.8A1,1,0,0,0,19.5,9l-4.2-.4a.87.87,0,0,1-.8-.6L12.9,4.1a1.05,1.05,0,0,0-1.9,0l-1.6,4a1,1,0,0,1-.8.6L4.4,9a1.06,1.06,0,0,0-.6,1.8L7,13.6a.91.91,0,0,1,.3,1l-1,4.1a1,1,0,0,0,1.5,1.1l3.6-2.2A1.08,1.08,0,0,1,12.5,17.6Z',
+    })
+    ),
+    BdApi.React.createElement('div', {
+      className: classes.result.emptyHintText,
+    }, this.props.type === 'gif' ? getDiscordIntl('NO_GIF_FAVORITES_HOW_TO_FAVORITE') : plugin.instance.strings.media.emptyHint[this.props.type])
+    )
+    ),
+    BdApi.React.createElement('div', {
+      className: classes.result.emptyHint,
+    },
+    BdApi.React.createElement('div', {
+      className: classes.result.emptyHintCard,
+    },
+    BdApi.React.createElement('div', {
+      className: classes.result.emptyHintText,
+    }, plugin.instance.strings.category.emptyHint)
+    )
+    )
+    )
+  }
+}
+
+class CategoryModal extends BdApi.React.Component {
+  constructor (props) {
+    super(props)
+
+    this.setRef = this.setRef.bind(this)
+    this.getValues = this.getValues.bind(this)
+  }
+
+  setRef (input) {
+    this.inputColor = input
+  }
+
+  componentDidMount () {
+    this.props.modalRef(this)
+    this.refs.inputName.value = this.props.name || ''
+  }
+
+  componentWillUnmount () {
+    this.props.modalRef(undefined)
+  }
+
+  getValues () {
+    return {
+      name: this.refs.inputName && this.refs.inputName.value,
+      color: this.inputColor && this.inputColor.value,
+    }
+  }
+
+  render () {
+    return BdApi.React.createElement('div', {
+      className: classes.control,
+      style: { display: 'grid', 'grid-template-columns': 'auto 70px', 'margin-right': '-16px' },
+    },
+    BdApi.React.createElement('div', {
+      className: classes.input.inputWrapper,
+      style: { padding: '1em 0', 'margin-right': '16px' },
+    },
+    BdApi.React.createElement('input', {
+      className: classes.input.inputDefault,
+      name: 'category-name',
+      type: 'text',
+      placeholder: plugin.instance.strings.category.placeholder,
+      maxlength: '20',
+      ref: 'inputName',
+    })
+    ),
+    BdApi.React.createElement(ColorPicker, {
+      color: this.props.color,
+      setRef: this.setRef,
+    })
+    )
+  }
+}
+
+class ImportPanel extends BdApi.React.Component {
+  constructor (props) {
+    super(props)
+
+    this.state = {
+      loading: true,
+      imported: false,
     }
 
-    componentDidMount () {
-      this.loadStats()
-      Dispatcher.subscribe('FM_FETCH_INTO_DB', this.updateFetchMediasProgress)
-    }
+    this.initImport = this.initImport.bind(this)
+    this.importMedias = this.importMedias.bind(this)
 
-    componentDidUpdate () {
-      if (this.state.loadingStats === false && this.tooltipRefresh == null) {
-        this.tooltipRefresh = createTooltip(this.refs.refreshButton, plugin.instance.strings.cache.refreshButton, { style: 'primary' })
-      }
-    }
+    this.data = {}
+  }
 
-    componentWillUnmount () {
-      if (!plugin.instance.settings.allowCaching) {
-        for (const key of Object.getOwnPropertyNames(mediasCache)) {
-          delete mediasCache[key]
-        }
-      }
+  componentDidMount () {
+    this.initImport()
+  }
 
-      Dispatcher.unsubscribe('FM_FETCH_INTO_DB', this.updateFetchMediasProgress)
-    }
-
-    async loadStats () {
+  async initImport () {
+    for (const path of this.props.paths) {
       try {
-        this.setState({ loadingStats: true })
-        const values = await fmdb.getAll()
-        const totalSize = values.reduce((t, v) => { t += v.byteLength; return t }, 0)
-        this.setState({
-          count: values.length,
-          size: FMDB.sizeOf(totalSize),
-          loadingStats: false,
-        })
+        const conf = JSON.parse(readFileSync(path, { encoding: 'utf-8' }))
+        if (conf == null) continue
+
+        for (const mediaType of ALL_TYPES) {
+          this.data[mediaType] = { medias: [], categories: [] }
+          const typeData = conf[mediaType]
+          if (typeData == null) continue
+
+          const currentTypeData = BdApi.Data.load(plugin.name, mediaType, { medias: [], categories: [] })
+
+          if (typeData.categories != null && Array.isArray(typeData.categories) && typeData.categories.length > 0) {
+            typeData.categories.forEach((category) => {
+              if (this.data[mediaType].categories.findIndex((c) => c.name === category.name) >= 0) return
+
+              const currentCategory = currentTypeData.categories.find((c) => c.name === category.name)
+              if (currentCategory != null) {
+                typeData.medias.forEach((media) => {
+                  if (media.category_id === category.id) media.category_id = 'import_' + currentCategory.id
+                })
+                return
+              }
+
+              this.data[mediaType].categories.push(category)
+            })
+          }
+
+          if (typeData.medias != null && Array.isArray(typeData.medias) && typeData.medias.length > 0) {
+            typeData.medias.forEach((media) => {
+              if (this.data[mediaType].medias.findIndex((m) => MediaFavButton.checkSameUrl(m.url, media.url)) >= 0) return
+              if (currentTypeData.medias.findIndex((m) => MediaFavButton.checkSameUrl(m.url, media.url)) >= 0) return
+
+              this.data[mediaType].medias.push(media)
+            })
+          }
+        }
       } catch (err) {
-        console.error(`[${config.name}]`, err.message ?? err)
+        BdApi.Logger.error(plugin.name, `Failed to load config (${err.message ?? err}):`, path)
       }
     }
 
-    getSettingsPanel () {
-      return ReactTools.createWrappedElement(Settings.SettingPanel.build(this.saveSettings,
-        new Settings.Switch(plugin.instance.strings.settings.allowCaching.name, plugin.instance.strings.settings.allowCaching.note, plugin.instance.settings.allowCaching, (e) => { plugin.instance.settings.allowCaching = e })
+    this.setState({ loading: false })
+  }
+
+  importMedias () {
+    for (const mediaType of ALL_TYPES) {
+      const importTypeData = structuredClone(this.importData[mediaType])
+      if (importTypeData == null) continue
+
+      const currentTypeData = BdApi.Data.load(plugin.name, mediaType, { medias: [], categories: [] })
+
+      importTypeData.categories.forEach((category) => {
+        const importCatId = category.id
+        category.id = getNewCategoryId(currentTypeData.categories)
+        importTypeData.medias.forEach((media) => {
+          if (media.category_id === importCatId) media.category_id = category.id
+        })
+
+        currentTypeData.categories.push(category)
+      })
+
+      importTypeData.medias.forEach((media) => {
+        if (/import_\d*/.test(media.category_id)) {
+          const oldCatId = Number(media.category_id.replace('import_', ''))
+          if (isNaN(oldCatId)) return
+
+          media.category_id = oldCatId
+        }
+
+        if (importTypeData.categories.findIndex((c) => c.id === media.category_id) < 0 && currentTypeData.categories.findIndex((c) => c.id === media.category_id) < 0) {
+          delete media.category_id
+        }
+      })
+
+      currentTypeData.medias = currentTypeData.medias.concat(importTypeData.medias)
+
+      BdApi.Data.save(plugin.name, mediaType, currentTypeData)
+    }
+
+    this.setState({ imported: true })
+    Dispatcher.dispatch({ type: 'FM_UPDATE_MEDIAS' })
+    Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
+    BdApi.UI.showToast(plugin.instance.strings.import.success, { type: 'success' })
+    MediaPicker.fetchMediasIntoDB()
+  }
+
+  get importData () {
+    const data = structuredClone(this.data)
+
+    for (const mediaType of Object.keys(this.data)) {
+      const checkboxMedias = this.refs[`checkboxImport-medias-${mediaType}`]
+      if (checkboxMedias != null && !checkboxMedias.checked) {
+        data[mediaType].medias = []
+      }
+
+      const checkboxCategories = this.refs[`checkboxImport-categories-${mediaType}`]
+      if (checkboxCategories != null && !checkboxCategories.checked) {
+        data[mediaType].categories = []
+      }
+    }
+
+    return data
+  }
+
+  get isEmpty () {
+    return Object.keys(this.data).reduce((t, k) => {
+      t += this.data[k].medias?.length ?? 0
+      t += this.data[k].categories?.length ?? 0
+      return t
+    }, 0) <= 0
+  }
+
+  get getMediasCountLines () {
+    const $types = []
+    const $medias = []
+    const $categories = []
+
+    $types.push(BdApi.React.createElement('span', {
+      className: 'fm-importLabel',
+    }, plugin.instance.strings.import.label.types))
+    $medias.push(BdApi.React.createElement('span', {
+      className: 'fm-importLabel',
+    }, plugin.instance.strings.import.label.medias))
+    $categories.push(BdApi.React.createElement('span', {
+      className: 'fm-importLabel',
+    }, plugin.instance.strings.import.label.categories))
+
+    for (const mediaType of Object.keys(this.data)) {
+      $types.push(BdApi.React.createElement('span', {
+        className: 'fm-importValue',
+      },
+      plugin.instance.strings.tabName[mediaType]
+      ))
+
+      const mediasCount = Object.keys(this.data[mediaType].medias).length
+      $medias.push(BdApi.React.createElement('span', {
+        className: 'fm-importValue',
+      },
+      !this.isEmpty && !this.state.imported
+        ? BdApi.React.createElement('input', {
+          type: 'checkbox',
+          defaultChecked: true,
+          ref: `checkboxImport-medias-${mediaType}`,
+          style: { visibility: mediasCount > 0 ? 'visible' : 'hidden' },
+        })
+        : null,
+      mediasCount
+      ))
+
+      const categoriesCount = Object.keys(this.data[mediaType].categories).length
+      $categories.push(BdApi.React.createElement('span', {
+        className: 'fm-importValue',
+      },
+      !this.isEmpty && !this.state.imported
+        ? BdApi.React.createElement('input', {
+          type: 'checkbox',
+          defaultChecked: true,
+          ref: `checkboxImport-categories-${mediaType}`,
+          style: { visibility: categoriesCount > 0 ? 'visible' : 'hidden' },
+        })
+        : null,
+      categoriesCount
       ))
     }
 
-    saveSettings () {
-      Utilities.saveSettings(config.name, plugin.instance.settings)
-    }
+    return [
+      BdApi.React.createElement('div', {
+        className: `${classes.color.colorStandard} fm-importLines`,
+      }, ...$types),
+      BdApi.React.createElement('div', {
+        className: `${classes.color.colorStandard} fm-importLines`,
+      }, ...$medias),
+      BdApi.React.createElement('div', {
+        className: `${classes.color.colorStandard} fm-importLines`,
+      }, ...$categories),
+    ]
+  }
 
-    openModalClearDatabase () {
-      showConfirmationModal(plugin.instance.strings.cache.clear.button, plugin.instance.strings.cache.clear.confirm, {
-        danger: true,
-        onConfirm: this.clearDatabase,
-      })
-    }
-
-    updateFetchMediasProgress (data) {
-      this.setState({ fetchMediasProgress: `${data.done}/${data.total}` })
-    }
-
-    async clearDatabase () {
-      await fmdb.clear().then(() => {
-        showToast(plugin.instance.strings.cache.clear.success, { type: 'success' })
-        this.loadStats()
-      }).catch((err) => {
-        console.error(err)
-        showToast(plugin.instance.strings.cache.clear.error, { type: 'error' })
-      })
-    }
-
-    async openCacheMediasConfirm () {
-      showConfirmationModal(plugin.instance.strings.cache.cacheAll.button, plugin.instance.strings.cache.cacheAll.confirm, {
-        onConfirm: () => {
-          this.setState({ loadingCache: true })
-          MediaPicker.fetchMediasIntoDB().then((count) => {
-            if (count > 0) {
-              this.loadStats()
-              showToast(plugin.instance.strings.cache.cacheAll.success, { type: 'success' })
-            } else {
-              showToast(plugin.instance.strings.cache.cacheAll.noMedia, { type: 'info' })
-            }
-            this.setState({ loadingCache: false })
-          })
-        },
-      })
-    }
-
-    render () {
-      return React.createElement('div', {
-        className: 'fm-databasePanel',
+  render () {
+    return !this.state.loading
+      ? BdApi.React.createElement('div', {
+        className: 'fm-importPanel',
       },
-      React.createElement('div', {
-        className: 'fm-settings',
+      BdApi.React.createElement('div', {
+        className: 'fm-importRecap',
       },
-      this.getSettingsPanel()
+      ...this.getMediasCountLines
       ),
-      !this.state.loadingStats && !this.state.loadingCache
-        ? React.createElement('div', {
-          className: 'fm-database',
-        },
-        React.createElement('div', {
-          className: 'fm-stats',
-        },
-        React.createElement('div', {
-          className: 'fm-statsLines ' + classes.color.colorStandard,
-        },
-        React.createElement('div', {
-          className: 'fm-statsLine',
-        },
-        React.createElement('span', {}, plugin.instance.strings.cache.total),
-        React.createElement('span', {
-          className: 'fm-statsCount',
-        }, this.state.count)
-        ),
-        React.createElement('div', {
-          className: 'fm-statsLine',
-        },
-        React.createElement('span', {}, plugin.instance.strings.cache.size),
-        React.createElement('span', {
-          className: 'fm-statsCount',
-        }, this.state.size)
-        )
-        ),
-        React.createElement('div', {
-          ref: 'refreshButton',
-          className: `${classes.buttons.button} fm-refreshStatsButton fm-btn-icon`,
-          onClick: this.loadStats,
-        }, RefreshSVG())
-        ),
-        React.createElement('div', {
-          className: 'fm-databaseActions',
-        },
-        this.state.count > 0
-          ? React.createElement(DiscordComponents.Button, {
-            color: DiscordComponents.ButtonColors.RED,
-            className: 'fm-clearDatabaseButton',
-            onClick: this.openModalClearDatabase,
-          }, plugin.instance.strings.cache.clear.button)
-          : null,
-        React.createElement(DiscordComponents.Button, {
-          className: 'fm-cacheDatabaseButton',
-          onClick: this.openCacheMediasConfirm,
-        }, plugin.instance.strings.cache.cacheAll.button)
-        )
-        )
-        : React.createElement('div', {
-          className: `${classes.color.colorStandard} fm-databaseFetchMediasProgress`,
-        },
-        React.createElement(DiscordComponents.Spinner),
-        React.createElement('span', {}, this.state.fetchMediasProgress)
-        )
+      BdApi.React.createElement('div', {
+        className: 'fm-importActions',
+      },
+      !this.isEmpty && !this.state.imported
+        ? BdApi.React.createElement(DiscordComponents.Button, {
+          className: 'fm-importMediasButton',
+          onClick: this.importMedias,
+        }, plugin.instance.strings.import.buttonImport)
+        : null
       )
+      )
+      : BdApi.React.createElement(DiscordComponents.Spinner)
+  }
+}
+
+class DatabasePanel extends BdApi.React.Component {
+  constructor (props) {
+    super(props)
+
+    this.state = {
+      count: 0,
+      size: null,
+      loadingStats: true,
+      loadingCache: false,
+      fetchMediasProgress: '',
+    }
+
+    this.loadStats = this.loadStats.bind(this)
+    this.getSettingsPanel = this.getSettingsPanel.bind(this)
+    this.saveSettings = this.saveSettings.bind(this)
+    this.openModalClearDatabase = this.openModalClearDatabase.bind(this)
+    this.clearDatabase = this.clearDatabase.bind(this)
+    this.openCacheMediasConfirm = this.openCacheMediasConfirm.bind(this)
+    this.updateFetchMediasProgress = this.updateFetchMediasProgress.bind(this)
+  }
+
+  componentDidMount () {
+    this.loadStats()
+    Dispatcher.subscribe('FM_FETCH_INTO_DB', this.updateFetchMediasProgress)
+  }
+
+  componentDidUpdate () {
+    if (this.refs.refreshButton != null) {
+      this.tooltipRefresh = BdApi.UI.createTooltip(this.refs.refreshButton, plugin.instance.strings.cache.refreshButton, { style: 'primary' })
     }
   }
 
-  const CategoryCard = class extends React.Component {
-    constructor (props) {
-      super(props)
-
-      this.state = {
-        thumbnailError: false,
-        src: getMediaFromCache(this.thumbnail),
-      }
-
-      this.onContextMenu = this.onContextMenu.bind(this)
-      this.onDragStart = this.onDragStart.bind(this)
-      this.onDrop = this.onDrop.bind(this)
-      this.onError = this.onError.bind(this)
-
-      this.prev_thumbnail = this.thumbnail
-    }
-
-    componentDidUpdate () {
-      if (this.prev_thumbnail !== this.thumbnail) {
-        this.prev_thumbnail = this.thumbnail
-        this.setState({ src: getMediaFromCache(this.thumbnail) })
+  componentWillUnmount () {
+    if (!plugin.instance.settings.allowCaching) {
+      for (const key of Object.getOwnPropertyNames(mediasCache)) {
+        delete mediasCache[key]
       }
     }
 
-    get nameColor () {
-      const rgb = ColorConverter.getRGB(this.props.color)
-      const brightness = Math.round(((parseInt(rgb[0]) * 299) + (parseInt(rgb[1]) * 587) + (parseInt(rgb[2]) * 114)) / 1000)
-      if (brightness > 125) return 'black'
-      return 'white'
-    }
+    Dispatcher.unsubscribe('FM_FETCH_INTO_DB', this.updateFetchMediasProgress)
+  }
 
-    get showColor () {
-      return plugin.instance.settings.hideThumbnail || (!(this.thumbnail && !this.state.thumbnailError) && !this.state.src?.startsWith('blob:'))
-    }
-
-    get isGIF () {
-      return this.props.type === 'gif'
-    }
-
-    get thumbnail () {
-      return this.props.thumbnail ?? this.props.random_thumbnail
-    }
-
-    onContextMenu (e) {
-      canClosePicker.context = 'contextmenu'
-      canClosePicker.value = false
-      const moveItems = []
-      if (this.props.index > 0) {
-        moveItems.push({
-          id: 'category-movePrevious',
-          label: plugin.instance.strings.category.movePrevious,
-          action: () => moveCategory(this.props.type, this.props.id, -1),
-        })
-      }
-      if (this.props.index < this.props.length - 1) {
-        moveItems.push({
-          id: 'category-moveNext',
-          label: plugin.instance.strings.category.moveNext,
-          action: () => moveCategory(this.props.type, this.props.id, 1),
-        })
-      }
-      const items = [
-        {
-          id: 'category-copyColor',
-          label: plugin.instance.strings.category.copyColor,
-          action: () => ElectronModule.copy(this.props.color || DEFAULT_BACKGROUND_COLOR),
-        },
-        {
-          id: 'category-download',
-          label: plugin.instance.strings.category.download,
-          action: () => MediaPicker.downloadCategory({ type: this.props.type, name: this.props.name, categoryId: this.props.id }),
-        },
-        {
-          id: 'category-edit',
-          label: plugin.instance.strings.category.edit,
-          action: () => MediaPicker.openCategoryModal(this.props.type, 'edit', { name: this.props.name, color: this.props.color, id: this.props.id }),
-        },
-      ]
-      if (this.props.category_id != null) {
-        items.push({
-          id: 'category-removeFrom',
-          label: plugin.instance.strings.media.removeFrom,
-          danger: true,
-          action: () => MediaPicker.removeCategoryCategory(this.props.type, this.props.id),
-        })
-      }
-      if (this.props.thumbnail != null) {
-        items.push({
-          id: 'category-unsetThumbnail',
-          label: plugin.instance.strings.category.unsetThumbnail,
-          danger: true,
-          action: () => MediaPicker.unsetCategoryThumbnail(this.props.type, this.props.id),
-        })
-      }
-      items.push({
-        id: 'category-delete',
-        label: plugin.instance.strings.category.delete,
-        danger: true,
-        action: () => {
-          const deleteCategories = () => {
-            deleteCategory(this.props.type, this.props.id)
-            this.props.setCategory()
-          }
-          if (MediaPicker.categoryHasSubcategories(this.props.type, this.props.id)) {
-            showConfirmationModal(plugin.instance.strings.category.delete, plugin.instance.strings.category.deleteConfirm, {
-              danger: true,
-              onConfirm: () => deleteCategories(),
-              confirmText: plugin.instance.strings.category.delete,
-            })
-          } else {
-            deleteCategories()
-          }
-        },
+  async loadStats () {
+    try {
+      this.setState({ loadingStats: true })
+      const values = await fmdb.getAll()
+      const totalSize = values.reduce((t, v) => { t += v.byteLength; return t }, 0)
+      this.setState({
+        count: values.length,
+        size: FMDB.sizeOf(totalSize),
+        loadingStats: false,
       })
-      if (moveItems.length > 0) {
-        items.unshift({
-          id: 'category-move',
-          label: plugin.instance.strings.category.move,
-          type: 'submenu',
-          items: moveItems,
+    } catch (err) {
+      BdApi.Logger.error(plugin.name, err.message ?? err)
+    }
+  }
+
+  getSettingsPanel () {
+    return plugin.instance.getSettingsPanel(plugin.instance.defaultSettings.find((s) => s.id === 'allowCaching'))
+  }
+
+  saveSettings () {
+    BdApi.Data.save(plugin.name, 'settings', plugin.instance.settings)
+  }
+
+  openModalClearDatabase () {
+    BdApi.UI.showConfirmationModal(plugin.instance.strings.cache.clear.button, plugin.instance.strings.cache.clear.confirm, {
+      danger: true,
+      onConfirm: this.clearDatabase,
+    })
+  }
+
+  updateFetchMediasProgress (data) {
+    this.setState({ fetchMediasProgress: `${data.done}/${data.total}` })
+  }
+
+  async clearDatabase () {
+    await fmdb.clear().then(() => {
+      BdApi.UI.showToast(plugin.instance.strings.cache.clear.success, { type: 'success' })
+      this.loadStats()
+    }).catch((err) => {
+      BdApi.Logger.error(plugin.name, err)
+      BdApi.UI.showToast(plugin.instance.strings.cache.clear.error, { type: 'error' })
+    })
+  }
+
+  async openCacheMediasConfirm () {
+    BdApi.UI.showConfirmationModal(plugin.instance.strings.cache.cacheAll.button, plugin.instance.strings.cache.cacheAll.confirm, {
+      onConfirm: () => {
+        this.setState({ loadingCache: true })
+        MediaPicker.fetchMediasIntoDB().then((count) => {
+          if (count > 0) {
+            this.loadStats()
+            BdApi.UI.showToast(plugin.instance.strings.cache.cacheAll.success, { type: 'success' })
+          } else {
+            BdApi.UI.showToast(plugin.instance.strings.cache.cacheAll.noMedia, { type: 'info' })
+          }
+          this.setState({ loadingCache: false })
+        })
+      },
+    })
+  }
+
+  render () {
+    return BdApi.React.createElement('div', {
+      className: 'fm-databasePanel',
+    },
+    BdApi.React.createElement('div', {
+      className: 'fm-settings',
+    },
+    this.getSettingsPanel()
+    ),
+    !this.state.loadingStats && !this.state.loadingCache
+      ? BdApi.React.createElement('div', {
+        className: 'fm-database',
+      },
+      BdApi.React.createElement('div', {
+        className: 'fm-stats',
+      },
+      BdApi.React.createElement('div', {
+        className: 'fm-statsLines ' + classes.color.colorStandard,
+      },
+      BdApi.React.createElement('div', {
+        className: 'fm-statsLine',
+      },
+      BdApi.React.createElement('span', {}, plugin.instance.strings.cache.total),
+      BdApi.React.createElement('span', {
+        className: 'fm-statsCount',
+      }, this.state.count)
+      ),
+      BdApi.React.createElement('div', {
+        className: 'fm-statsLine',
+      },
+      BdApi.React.createElement('span', {}, plugin.instance.strings.cache.size),
+      BdApi.React.createElement('span', {
+        className: 'fm-statsCount',
+      }, this.state.size)
+      )
+      ),
+      BdApi.React.createElement('div', {
+        ref: 'refreshButton',
+        className: `${classes.buttons.button} fm-refreshStatsButton fm-btn-icon`,
+        onClick: this.loadStats,
+      }, RefreshSVG())
+      ),
+      BdApi.React.createElement('div', {
+        className: 'fm-databaseActions',
+      },
+      this.state.count > 0
+        ? BdApi.React.createElement(DiscordComponents.Button, {
+          color: DiscordComponents.ButtonColors.RED,
+          className: 'fm-clearDatabaseButton',
+          onClick: this.openModalClearDatabase,
+        }, plugin.instance.strings.cache.clear.button)
+        : null,
+      BdApi.React.createElement(DiscordComponents.Button, {
+        className: 'fm-cacheDatabaseButton',
+        onClick: this.openCacheMediasConfirm,
+      }, plugin.instance.strings.cache.cacheAll.button)
+      )
+      )
+      : BdApi.React.createElement('div', {
+        className: `${classes.color.colorStandard} fm-databaseFetchMediasProgress`,
+      },
+      BdApi.React.createElement(DiscordComponents.Spinner),
+      BdApi.React.createElement('span', {}, this.state.fetchMediasProgress)
+      )
+    )
+  }
+}
+
+class CategoryCard extends BdApi.React.Component {
+  constructor (props) {
+    super(props)
+
+    this.state = {
+      thumbnailError: false,
+      src: getMediaFromCache(this.thumbnail),
+    }
+
+    this.onContextMenu = this.onContextMenu.bind(this)
+    this.onDragStart = this.onDragStart.bind(this)
+    this.onDrop = this.onDrop.bind(this)
+    this.onError = this.onError.bind(this)
+
+    this.prev_thumbnail = this.thumbnail
+  }
+
+  componentDidUpdate () {
+    if (this.prev_thumbnail !== this.thumbnail) {
+      this.prev_thumbnail = this.thumbnail
+      this.setState({ src: getMediaFromCache(this.thumbnail) })
+    }
+  }
+
+  get nameColor () {
+    const rgb = hexToRgb(this.props.color)
+    const brightness = Math.round(((parseInt(rgb[0]) * 299) + (parseInt(rgb[1]) * 587) + (parseInt(rgb[2]) * 114)) / 1000)
+    if (brightness > 125) return 'black'
+    return 'white'
+  }
+
+  get showColor () {
+    return plugin.instance.settings.hideThumbnail || (!(this.thumbnail && !this.state.thumbnailError) && !this.state.src?.startsWith('blob:'))
+  }
+
+  get isGIF () {
+    return this.props.type === 'gif'
+  }
+
+  get thumbnail () {
+    return this.props.thumbnail ?? this.props.random_thumbnail
+  }
+
+  onContextMenu (e) {
+    canClosePicker.context = 'contextmenu'
+    canClosePicker.value = false
+    const moveItems = []
+    if (this.props.index > 0) {
+      moveItems.push({
+        id: 'category-movePrevious',
+        label: plugin.instance.strings.category.movePrevious,
+        action: () => moveCategory(this.props.type, this.props.id, -1),
+      })
+    }
+    if (this.props.index < this.props.length - 1) {
+      moveItems.push({
+        id: 'category-moveNext',
+        label: plugin.instance.strings.category.moveNext,
+        action: () => moveCategory(this.props.type, this.props.id, 1),
+      })
+    }
+    const items = [
+      {
+        id: 'category-copyColor',
+        label: plugin.instance.strings.category.copyColor,
+        action: () => ElectronModule.copy(this.props.color || DEFAULT_BACKGROUND_COLOR),
+      },
+      {
+        id: 'category-download',
+        label: plugin.instance.strings.category.download,
+        action: () => MediaPicker.downloadCategory({ type: this.props.type, name: this.props.name, categoryId: this.props.id }),
+      },
+      {
+        id: 'category-edit',
+        label: plugin.instance.strings.category.edit,
+        action: () => MediaPicker.openCategoryModal(this.props.type, 'edit', { name: this.props.name, color: this.props.color, id: this.props.id }),
+      },
+    ]
+    if (this.props.category_id != null) {
+      items.push({
+        id: 'category-removeFrom',
+        label: plugin.instance.strings.media.removeFrom,
+        danger: true,
+        action: () => MediaPicker.removeCategoryCategory(this.props.type, this.props.id),
+      })
+    }
+    if (this.props.thumbnail != null) {
+      items.push({
+        id: 'category-unsetThumbnail',
+        label: plugin.instance.strings.category.unsetThumbnail,
+        danger: true,
+        action: () => MediaPicker.unsetCategoryThumbnail(this.props.type, this.props.id),
+      })
+    }
+    items.push({
+      id: 'category-delete',
+      label: plugin.instance.strings.category.delete,
+      danger: true,
+      action: () => {
+        const deleteCategories = () => {
+          deleteCategory(this.props.type, this.props.id)
+          this.props.setCategory()
+        }
+        if (MediaPicker.categoryHasSubcategories(this.props.type, this.props.id)) {
+          BdApi.UI.showConfirmationModal(plugin.instance.strings.category.delete, plugin.instance.strings.category.deleteConfirm, {
+            danger: true,
+            onConfirm: () => deleteCategories(),
+            confirmText: plugin.instance.strings.category.delete,
+          })
+        } else {
+          deleteCategories()
+        }
+      },
+    })
+    if (moveItems.length > 0) {
+      items.unshift({
+        id: 'category-move',
+        label: plugin.instance.strings.category.move,
+        type: 'submenu',
+        items: moveItems,
+      })
+    }
+    BdApi.ContextMenu.open(e, BdApi.ContextMenu.buildMenu([{
+      type: 'group',
+      items,
+    }]), {
+      onClose: () => {
+        canClosePicker.context = 'contextmenu'
+        canClosePicker.value = true
+      },
+    })
+  }
+
+  onDragStart (e) {
+    e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'category', id: this.props.id }))
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  onDrop (e) {
+    let data = e.dataTransfer.getData('text/plain')
+    try {
+      data = JSON.parse(data)
+    } catch (err) {
+      BdApi.Logger.error(plugin.name, err.message ?? err)
+    }
+    if (data == null) return
+    if (data.type === 'media') {
+      MediaPicker.changeMediaCategory(this.props.type, data.url, this.props.id)
+    } else if (data.type === 'category') {
+      if (data.id !== this.props.id) MediaPicker.changeCategoryCategory(this.props.type, data.id, this.props.id)
+    }
+    this.refs.category.classList.remove('category-dragover')
+  }
+
+  async onError () {
+    BdApi.Logger.warn(plugin.name, 'Could not load media:', this.state.src, this.thumbnail)
+
+    if (!plugin.instance.settings.allowCaching) return
+
+    const key = this.thumbnail
+    const media = await fmdb.get(key)
+    if (media == null) {
+      this.setState({ thumbnailError: true })
+      return
+    }
+
+    const blob = new Blob([media])
+    const url = URL.createObjectURL(blob)
+    mediasCache[key] = url
+    this.setState({ src: url })
+  }
+
+  render () {
+    return BdApi.React.createElement('div', {
+      className: classes.result.result,
+      tabindex: '-1',
+      role: 'button',
+      style: {
+        position: 'absolute',
+        top: `${this.props.positions.top}px`,
+        left: `${this.props.positions.left}px`,
+        width: `${this.props.positions.width}px`,
+        height: '110px',
+      },
+      ref: 'category',
+      onClick: () => this.props.setCategory({ name: this.props.name, color: this.props.color, id: this.props.id, category_id: this.props.category_id }),
+      onContextMenu: this.onContextMenu,
+      onDragEnter: e => { e.preventDefault(); this.refs.category.classList.add('category-dragover') },
+      onDragLeave: e => { e.preventDefault(); this.refs.category.classList.remove('category-dragover') },
+      onDragOver: e => { e.stopPropagation(); e.preventDefault() },
+      onDragStart: this.onDragStart,
+      onDrop: this.onDrop,
+      draggable: true,
+    },
+    BdApi.React.createElement('div', {
+      className: classes.category.categoryFade,
+      style: { 'background-color': `${this.showColor ? (this.props.color || DEFAULT_BACKGROUND_COLOR) : ''}` },
+    }),
+    BdApi.React.createElement('div', { className: classes.category.categoryText },
+      BdApi.React.createElement('span', {
+        className: classes.category.categoryName,
+        style: this.showColor ? { color: this.nameColor, 'text-shadow': 'none' } : {},
+      }, this.props.name)
+    ),
+    !this.showColor
+      ? BdApi.React.createElement(this.isGIF && !this.state.src?.split('?')[0].endsWith('.gif') ? 'video' : 'img', {
+        className: classes.result.gif,
+        preload: 'auto',
+        autoplay: this.isGIF ? '' : undefined,
+        loop: this.isGIF ? 'true' : undefined,
+        muted: this.isGIF ? 'true' : undefined,
+        src: this.state.src,
+        height: '110px',
+        width: '100%',
+        onError: this.onError,
+      })
+      : null
+    )
+  }
+}
+
+class MediaCard extends BdApi.React.Component {
+  constructor (props) {
+    super(props)
+
+    this.state = {
+      showControls: false,
+      src: getMediaFromCache(this.src),
+      poster: getMediaFromCache(this.props.poster),
+    }
+
+    this.changeControls = this.changeControls.bind(this)
+    this.hideControls = this.hideControls.bind(this)
+    this.sendMedia = this.sendMedia.bind(this)
+    this.onDragStart = this.onDragStart.bind(this)
+    this.onError = this.onError.bind(this)
+  }
+
+  get isGIF () {
+    return this.props.type === 'gif'
+  }
+
+  get tag () {
+    if (this.props.type === 'file') return null
+    if (this.state.showControls) return this.props.type === 'audio' ? 'audio' : 'video'
+    if (this.isGIF && !this.props.src?.split('?')[0].endsWith('.gif')) return 'video'
+    if (this.props.type === 'audio') return null
+    return 'img'
+  }
+
+  get src () {
+    if (this.props.type === 'video' && !this.state?.showControls) return this.state?.poster ?? this.props.poster
+    if (this.isGIF) return this.props.src
+    return this.props.url
+  }
+
+  get titleIcon () {
+    if (this.props.type === 'audio') return MusicNoteSVG({ className: classes.category.categoryIcon, style: { overflow: 'visible' } })
+    if (this.props.type === 'file') return MiniFileSVG({ className: classes.category.categoryIcon, style: { overflow: 'visible' } })
+    return null
+  }
+
+  get fileName () {
+    const name = this.props.name.replace(/_/gm, ' ')
+    if (this.props.type === 'audio') return name
+    return name + getUrlExt(this.src, this.props.type)
+  }
+
+  componentDidMount () {
+    Dispatcher.subscribe('FM_TOGGLE_CONTROLS', this.hideControls)
+    Dispatcher.subscribe('FM_SEND_MEDIA', this.sendMedia)
+    this.url = this.props.url
+    if (MediaFavButton.isPlayable(this.props.type) && this.refs.tooltipControls) this.tooltipControls = BdApi.UI.createTooltip(this.refs.tooltipControls, this.state.showControls ? plugin.instance.strings.media.controls.hide : plugin.instance.strings.media.controls.show, { style: 'primary' })
+  }
+
+  componentWillUnmount () {
+    Dispatcher.unsubscribe('FM_TOGGLE_CONTROLS', this.hideControls)
+    Dispatcher.unsubscribe('FM_SEND_MEDIA', this.sendMedia)
+  }
+
+  componentDidUpdate () {
+    if (!MediaFavButton.checkSameUrl(this.url, this.props.url)) {
+      if (this.state.showControls) this.changeControls(false)
+      this.setState({ src: null, poster: null }, () => {
+        this.setState({
+          src: getMediaFromCache(this.src),
+          poster: getMediaFromCache(this.props.poster),
+        })
+      })
+    }
+    if (MediaFavButton.isPlayable(this.props.type) && !this.tooltipControls && this.refs.tooltipControls) this.tooltipControls = BdApi.UI.createTooltip(this.refs.tooltipControls, this.state.showControls ? plugin.instance.strings.media.controls.hide : plugin.instance.strings.media.controls.show, { style: 'primary' })
+    if (this.state.showControls && this.refs.media) this.refs.media.volume = this.props.settings.mediaVolume / 100 || 0.1
+    this.url = this.props.url
+  }
+
+  async changeControls (force) {
+    this.setState((previousState) => {
+      const newControls = force !== undefined ? force : !previousState.showControls
+
+      if (this.tooltipControls) {
+        this.tooltipControls.label = newControls ? plugin.instance.strings.media.controls.hide : plugin.instance.strings.media.controls.show
+        this.tooltipControls.hide()
+        this.tooltipControls.show()
+        if (force !== undefined) this.tooltipControls.hide()
+      }
+
+      if (newControls) {
+        Dispatcher.dispatch({ type: 'FM_TOGGLE_CONTROLS' })
+
+        MediaPicker.refreshUrls([this.props.url]).then(([refreshedUrl]) => {
+          this.setState({ src: refreshedUrl.refreshed ?? refreshedUrl.original })
         })
       }
-      ContextMenu.openContextMenu(e, ContextMenu.buildMenu([{
+
+      let src = this.src
+      if (this.props.type === 'video' && !newControls) src = this.state?.poster ?? this.props.poster
+
+      return ({ showControls: newControls, src: getMediaFromCache(src) })
+    })
+  }
+
+  hideControls () {
+    if (this.state.showControls) this.changeControls(false)
+  }
+
+  onDragStart (e) {
+    e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'media', url: this.props.url }))
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  async sendMedia (e) {
+    const sendMedia = e.type === 'FM_SEND_MEDIA'
+    if (sendMedia) {
+      if (e.mediaId !== this.props.id) return
+      e = e.e
+    }
+    if (['path', 'svg'].includes(e.target.tagName)) return
+
+    e.preventDefault()
+    this.hideControls()
+
+    if (!sendMedia && (this.props.type === 'audio' || this.props.settings[this.props.type].alwaysUploadFile)) {
+      const [refreshedUrl] = await MediaPicker.refreshUrls([this.props.url])
+      const media = {
+        url: refreshedUrl.refreshed ?? refreshedUrl.original,
+        name: this.props.name,
+      }
+
+      const buffer = await fetchMedia(media).catch((err) => BdApi.Logger.error(plugin.name, err.message ?? err))
+      if (buffer == null) throw new Error('Failed to upload media:', media)
+
+      uploadFile(this.props.type, buffer, media)
+      if (this.props.settings[this.props.type].alwaysSendInstantly) sendInTextarea(true)
+      if (!e.shiftKey) EPS.closeExpressionPicker()
+    } else {
+      if (!e.shiftKey) {
+        ComponentDispatch.dispatchToLastSubscribed('INSERT_TEXT', { rawText: this.props.url, plainText: this.props.url })
+        if (this.props.settings[this.props.type].alwaysSendInstantly) sendInTextarea().catch((err) => BdApi.Logger.error(plugin.name, err.message ?? err))
+        EPS.closeExpressionPicker()
+      } else {
+        MessagesManager.sendMessage(currentChannelId, { content: this.props.url, validNonShortcutEmojis: [] })
+      }
+    }
+  }
+
+  async onError (e) {
+    if (e.target.tagName !== 'IMG' || mediasCache[this.src] != null) return
+
+    BdApi.Logger.warn(plugin.name, 'Could not load media:', this.src)
+
+    if (!plugin.instance.settings.allowCaching) return
+
+    const key = this.src
+    const media = await fmdb.get(key)
+    if (media == null) return
+
+    const blob = new Blob([media])
+    const url = URL.createObjectURL(blob)
+    mediasCache[key] = url
+    this.setState({ src: url })
+  }
+
+  render () {
+    return BdApi.React.createElement('div', {
+      className: classes.result.result,
+      tabindex: '-1',
+      role: 'button',
+      style: {
+        position: 'absolute',
+        top: `${this.props.positions.top}px`,
+        left: `${this.props.positions.left}px`,
+        width: `${this.props.positions.width}px`,
+        height: `${this.props.positions.height}px`,
+        'background-color': DEFAULT_BACKGROUND_COLOR,
+      },
+      onContextMenu: e => this.props.onMediaContextMenu(e, this.props.id),
+      onClick: this.sendMedia,
+      onDragStart: this.onDragStart,
+      draggable: true,
+    },
+    MediaFavButton.isPlayable(this.props.type)
+      ? BdApi.React.createElement('div', {
+        className: `show-controls ${classes.gif.size}${this.state.showControls ? ` ${classes.gif.selected} active` : ''}`,
+        tabindex: '-1',
+        role: 'button',
+        ref: 'tooltipControls',
+        onClick: () => this.changeControls(),
+      },
+      BdApi.React.createElement('svg', {
+        className: classes.gif.icon,
+        'aria-hidden': 'false',
+        viewBox: '0 0 780 780',
+        width: '16',
+        height: '16',
+      },
+      BdApi.React.createElement('path', { fill: 'currentColor', d: 'M490.667,405.333h-56.811C424.619,374.592,396.373,352,362.667,352s-61.931,22.592-71.189,53.333H21.333C9.557,405.333,0,414.891,0,426.667S9.557,448,21.333,448h270.144c9.237,30.741,37.483,53.333,71.189,53.333s61.931-22.592,71.189-53.333h56.811c11.797,0,21.333-9.557,21.333-21.333S502.464,405.333,490.667,405.333zM362.667,458.667c-17.643,0-32-14.357-32-32s14.357-32,32-32s32,14.357,32,32S380.309,458.667,362.667,458.667z' }),
+      BdApi.React.createElement('path', { fill: 'currentColor', d: 'M490.667,64h-56.811c-9.259-30.741-37.483-53.333-71.189-53.333S300.736,33.259,291.477,64H21.333C9.557,64,0,73.557,0,85.333s9.557,21.333,21.333,21.333h270.144C300.736,137.408,328.96,160,362.667,160s61.931-22.592,71.189-53.333h56.811c11.797,0,21.333-9.557,21.333-21.333S502.464,64,490.667,64z M362.667,117.333c-17.643,0-32-14.357-32-32c0-17.643,14.357-32,32-32s32,14.357,32,32C394.667,102.976,380.309,117.333,362.667,117.333z' }),
+      BdApi.React.createElement('path', { fill: 'currentColor', d: 'M490.667,234.667H220.523c-9.259-30.741-37.483-53.333-71.189-53.333s-61.931,22.592-71.189,53.333H21.333C9.557,234.667,0,244.224,0,256c0,11.776,9.557,21.333,21.333,21.333h56.811c9.259,30.741,37.483,53.333,71.189,53.333s61.931-22.592,71.189-53.333h270.144c11.797,0,21.333-9.557,21.333-21.333C512,244.224,502.464,234.667,490.667,234.667zM149.333,288c-17.643,0-32-14.357-32-32s14.357-32,32-32c17.643,0,32,14.357,32,32S166.976,288,149.333,288z' })
+      )
+      )
+      : null,
+    BdApi.React.createElement(MediaFavButton, {
+      type: this.props.type,
+      url: this.props.url,
+      poster: this.props.poster,
+      fromPicker: true,
+    }),
+    this.tag != null
+      ? BdApi.React.createElement(this.tag, {
+        className: classes.result.gif,
+        preload: 'auto',
+        autoplay: this.isGIF ? '' : undefined,
+        loop: this.isGIF ? 'true' : undefined,
+        muted: this.isGIF ? 'true' : undefined,
+        src: this.state.src,
+        poster: this.state.poster,
+        width: this.props.positions.width,
+        height: this.props.positions.height,
+        ref: 'media',
+        controls: this.state.showControls,
+        style: !MediaFavButton.hasPreview(this.props.type) ? { position: 'absolute', bottom: '0', left: '0', 'z-index': '2' } : null,
+        draggable: false,
+        onError: this.onError,
+      })
+      : null,
+    !MediaFavButton.hasPreview(this.props.type)
+      ? BdApi.React.createElement('div', {
+        className: classes.category.categoryFade,
+        style: { 'background-color': DEFAULT_BACKGROUND_COLOR },
+      })
+      : null,
+    !MediaFavButton.hasPreview(this.props.type)
+      ? BdApi.React.createElement('div', {
+        className: classes.category.categoryText,
+        style: { top: this.state.showControls ? '-50%' : null },
+      },
+      this.titleIcon,
+      BdApi.React.createElement('span', { className: classes.category.categoryName },
+        BdApi.React.createElement('div', {}, this.fileName))
+      )
+      : null
+    )
+  }
+}
+
+class RenderList extends BdApi.React.Component {
+  render () {
+    return BdApi.React.createElement('div', {
+      children: this.props.items.map((itemProps, i) => BdApi.React.createElement(this.props.component, {
+        ...itemProps,
+        ...this.props.componentProps,
+        index: i,
+      })),
+      className: `fm-${this.props.component.name.startsWith('Cat') ? 'categories' : 'medias'}List`,
+    })
+  }
+}
+
+class MediaPicker extends BdApi.React.Component {
+  static HEIGHT = 400
+
+  constructor (props) {
+    super(props)
+
+    this.state = {
+      textFilter: '',
+      categories: BdApi.Data.load(plugin.name, this.props.type, { categories: [] }).categories,
+      category: null,
+      medias: BdApi.Data.load(plugin.name, this.props.type, { medias: [] }).medias,
+      contentWidth: null,
+      page: 1,
+    }
+
+    this.type = this.props.type
+    this.contentHeight = MediaPicker.HEIGHT
+
+    this.createButtonsTooltips = this.createButtonsTooltips.bind(this)
+    this.clearSearch = this.clearSearch.bind(this)
+    this.setCategory = this.setCategory.bind(this)
+    this.onContextMenu = this.onContextMenu.bind(this)
+    this.onMediaContextMenu = this.onMediaContextMenu.bind(this)
+    this.categoriesItems = this.categoriesItems.bind(this)
+    this.loadMedias = this.loadMedias.bind(this)
+    this.loadCategories = this.loadCategories.bind(this)
+    this.backCategory = this.backCategory.bind(this)
+    this.uploadMedia = this.uploadMedia.bind(this)
+    this.setContentHeight = this.setContentHeight.bind(this)
+    this.sendMedia = this.sendMedia.bind(this)
+    this.resetScroll = this.resetScroll.bind(this)
+  }
+
+  componentDidMount () {
+    this.refs.input?.focus()
+    this.setState({ contentWidth: this.refs.content?.clientWidth })
+    Dispatcher.subscribe('FM_UPDATE_MEDIAS', this.loadMedias)
+    Dispatcher.subscribe('FM_UPDATE_CATEGORIES', this.loadCategories)
+    Dispatcher.dispatch({ type: 'FM_PICKER_BUTTON_ACTIVE' })
+    this.createButtonsTooltips()
+  }
+
+  componentDidUpdate () {
+    if (this.type !== this.props.type) {
+      this.type = this.props.type
+      this.setState({
+        category: null,
+        page: 1,
+      })
+      this.loadCategories()
+      this.loadMedias()
+      Dispatcher.dispatch({ type: 'FM_PICKER_BUTTON_ACTIVE' })
+    }
+    if (this.state.contentWidth !== this.refs.content?.clientWidth) this.setState({ contentWidth: this.refs.content?.clientWidth })
+    this.createButtonsTooltips()
+  }
+
+  componentWillUnmount () {
+    Dispatcher.unsubscribe('FM_UPDATE_MEDIAS', this.loadMedias)
+    Dispatcher.unsubscribe('FM_UPDATE_CATEGORIES', this.loadCategories)
+    Dispatcher.dispatch({ type: 'FM_PICKER_BUTTON_ACTIVE' })
+  }
+
+  createButtonsTooltips () {
+    if (this.databaseButton == null && this.refs.databaseButton != null) this.databaseButton = BdApi.UI.createTooltip(this.refs.databaseButton, plugin.instance.strings.cache.panel, { style: 'primary' })
+    if (this.importButton == null && this.refs.importButton != null) this.importButton = BdApi.UI.createTooltip(this.refs.importButton, plugin.instance.strings.import.panel, { style: 'primary' })
+    if (this.settingsButton == null && this.refs.settingsButton != null) this.settingsButton = BdApi.UI.createTooltip(this.refs.settingsButton, plugin.instance.strings.settings.panel, { style: 'primary' })
+    if (this.mediasCounter == null && this.refs.mediasCounter != null) this.mediasCounter = BdApi.UI.createTooltip(this.refs.mediasCounter, plugin.instance.strings.mediasCounter, { style: 'primary' })
+  }
+
+  clearSearch () {
+    if (this.refs.input) this.refs.input.value = ''
+    this.setState({ textFilter: '' })
+  }
+
+  get numberOfColumns () {
+    return Math.floor(this.state.contentWidth / 200)
+  }
+
+  setContentHeight (height) {
+    this.contentHeight = height
+    if (this.refs.content) this.refs.content.style.height = `${this.contentHeight}px`
+    if (this.refs.endSticker) this.refs.endSticker.style.top = `${this.contentHeight + 12}px`
+  }
+
+  get heights () {
+    const cols = this.numberOfColumns
+    const heights = new Array(cols).fill(0)
+    const categoriesLen = this.currentPageCategories.length
+    const rows = Math.ceil(categoriesLen / cols)
+    const max = (categoriesLen % cols) || 999
+    for (let i = 0; i < cols; i++) { heights[i] = (rows - (i < max ? 0 : 1)) * 122 }
+    return heights
+  }
+
+  setCategory (category) {
+    if (!category) {
+      this.loadCategories()
+      this.loadMedias()
+    } else {
+      this.setState({ category })
+    }
+    this.clearSearch()
+  }
+
+  listWithId (list) {
+    return list.map((e, i) => ({ ...e, id: i }))
+  }
+
+  filterCondition (name, filter) {
+    name = name.replace(/(_|-)/gm, ' ')
+    filter = filter.replace(/(_|-)/gm, ' ')
+    for (const f of filter.split(' ').filter(e => e)) { if (!name.includes(f)) return false }
+    return true
+  }
+
+  get filteredCategories () {
+    const filter = this.state.textFilter
+    if (!filter) return this.categoriesInCategory()
+    return this.state.categories.filter(c => this.filterCondition(c.name.toLowerCase(), filter.toString().toLowerCase()))
+  }
+
+  get filteredMedias () {
+    const filter = this.state.textFilter
+    if (!filter) return this.mediasInCategory.reverse()
+    return this.listWithId(this.state.medias).filter(m => this.filterCondition(m.name.toLowerCase(), filter.toString().toLowerCase())).reverse()
+  }
+
+  get currentPageCategories () {
+    if (PageControl == null) return this.filteredCategories
+
+    const start = plugin.instance.settings.maxMediasPerPage * (this.state.page - 1)
+    return this.filteredCategories.slice(start, start + plugin.instance.settings.maxMediasPerPage)
+  }
+
+  get currentPageMedias () {
+    if (PageControl == null) return this.filteredMedias
+
+    let offset = this.currentPageCategories.length
+    if (offset >= plugin.instance.settings.maxMediasPerPage) return []
+
+    else if (offset > 0) return this.filteredMedias.slice(0, plugin.instance.settings.maxMediasPerPage - offset)
+
+    offset = (plugin.instance.settings.maxMediasPerPage * Math.floor(this.filteredCategories.length / plugin.instance.settings.maxMediasPerPage) + (plugin.instance.settings.maxMediasPerPage - this.filteredCategories.length % plugin.instance.settings.maxMediasPerPage)) % plugin.instance.settings.maxMediasPerPage
+    const start = offset + (this.state.page - 1 - Math.ceil(this.filteredCategories.length / plugin.instance.settings.maxMediasPerPage)) * plugin.instance.settings.maxMediasPerPage
+    return this.filteredMedias.slice(start, start + plugin.instance.settings.maxMediasPerPage)
+  }
+
+  get positionedCategories () {
+    const thumbnails = this.randomThumbnails
+    const categories = this.currentPageCategories
+    const width = this.state.contentWidth || 200
+    const n = Math.floor(width / 200)
+    const itemWidth = (width - (12 * (n - 1))) / n
+    for (let c = 0; c < categories.length; c++) {
+      if (MediaFavButton.hasPreview(this.props.type)) categories[c].random_thumbnail = thumbnails[categories[c].id]
+      categories[c].positions = {
+        left: (itemWidth + 12) * (c % n),
+        top: 122 * Math.floor(c / n),
+        width: itemWidth,
+      }
+    }
+    return categories
+  }
+
+  get positionedMedias () {
+    const heights = this.heights
+    const width = this.state.contentWidth || 200
+    const n = Math.floor(width / 200)
+    const offset = this.currentPageCategories.length
+    const placed = new Array(n)
+    placed.fill(false)
+    placed.fill(true, 0, offset % n)
+    const itemWidth = (width - (12 * (n - 1))) / n
+    const medias = this.currentPageMedias
+    for (let m = 0; m < medias.length; m++) {
+      const min = {
+        height: Math.min(...heights),
+        index: heights.indexOf(Math.min(...heights)),
+      }
+      const max = Math.max(...heights)
+      const itemHeight = Math.round(100 * itemWidth * medias[m].height / medias[m].width) / 100
+      let placedIndex = placed.indexOf(false)
+      if (placedIndex === -1) { placed.fill(false); placedIndex = 0 }
+      if (!MediaFavButton.hasPreview(this.props.type)) {
+        medias[m].positions = {
+          left: (itemWidth + 12) * ((offset + m) % n),
+          top: 122 * Math.floor((offset + m) / n),
+          width: itemWidth,
+          height: 110,
+        }
+        heights[min.index] = heights[min.index] + 110 + 12
+      } else {
+        if ((min.height + itemHeight) < (max + 110) || m === medias.length - 1) {
+          medias[m].positions = {
+            left: (itemWidth + 12) * (min.index % n),
+            top: min.height,
+            width: itemWidth,
+            height: itemHeight,
+          }
+          heights[min.index] = heights[min.index] + itemHeight + 12
+        } else {
+          medias[m].positions = {
+            left: (itemWidth + 12) * (placedIndex % n),
+            top: Math.round(100 * heights[placedIndex]) / 100,
+            width: itemWidth,
+            height: itemHeight,
+          }
+          heights[placedIndex] = heights[placedIndex] + itemHeight + 12
+        }
+        placed[placedIndex] = true
+      }
+    }
+    this.setContentHeight(Math.max(...heights))
+    return medias
+  }
+
+  categoriesInCategory () {
+    if (!this.state.category) return this.state.categories.filter(m => m.category_id === undefined)
+    return this.state.categories.filter(m => m.category_id === this.state.category.id)
+  }
+
+  get mediasInCategory () {
+    if (!this.state.category) {
+      if (!plugin.instance.settings.hideUnsortedMedias) return this.listWithId(this.state.medias)
+      else return this.listWithId(this.state.medias).filter(m => m.category_id === undefined)
+    }
+    return this.listWithId(this.state.medias).filter(m => m.category_id === this.state.category.id)
+  }
+
+  static categoryHasSubcategories (type, categoryId) {
+    return BdApi.Data.load(plugin.name, type, { categories: [] }).categories.some((c) => c.category_id === categoryId)
+  }
+
+  static openCategoryModal (type, op, values, categoryId) {
+    let modal
+    BdApi.UI.showConfirmationModal(op === 'create' ? plugin.instance.strings.category.create : plugin.instance.strings.category.edit,
+      BdApi.React.createElement(CategoryModal, {
+        ...values,
+        modalRef: ref => { modal = ref },
+      }),
+      {
+        confirmText: op === 'create' ? plugin.instance.strings.create : getDiscordIntl('EDIT'),
+        onConfirm: () => {
+          let res = false
+          if (op === 'create') res = createCategory(type, modal.getValues(), categoryId)
+          else res = editCategory(type, modal.getValues(), values.id)
+          if (res) Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
+        },
+      }
+    )
+  }
+
+  static async downloadCategory (props) {
+    const { filePaths } = await BdApi.UI.openDialog({ openDirectory: true, openFile: false })
+    if (!filePaths?.[0]) return
+
+    const categoryFolder = path.join(filePaths[0], props.name ?? '')
+    await MediaPicker.createFolder(categoryFolder)
+
+    const medias = BdApi.Data.load(plugin.name, props.type, { medias: [] }).medias.filter(m => m.category_id === props.categoryId).map(m => {
+      if (!MediaFavButton.hasPreview(props.type)) return m
+      return { ...m, ext: props.type === 'gif' ? '.gif' : getUrlExt(m.url, props.type) }
+    })
+
+    const refreshedUrls = await MediaPicker.refreshUrls(medias.map((m) => m.url))
+    medias.forEach((m) => {
+      const refreshedMedia = refreshedUrls.find((r) => r.original === m.url && r.refreshed != null)
+      if (refreshedMedia != null) m.url = refreshedMedia.refreshed
+    })
+
+    const results = await Promise.allSettled(medias.map((media) => new Promise((resolve, reject) => {
+      const mediaFileName = `${media.name.replace(/ /g, '_')}${media.ext}`
+      const mediaPath = path.join(categoryFolder, mediaFileName)
+      lstat(mediaPath, {}, (err) => {
+        // checking if the file already exists -> err is not null if that's the case
+        if (!err) return resolve()
+        fetchMedia(media).then((buffer) => {
+          try {
+            writeFileSync(mediaPath, buffer)
+            resolve()
+          } catch (err) {
+            reject(err)
+          }
+        }).catch((err) => reject(err))
+      })
+    })))
+
+    results.forEach((res) => {
+      if (res.status === 'rejected') BdApi.Logger.error(plugin.name, 'Could not download media:', res.reason)
+    })
+
+    BdApi.UI.showToast(plugin.instance.strings.category.success.download, { type: 'success' })
+  }
+
+  static async createFolder (folder) {
+    return await new Promise((resolve, reject) => {
+      mkdir(folder, {}, (err) => {
+        if (err) {
+          if (err.message.startsWith('EEXIST')) resolve()
+          else reject(err)
+        } else resolve()
+      })
+    })
+  }
+
+  static async downloadMedia (media, type) {
+    media = structuredClone(media)
+
+    const ext = type === 'gif' ? '.gif' : getUrlExt(media.url, type)
+    media.name = media.name.replace(/ /g, '_')
+    const { filePath } = await BdApi.UI.openDialog({ mode: 'save', defaultPath: media.name + ext })
+    if (filePath === '') return
+
+    const [refreshedUrl] = await MediaPicker.refreshUrls([media.url])
+    media.url = refreshedUrl.refreshed ?? refreshedUrl.original
+
+    const buffer = await fetchMedia(media).catch((err) => {
+      BdApi.Logger.error(plugin.name, err.message ?? err)
+      BdApi.UI.showToast(plugin.instance.strings.media.error.download[type], { type: 'error' })
+    })
+
+    try {
+      writeFileSync(filePath, buffer)
+      BdApi.UI.showToast(plugin.instance.strings.media.success.download[type], { type: 'success' })
+    } catch (err) {
+      BdApi.Logger.error(plugin.name, err.message ?? err)
+      BdApi.UI.showToast(plugin.instance.strings.media.error.download[type], { type: 'error' })
+    }
+  }
+
+  onContextMenu (e) {
+    canClosePicker.context = 'contextmenu'
+    canClosePicker.value = false
+
+    const items = [
+      {
+        id: 'category-create',
+        label: plugin.instance.strings.category.create,
+        action: () => MediaPicker.openCategoryModal(this.props.type, 'create', null, this.state.category?.id),
+      }, {
+        id: 'category-download',
+        label: plugin.instance.strings.category.download,
+        action: () => MediaPicker.downloadCategory({ type: this.props.type, name: this.state.category?.name, categoryId: this.state.category?.id }),
+      },
+    ]
+
+    if (!plugin.instance.settings.allowCaching && this.state.category == null && this.props.type !== 'gif') {
+      items.push({
+        id: 'media-refresh-urls',
+        label: plugin.instance.strings.category.refreshUrls,
+        action: () => MediaPicker.refreshMediasUrls(this.props.type, this.state.medias, this.state.categories),
+      })
+    }
+
+    BdApi.ContextMenu.open(e,
+      BdApi.ContextMenu.buildMenu([{
         type: 'group',
         items,
       }]), {
@@ -1902,2197 +1993,2154 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           canClosePicker.value = true
         },
       })
-    }
-
-    onDragStart (e) {
-      e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'category', id: this.props.id }))
-      e.dataTransfer.effectAllowed = 'move'
-    }
-
-    onDrop (e) {
-      let data = e.dataTransfer.getData('text/plain')
-      try {
-        data = JSON.parse(data)
-      } catch (err) {
-        console.error(`[${config.name}]`, err.message ?? err)
-      }
-      if (data == null) return
-      if (data.type === 'media') {
-        MediaPicker.changeMediaCategory(this.props.type, data.url, this.props.id)
-      } else if (data.type === 'category') {
-        if (data.id !== this.props.id) MediaPicker.changeCategoryCategory(this.props.type, data.id, this.props.id)
-      }
-      this.refs.category.classList.remove('category-dragover')
-    }
-
-    async onError () {
-      console.warn(`[${config.name}]`, 'Could not load media:', this.state.src, this.thumbnail)
-
-      if (!plugin.instance.settings.allowCaching) return
-
-      const key = this.thumbnail
-      const media = await fmdb.get(key)
-      if (media == null) {
-        this.setState({ thumbnailError: true })
-        return
-      }
-
-      const blob = new Blob([media])
-      const url = URL.createObjectURL(blob)
-      mediasCache[key] = url
-      this.setState({ src: url })
-    }
-
-    render () {
-      return React.createElement('div', {
-        className: classes.result.result,
-        tabindex: '-1',
-        role: 'button',
-        style: {
-          position: 'absolute',
-          top: `${this.props.positions.top}px`,
-          left: `${this.props.positions.left}px`,
-          width: `${this.props.positions.width}px`,
-          height: '110px',
-        },
-        ref: 'category',
-        onClick: () => this.props.setCategory({ name: this.props.name, color: this.props.color, id: this.props.id, category_id: this.props.category_id }),
-        onContextMenu: this.onContextMenu,
-        onDragEnter: e => { e.preventDefault(); this.refs.category.classList.add('category-dragover') },
-        onDragLeave: e => { e.preventDefault(); this.refs.category.classList.remove('category-dragover') },
-        onDragOver: e => { e.stopPropagation(); e.preventDefault() },
-        onDragStart: this.onDragStart,
-        onDrop: this.onDrop,
-        draggable: true,
-      },
-      React.createElement('div', {
-        className: classes.category.categoryFade,
-        style: { 'background-color': `${this.showColor ? (this.props.color || DEFAULT_BACKGROUND_COLOR) : ''}` },
-      }),
-      React.createElement('div', { className: classes.category.categoryText },
-        React.createElement('span', {
-          className: classes.category.categoryName,
-          style: this.showColor ? { color: this.nameColor, 'text-shadow': 'none' } : {},
-        }, this.props.name)
-      ),
-      !this.showColor
-        ? React.createElement(this.isGIF && !this.state.src?.split('?')[0].endsWith('.gif') ? 'video' : 'img', {
-          className: classes.result.gif,
-          preload: 'auto',
-          autoplay: this.isGIF ? '' : undefined,
-          loop: this.isGIF ? 'true' : undefined,
-          muted: this.isGIF ? 'true' : undefined,
-          src: this.state.src,
-          height: '110px',
-          width: '100%',
-          onError: this.onError,
-        })
-        : null
-      )
-    }
   }
 
-  const MediaCard = class extends React.Component {
-    constructor (props) {
-      super(props)
-
-      this.state = {
-        showControls: false,
-        src: getMediaFromCache(this.src),
-        poster: getMediaFromCache(this.props.poster),
-      }
-
-      this.changeControls = this.changeControls.bind(this)
-      this.hideControls = this.hideControls.bind(this)
-      this.sendMedia = this.sendMedia.bind(this)
-      this.onDragStart = this.onDragStart.bind(this)
-      this.onError = this.onError.bind(this)
-    }
-
-    get isGIF () {
-      return this.props.type === 'gif'
-    }
-
-    get tag () {
-      if (this.props.type === 'file') return null
-      if (this.state.showControls) return this.props.type === 'audio' ? 'audio' : 'video'
-      if (this.isGIF && !this.props.src?.split('?')[0].endsWith('.gif')) return 'video'
-      if (this.props.type === 'audio') return null
-      return 'img'
-    }
-
-    get src () {
-      if (this.props.type === 'video' && !this.state?.showControls) return this.state?.poster ?? this.props.poster
-      if (this.isGIF) return this.props.src
-      return this.props.url
-    }
-
-    get titleIcon () {
-      if (this.props.type === 'audio') return MusicNoteSVG({ className: classes.category.categoryIcon, style: { overflow: 'visible' } })
-      if (this.props.type === 'file') return MiniFileSVG({ className: classes.category.categoryIcon, style: { overflow: 'visible' } })
-      return null
-    }
-
-    get fileName () {
-      const name = this.props.name.replace(/_/gm, ' ')
-      if (this.props.type === 'audio') return name
-      return name + getUrlExt(this.src, this.props.type)
-    }
-
-    componentDidMount () {
-      Dispatcher.subscribe('FM_TOGGLE_CONTROLS', this.hideControls)
-      Dispatcher.subscribe('FM_SEND_MEDIA', this.sendMedia)
-      this.url = this.props.url
-      if (MediaFavButton.isPlayable(this.props.type) && this.refs.tooltipControls) this.tooltipControls = createTooltip(this.refs.tooltipControls, this.state.showControls ? plugin.instance.strings.media.controls.hide : plugin.instance.strings.media.controls.show, { style: 'primary' })
-    }
-
-    componentWillUnmount () {
-      Dispatcher.unsubscribe('FM_TOGGLE_CONTROLS', this.hideControls)
-      Dispatcher.unsubscribe('FM_SEND_MEDIA', this.sendMedia)
-    }
-
-    componentDidUpdate () {
-      if (!MediaFavButton.checkSameUrl(this.url, this.props.url)) {
-        if (this.state.showControls) this.changeControls(false)
-        this.setState({ src: null, poster: null }, () => {
-          this.setState({
-            src: getMediaFromCache(this.src),
-            poster: getMediaFromCache(this.props.poster),
-          })
-        })
-      }
-      if (MediaFavButton.isPlayable(this.props.type) && !this.tooltipControls && this.refs.tooltipControls) this.tooltipControls = createTooltip(this.refs.tooltipControls, this.state.showControls ? plugin.instance.strings.media.controls.hide : plugin.instance.strings.media.controls.show, { style: 'primary' })
-      if (this.state.showControls && this.refs.media) this.refs.media.volume = this.props.settings.mediaVolume / 100 || 0.1
-      this.url = this.props.url
-    }
-
-    async changeControls (force) {
-      this.setState((previousState) => {
-        const newControls = force !== undefined ? force : !previousState.showControls
-
-        if (this.tooltipControls) {
-          this.tooltipControls.label = newControls ? plugin.instance.strings.media.controls.hide : plugin.instance.strings.media.controls.show
-          this.tooltipControls.hide()
-          this.tooltipControls.show()
-          if (force !== undefined) this.tooltipControls.hide()
-        }
-
-        if (newControls) {
-          Dispatcher.dispatch({ type: 'FM_TOGGLE_CONTROLS' })
-
-          MediaPicker.refreshUrls([this.props.url]).then(([refreshedUrl]) => {
-            this.setState({ src: refreshedUrl.refreshed ?? refreshedUrl.original })
-          })
-        }
-
-        let src = this.src
-        if (this.props.type === 'video' && !newControls) src = this.state?.poster ?? this.props.poster
-
-        return ({ showControls: newControls, src: getMediaFromCache(src) })
-      })
-    }
-
-    hideControls () {
-      if (this.state.showControls) this.changeControls(false)
-    }
-
-    onDragStart (e) {
-      e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'media', url: this.props.url }))
-      e.dataTransfer.effectAllowed = 'move'
-    }
-
-    async sendMedia (e) {
-      const sendMedia = e.type === 'FM_SEND_MEDIA'
-      if (sendMedia) {
-        if (e.mediaId !== this.props.id) return
-        e = e.e
-      }
-      if (['path', 'svg'].includes(e.target.tagName)) return
-
-      e.preventDefault()
-      this.hideControls()
-
-      if (!sendMedia && (this.props.type === 'audio' || this.props.settings[this.props.type].alwaysUploadFile)) {
-        const [refreshedUrl] = await MediaPicker.refreshUrls([this.props.url])
-        const media = {
-          url: refreshedUrl.refreshed ?? refreshedUrl.original,
-          name: this.props.name,
-        }
-
-        const buffer = await fetchMedia(media).catch((err) => console.error(`[${config.name}]`, err.message ?? err))
-        if (buffer == null) throw new Error('Failed to upload media:', media)
-
-        uploadFile(this.props.type, buffer, media)
-        if (this.props.settings[this.props.type].alwaysSendInstantly) sendInTextarea(true)
-        if (!e.shiftKey) EPS.closeExpressionPicker()
-      } else {
-        if (!e.shiftKey) {
-          ComponentDispatch.dispatchToLastSubscribed('INSERT_TEXT', { rawText: this.props.url, plainText: this.props.url })
-          if (this.props.settings[this.props.type].alwaysSendInstantly) sendInTextarea().catch((err) => console.error(`[${config.name}]`, err.message ?? err))
-          EPS.closeExpressionPicker()
-        } else {
-          MessagesManager.sendMessage(currentChannelId, { content: this.props.url, validNonShortcutEmojis: [] })
-        }
-      }
-    }
-
-    async onError (e) {
-      if (e.target.tagName !== 'IMG' || mediasCache[this.src] != null) return
-
-      console.warn(`[${config.name}]`, 'Could not load media:', this.src)
-
-      if (!plugin.instance.settings.allowCaching) return
-
-      const key = this.src
-      const media = await fmdb.get(key)
-      if (media == null) return
-
-      const blob = new Blob([media])
-      const url = URL.createObjectURL(blob)
-      mediasCache[key] = url
-      this.setState({ src: url })
-    }
-
-    render () {
-      return React.createElement('div', {
-        className: classes.result.result,
-        tabindex: '-1',
-        role: 'button',
-        style: {
-          position: 'absolute',
-          top: `${this.props.positions.top}px`,
-          left: `${this.props.positions.left}px`,
-          width: `${this.props.positions.width}px`,
-          height: `${this.props.positions.height}px`,
-          'background-color': DEFAULT_BACKGROUND_COLOR,
-        },
-        onContextMenu: e => this.props.onMediaContextMenu(e, this.props.id),
-        onClick: this.sendMedia,
-        onDragStart: this.onDragStart,
-        draggable: true,
-      },
-      MediaFavButton.isPlayable(this.props.type)
-        ? React.createElement('div', {
-          className: `show-controls ${classes.gif.size}${this.state.showControls ? ` ${classes.gif.selected} active` : ''}`,
-          tabindex: '-1',
-          role: 'button',
-          ref: 'tooltipControls',
-          onClick: () => this.changeControls(),
-        },
-        React.createElement('svg', {
-          className: classes.gif.icon,
-          'aria-hidden': 'false',
-          viewBox: '0 0 780 780',
-          width: '16',
-          height: '16',
-        },
-        React.createElement('path', { fill: 'currentColor', d: 'M490.667,405.333h-56.811C424.619,374.592,396.373,352,362.667,352s-61.931,22.592-71.189,53.333H21.333C9.557,405.333,0,414.891,0,426.667S9.557,448,21.333,448h270.144c9.237,30.741,37.483,53.333,71.189,53.333s61.931-22.592,71.189-53.333h56.811c11.797,0,21.333-9.557,21.333-21.333S502.464,405.333,490.667,405.333zM362.667,458.667c-17.643,0-32-14.357-32-32s14.357-32,32-32s32,14.357,32,32S380.309,458.667,362.667,458.667z' }),
-        React.createElement('path', { fill: 'currentColor', d: 'M490.667,64h-56.811c-9.259-30.741-37.483-53.333-71.189-53.333S300.736,33.259,291.477,64H21.333C9.557,64,0,73.557,0,85.333s9.557,21.333,21.333,21.333h270.144C300.736,137.408,328.96,160,362.667,160s61.931-22.592,71.189-53.333h56.811c11.797,0,21.333-9.557,21.333-21.333S502.464,64,490.667,64z M362.667,117.333c-17.643,0-32-14.357-32-32c0-17.643,14.357-32,32-32s32,14.357,32,32C394.667,102.976,380.309,117.333,362.667,117.333z' }),
-        React.createElement('path', { fill: 'currentColor', d: 'M490.667,234.667H220.523c-9.259-30.741-37.483-53.333-71.189-53.333s-61.931,22.592-71.189,53.333H21.333C9.557,234.667,0,244.224,0,256c0,11.776,9.557,21.333,21.333,21.333h56.811c9.259,30.741,37.483,53.333,71.189,53.333s61.931-22.592,71.189-53.333h270.144c11.797,0,21.333-9.557,21.333-21.333C512,244.224,502.464,234.667,490.667,234.667zM149.333,288c-17.643,0-32-14.357-32-32s14.357-32,32-32c17.643,0,32,14.357,32,32S166.976,288,149.333,288z' })
-        )
-        )
-        : null,
-      React.createElement(MediaFavButton, {
-        type: this.props.type,
-        url: this.props.url,
-        poster: this.props.poster,
-        fromPicker: true,
-      }),
-      this.tag != null
-        ? React.createElement(this.tag, {
-          className: classes.result.gif,
-          preload: 'auto',
-          autoplay: this.isGIF ? '' : undefined,
-          loop: this.isGIF ? 'true' : undefined,
-          muted: this.isGIF ? 'true' : undefined,
-          src: this.state.src,
-          poster: this.state.poster,
-          width: this.props.positions.width,
-          height: this.props.positions.height,
-          ref: 'media',
-          controls: this.state.showControls,
-          style: !MediaFavButton.hasPreview(this.props.type) ? { position: 'absolute', bottom: '0', left: '0', 'z-index': '2' } : null,
-          draggable: false,
-          onError: this.onError,
-        })
-        : null,
-      !MediaFavButton.hasPreview(this.props.type)
-        ? React.createElement('div', {
-          className: classes.category.categoryFade,
-          style: { 'background-color': DEFAULT_BACKGROUND_COLOR },
-        })
-        : null,
-      !MediaFavButton.hasPreview(this.props.type)
-        ? React.createElement('div', {
-          className: classes.category.categoryText,
-          style: { top: this.state.showControls ? '-50%' : null },
-        },
-        this.titleIcon,
-        React.createElement('span', { className: classes.category.categoryName },
-          React.createElement('div', {}, this.fileName))
-        )
-        : null
-      )
-    }
+  resetScroll () {
+    this.refs.pickerScroll?.scroll(0, 0)
   }
 
-  const RenderList = class extends React.Component {
-    render () {
-      return React.createElement('div', {
-        children: this.props.items.map((itemProps, i) => React.createElement(this.props.component, {
-          ...itemProps,
-          ...this.props.componentProps,
-          index: i,
-        })),
-        className: `fm-${this.props.component.name.startsWith('Cat') ? 'categories' : 'medias'}List`,
-      })
-    }
-  }
-
-  const MediaPicker = class extends React.Component {
-    static HEIGHT = 400
-
-    constructor (props) {
-      super(props)
-
-      this.state = {
-        textFilter: '',
-        categories: Utilities.loadData(config.name, this.props.type, { categories: [] }).categories,
-        category: null,
-        medias: Utilities.loadData(config.name, this.props.type, { medias: [] }).medias,
-        contentWidth: null,
-        page: 1,
-      }
-
-      this.type = this.props.type
-      this.contentHeight = MediaPicker.HEIGHT
-
-      this.createButtonsTooltips = this.createButtonsTooltips.bind(this)
-      this.clearSearch = this.clearSearch.bind(this)
-      this.setCategory = this.setCategory.bind(this)
-      this.onContextMenu = this.onContextMenu.bind(this)
-      this.onMediaContextMenu = this.onMediaContextMenu.bind(this)
-      this.categoriesItems = this.categoriesItems.bind(this)
-      this.loadMedias = this.loadMedias.bind(this)
-      this.loadCategories = this.loadCategories.bind(this)
-      this.backCategory = this.backCategory.bind(this)
-      this.uploadMedia = this.uploadMedia.bind(this)
-      this.setContentHeight = this.setContentHeight.bind(this)
-      this.sendMedia = this.sendMedia.bind(this)
-      this.resetScroll = this.resetScroll.bind(this)
-    }
-
-    componentDidMount () {
-      this.refs.input?.focus()
-      this.setState({ contentWidth: this.refs.content?.clientWidth })
-      Dispatcher.subscribe('FM_UPDATE_MEDIAS', this.loadMedias)
-      Dispatcher.subscribe('FM_UPDATE_CATEGORIES', this.loadCategories)
-      Dispatcher.dispatch({ type: 'FM_PICKER_BUTTON_ACTIVE' })
-      this.createButtonsTooltips()
-    }
-
-    componentDidUpdate () {
-      if (this.type !== this.props.type) {
-        this.type = this.props.type
-        this.setState({
-          category: null,
-          page: 1,
-        })
-        this.loadCategories()
-        this.loadMedias()
-        Dispatcher.dispatch({ type: 'FM_PICKER_BUTTON_ACTIVE' })
-      }
-      if (this.state.contentWidth !== this.refs.content?.clientWidth) this.setState({ contentWidth: this.refs.content?.clientWidth })
-      this.createButtonsTooltips()
-    }
-
-    componentWillUnmount () {
-      Dispatcher.unsubscribe('FM_UPDATE_MEDIAS', this.loadMedias)
-      Dispatcher.unsubscribe('FM_UPDATE_CATEGORIES', this.loadCategories)
-      Dispatcher.dispatch({ type: 'FM_PICKER_BUTTON_ACTIVE' })
-    }
-
-    createButtonsTooltips () {
-      if (this.databaseButton == null && this.refs.databaseButton != null) this.databaseButton = createTooltip(this.refs.databaseButton, plugin.instance.strings.cache.panel, { style: 'primary' })
-      if (this.importButton == null && this.refs.importButton != null) this.importButton = createTooltip(this.refs.importButton, plugin.instance.strings.import.panel, { style: 'primary' })
-      if (this.settingsButton == null && this.refs.settingsButton != null) this.settingsButton = createTooltip(this.refs.settingsButton, plugin.instance.strings.settings.panel, { style: 'primary' })
-      if (this.mediasCounter == null && this.refs.mediasCounter != null) this.mediasCounter = createTooltip(this.refs.mediasCounter, plugin.instance.strings.mediasCounter, { style: 'primary' })
-    }
-
-    clearSearch () {
-      if (this.refs.input) this.refs.input.value = ''
-      this.setState({ textFilter: '' })
-    }
-
-    get numberOfColumns () {
-      return Math.floor(this.state.contentWidth / 200)
-    }
-
-    setContentHeight (height) {
-      this.contentHeight = height
-      if (this.refs.content) this.refs.content.style.height = `${this.contentHeight}px`
-      if (this.refs.endSticker) this.refs.endSticker.style.top = `${this.contentHeight + 12}px`
-    }
-
-    get heights () {
-      const cols = this.numberOfColumns
-      const heights = new Array(cols).fill(0)
-      const categoriesLen = this.currentPageCategories.length
-      const rows = Math.ceil(categoriesLen / cols)
-      const max = (categoriesLen % cols) || 999
-      for (let i = 0; i < cols; i++) { heights[i] = (rows - (i < max ? 0 : 1)) * 122 }
-      return heights
-    }
-
-    setCategory (category) {
-      if (!category) {
-        this.loadCategories()
-        this.loadMedias()
-      } else {
-        this.setState({ category })
-      }
-      this.clearSearch()
-    }
-
-    listWithId (list) {
-      return list.map((e, i) => ({ ...e, id: i }))
-    }
-
-    filterCondition (name, filter) {
-      name = name.replace(/(_|-)/gm, ' ')
-      filter = filter.replace(/(_|-)/gm, ' ')
-      for (const f of filter.split(' ').filter(e => e)) { if (!name.includes(f)) return false }
-      return true
-    }
-
-    get filteredCategories () {
-      const filter = this.state.textFilter
-      if (!filter) return this.categoriesInCategory()
-      return this.state.categories.filter(c => this.filterCondition(c.name.toLowerCase(), filter.toString().toLowerCase()))
-    }
-
-    get filteredMedias () {
-      const filter = this.state.textFilter
-      if (!filter) return this.mediasInCategory.reverse()
-      return this.listWithId(this.state.medias).filter(m => this.filterCondition(m.name.toLowerCase(), filter.toString().toLowerCase())).reverse()
-    }
-
-    get currentPageCategories () {
-      if (PageControl == null) return this.filteredCategories
-
-      const start = plugin.instance.settings.maxMediasPerPage * (this.state.page - 1)
-      return this.filteredCategories.slice(start, start + plugin.instance.settings.maxMediasPerPage)
-    }
-
-    get currentPageMedias () {
-      if (PageControl == null) return this.filteredMedias
-
-      let offset = this.currentPageCategories.length
-      if (offset >= plugin.instance.settings.maxMediasPerPage) return []
-
-      else if (offset > 0) return this.filteredMedias.slice(0, plugin.instance.settings.maxMediasPerPage - offset)
-
-      offset = (plugin.instance.settings.maxMediasPerPage * Math.floor(this.filteredCategories.length / plugin.instance.settings.maxMediasPerPage) + (plugin.instance.settings.maxMediasPerPage - this.filteredCategories.length % plugin.instance.settings.maxMediasPerPage)) % plugin.instance.settings.maxMediasPerPage
-      const start = offset + (this.state.page - 1 - Math.ceil(this.filteredCategories.length / plugin.instance.settings.maxMediasPerPage)) * plugin.instance.settings.maxMediasPerPage
-      return this.filteredMedias.slice(start, start + plugin.instance.settings.maxMediasPerPage)
-    }
-
-    get positionedCategories () {
-      const thumbnails = this.randomThumbnails
-      const categories = this.currentPageCategories
-      const width = this.state.contentWidth || 200
-      const n = Math.floor(width / 200)
-      const itemWidth = (width - (12 * (n - 1))) / n
-      for (let c = 0; c < categories.length; c++) {
-        if (MediaFavButton.hasPreview(this.props.type)) categories[c].random_thumbnail = thumbnails[categories[c].id]
-        categories[c].positions = {
-          left: (itemWidth + 12) * (c % n),
-          top: 122 * Math.floor(c / n),
-          width: itemWidth,
-        }
-      }
-      return categories
-    }
-
-    get positionedMedias () {
-      const heights = this.heights
-      const width = this.state.contentWidth || 200
-      const n = Math.floor(width / 200)
-      const offset = this.currentPageCategories.length
-      const placed = new Array(n)
-      placed.fill(false)
-      placed.fill(true, 0, offset % n)
-      const itemWidth = (width - (12 * (n - 1))) / n
-      const medias = this.currentPageMedias
-      for (let m = 0; m < medias.length; m++) {
-        const min = {
-          height: Math.min(...heights),
-          index: heights.indexOf(Math.min(...heights)),
-        }
-        const max = Math.max(...heights)
-        const itemHeight = Math.round(100 * itemWidth * medias[m].height / medias[m].width) / 100
-        let placedIndex = placed.indexOf(false)
-        if (placedIndex === -1) { placed.fill(false); placedIndex = 0 }
-        if (!MediaFavButton.hasPreview(this.props.type)) {
-          medias[m].positions = {
-            left: (itemWidth + 12) * ((offset + m) % n),
-            top: 122 * Math.floor((offset + m) / n),
-            width: itemWidth,
-            height: 110,
-          }
-          heights[min.index] = heights[min.index] + 110 + 12
-        } else {
-          if ((min.height + itemHeight) < (max + 110) || m === medias.length - 1) {
-            medias[m].positions = {
-              left: (itemWidth + 12) * (min.index % n),
-              top: min.height,
-              width: itemWidth,
-              height: itemHeight,
-            }
-            heights[min.index] = heights[min.index] + itemHeight + 12
-          } else {
-            medias[m].positions = {
-              left: (itemWidth + 12) * (placedIndex % n),
-              top: Math.round(100 * heights[placedIndex]) / 100,
-              width: itemWidth,
-              height: itemHeight,
-            }
-            heights[placedIndex] = heights[placedIndex] + itemHeight + 12
-          }
-          placed[placedIndex] = true
-        }
-      }
-      this.setContentHeight(Math.max(...heights))
-      return medias
-    }
-
-    categoriesInCategory () {
-      if (!this.state.category) return this.state.categories.filter(m => m.category_id === undefined)
-      return this.state.categories.filter(m => m.category_id === this.state.category.id)
-    }
-
-    get mediasInCategory () {
-      if (!this.state.category) {
-        if (!plugin.instance.settings.hideUnsortedMedias) return this.listWithId(this.state.medias)
-        else return this.listWithId(this.state.medias).filter(m => m.category_id === undefined)
-      }
-      return this.listWithId(this.state.medias).filter(m => m.category_id === this.state.category.id)
-    }
-
-    static categoryHasSubcategories (type, categoryId) {
-      return Utilities.loadData(config.name, type, { categories: [] }).categories.some((c) => c.category_id === categoryId)
-    }
-
-    static openCategoryModal (type, op, values, categoryId) {
-      let modal
-      showConfirmationModal(op === 'create' ? plugin.instance.strings.category.create : plugin.instance.strings.category.edit,
-        React.createElement(CategoryModal, {
-          ...values,
-          modalRef: ref => { modal = ref },
-        }),
-        {
-          confirmText: op === 'create' ? plugin.instance.strings.create : getDiscordIntl('EDIT'),
-          onConfirm: () => {
-            let res = false
-            if (op === 'create') res = createCategory(type, modal.getValues(), categoryId)
-            else res = editCategory(type, modal.getValues(), values.id)
-            if (res) Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
-          },
-        }
-      )
-    }
-
-    static async downloadCategory (props) {
-      const { filePaths } = await openDialog({ openDirectory: true, openFile: false })
-      if (!filePaths?.[0]) return
-
-      const categoryFolder = path.join(filePaths[0], props.name ?? '')
-      await MediaPicker.createFolder(categoryFolder)
-
-      const medias = Utilities.loadData(config.name, props.type, { medias: [] }).medias.filter(m => m.category_id === props.categoryId).map(m => {
-        if (!MediaFavButton.hasPreview(props.type)) return m
-        return { ...m, ext: props.type === 'gif' ? '.gif' : getUrlExt(m.url, props.type) }
-      })
-
-      const refreshedUrls = await MediaPicker.refreshUrls(medias.map((m) => m.url))
-      medias.forEach((m) => {
-        const refreshedMedia = refreshedUrls.find((r) => r.original === m.url && r.refreshed != null)
-        if (refreshedMedia != null) m.url = refreshedMedia.refreshed
-      })
-
-      const results = await Promise.allSettled(medias.map((media) => new Promise((resolve, reject) => {
-        const mediaFileName = `${media.name.replace(/ /g, '_')}${media.ext}`
-        const mediaPath = path.join(categoryFolder, mediaFileName)
-        lstat(mediaPath, {}, (err) => {
-          // checking if the file already exists -> err is not null if that's the case
-          if (!err) return resolve()
-          fetchMedia(media).then((buffer) => {
-            try {
-              writeFileSync(mediaPath, buffer)
-              resolve()
-            } catch (err) {
-              reject(err)
-            }
-          }).catch((err) => reject(err))
-        })
-      })))
-
-      results.forEach((res) => {
-        if (res.status === 'rejected') console.error(`[${config.name}]`, 'Could not download media:', res.reason)
-      })
-
-      showToast(plugin.instance.strings.category.success.download, { type: 'success' })
-    }
-
-    static async createFolder (folder) {
-      return await new Promise((resolve, reject) => {
-        mkdir(folder, {}, (err) => {
-          if (err) {
-            if (err.message.startsWith('EEXIST')) resolve()
-            else reject(err)
-          } else resolve()
-        })
-      })
-    }
-
-    static async downloadMedia (media, type) {
-      media = structuredClone(media)
-
-      const ext = type === 'gif' ? '.gif' : getUrlExt(media.url, type)
-      media.name = media.name.replace(/ /g, '_')
-      const { filePath } = await openDialog({ mode: 'save', defaultPath: media.name + ext })
-      if (filePath === '') return
-
-      const [refreshedUrl] = await MediaPicker.refreshUrls([media.url])
-      media.url = refreshedUrl.refreshed ?? refreshedUrl.original
-
-      const buffer = await fetchMedia(media).catch((err) => {
-        console.error(`[${config.name}]`, err.message ?? err)
-        showToast(plugin.instance.strings.media.error.download[type], { type: 'error' })
-      })
-
-      try {
-        writeFileSync(filePath, buffer)
-        showToast(plugin.instance.strings.media.success.download[type], { type: 'success' })
-      } catch (err) {
-        console.error(`[${config.name}]`, err.message ?? err)
-        showToast(plugin.instance.strings.media.error.download[type], { type: 'error' })
-      }
-    }
-
-    onContextMenu (e) {
-      canClosePicker.context = 'contextmenu'
-      canClosePicker.value = false
-
-      const items = [
-        {
-          id: 'category-create',
-          label: plugin.instance.strings.category.create,
-          action: () => MediaPicker.openCategoryModal(this.props.type, 'create', null, this.state.category?.id),
-        }, {
-          id: 'category-download',
-          label: plugin.instance.strings.category.download,
-          action: () => MediaPicker.downloadCategory({ type: this.props.type, name: this.state.category?.name, categoryId: this.state.category?.id }),
-        },
-      ]
-
-      if (!plugin.instance.settings.allowCaching && this.state.category == null && this.props.type !== 'gif') {
-        items.push({
-          id: 'media-refresh-urls',
-          label: plugin.instance.strings.category.refreshUrls,
-          action: () => MediaPicker.refreshMediasUrls(this.props.type, this.state.medias, this.state.categories),
-        })
-      }
-
-      ContextMenu.openContextMenu(e,
-        ContextMenu.buildMenu([{
-          type: 'group',
-          items,
-        }]), {
-          onClose: () => {
-            canClosePicker.context = 'contextmenu'
-            canClosePicker.value = true
-          },
-        })
-    }
-
-    resetScroll () {
-      this.refs.pickerScroll?.scroll(0, 0)
-    }
-
-    static changeCategoryCategory (type, id, categoryId) {
-      const typeData = Utilities.loadData(config.name, type, { medias: [] })
-      const index = typeData.categories.findIndex(c => c.id === id)
-      if (index < 0) return
-      typeData.categories[index].category_id = categoryId
-      Utilities.saveData(config.name, type, typeData)
-      showToast(plugin.instance.strings.category.success.move, { type: 'success' })
-      Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
-    }
-
-    static changeMediaCategory (type, url, categoryId) {
-      const typeData = Utilities.loadData(config.name, type, { medias: [], categories: [] })
-      const index = typeData.medias.findIndex(m => MediaFavButton.checkSameUrl(m.url, url))
-      if (index < 0) return
-      typeData.medias[index].category_id = categoryId
-      typeData.categories.forEach((c) => {
-        if (c.thumbnail === MediaFavButton.getThumbnail(type, typeData.medias[index])) {
-          c.thumbnail = undefined
-        }
-      })
-      Utilities.saveData(config.name, type, typeData)
-      showToast(plugin.instance.strings.media.success.move[type], { type: 'success' })
-      Dispatcher.dispatch({ type: 'FM_UPDATE_MEDIAS' })
-    }
-
-    static removeCategoryCategory (type, categoryId) {
-      const typeData = Utilities.loadData(config.name, type, { categories: [] })
-      const index = typeData.categories.findIndex(m => m.id === categoryId)
-      if (index < 0) return
-      delete typeData.categories[index].category_id
-      Utilities.saveData(config.name, type, typeData)
-      showToast(plugin.instance.strings.category.success.move, { type: 'success' })
-      Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
-    }
-
-    static removeMediaCategory (type, mediaId) {
-      const typeData = Utilities.loadData(config.name, type, { medias: [], categories: [] })
-      delete typeData.medias[mediaId].category_id
-      typeData.categories.forEach((c) => {
-        if (c.thumbnail === MediaFavButton.getThumbnail(type, typeData.medias[mediaId])) {
-          c.thumbnail = undefined
-        }
-      })
-      Utilities.saveData(config.name, type, typeData)
-      showToast(plugin.instance.strings.media.success.remove[type], { type: 'success' })
-      Dispatcher.dispatch({ type: 'FM_UPDATE_MEDIAS' })
-    }
-
-    static setCategoryThumbnail (type, url, categoryId) {
-      const typeData = Utilities.loadData(config.name, type, { categories: [] })
-      const index = typeData.categories.findIndex(m => m.id === categoryId)
-      if (index < 0) return
-      typeData.categories[index].thumbnail = url
-      Utilities.saveData(config.name, type, typeData)
-      showToast(plugin.instance.strings.category.success.setThumbnail, { type: 'success' })
-      Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
-    }
-
-    static unsetCategoryThumbnail (type, categoryId) {
-      const typeData = Utilities.loadData(config.name, type, { categories: [] })
-      const index = typeData.categories.findIndex(m => m.id === categoryId)
-      if (index < 0) return
-      typeData.categories[index].thumbnail = undefined
-      Utilities.saveData(config.name, type, typeData)
-      showToast(plugin.instance.strings.category.success.unsetThumbnail, { type: 'success' })
-      Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
-    }
-
-    categoriesItems (media) {
-      return this.state.categories
-        .filter(c => c.id !== (media.category_id) && c.id !== MediaPicker.getMediaCategoryId(this.props.type, media.id))
-        .map(c => ({
-          id: `category-menu-${c.id}`,
-          label: c.name,
-          key: c.id,
-          action: () => MediaPicker.changeMediaCategory(this.props.type, media.url, c.id),
-          render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id }),
-        }))
-    }
-
-    static getMediaCategoryId (type, mediaId) {
-      return Utilities.loadData(config.name, type, { medias: [] }).medias[mediaId]?.category_id
-    }
-
-    static getCategoryThumbnail (type, categoryId) {
-      return Utilities.loadData(config.name, type, { categories: [] }).categories.find(c => c.id === categoryId)?.thumbnail
-    }
-
-    get randomThumbnails () {
-      const thumbnails = []
-      for (let c = 0; c < this.state.categories.length; c++) {
-        const id = this.state.categories[c].id
-        const medias = this.state.medias.filter(m => m.category_id === id)
-        let media = null
-        if (medias.length === 0) continue
-        else if (medias.length === 1) media = medias[0]
-        else media = medias[Math.floor(Math.random() * medias.length)]
-        thumbnails[id] = media.poster || media.src || media.url
-      }
-      return thumbnails
-    }
-
-    loadCategories () {
-      this.setState({ categories: Utilities.loadData(config.name, this.props.type, { categories: [] }).categories })
-    }
-
-    loadMedias () {
-      this.setState({ medias: Utilities.loadData(config.name, this.props.type, { medias: [] }).medias })
-    }
-
-    backCategory () {
-      const prevCategory = this.state.categories.find((c) => c.id === this.state.category.category_id)
-      this.setState({
-        category: prevCategory,
-        page: 1,
-      })
-      this.resetScroll()
-    }
-
-    async uploadMedia (mediaId, spoiler = false) {
-      const media = structuredClone(this.state.medias[mediaId])
-      if (media == null) return
-
-      const [refreshedUrl] = await MediaPicker.refreshUrls([media.url])
-      media.url = refreshedUrl.refreshed ?? refreshedUrl.original
-
-      const buffer = await fetchMedia(media).catch((err) => console.error(`[${config.name}]`, err.message ?? err))
-      uploadFile(this.props.type, buffer, media)
-
-      setTimeout(() => {
-        if (spoiler) findSpoilerButton()?.click()
-      }, 50)
-      EPS.closeExpressionPicker()
-    }
-
-    sendMedia (e, mediaId) {
-      Dispatcher.dispatch({ type: 'FM_SEND_MEDIA', e, mediaId })
-    }
-
-    onMediaContextMenu (e, mediaId) {
-      const media = Utilities.loadData(config.name, this.props.type, { medias: [] }).medias[mediaId]
-      const items = [{
-        id: 'media-input',
-        label: 'media-input',
-        render: () => React.createElement(MediaMenuItemInput, { id: mediaId, type: this.props.type, loadMedias: this.loadMedias }),
-      }, {
-        id: 'media-copy-url',
-        label: getDiscordIntl('COPY_MEDIA_LINK'),
-        action: () => ElectronModule.copy(media.url),
-      }]
-      if (media.message != null) {
-        items.push({
-          id: 'media-copy-message',
-          label: getDiscordIntl('COPY_MESSAGE_LINK'),
-          action: () => ElectronModule.copy(media.message ?? ''),
-        })
-      }
-      if (media.source != null) {
-        items.push({
-          id: 'media-copy-source',
-          label: plugin.instance.strings.media.copySource,
-          action: () => ElectronModule.copy(media.source ?? ''),
-        })
-      }
-      items.push({
-        id: 'media-send-title',
-        label: getDiscordIntl('USER_POPOUT_MESSAGE'),
-        action: (e) => this.sendMedia(e, mediaId),
-      }, {
-        id: 'media-upload-title',
-        label: plugin.instance.strings.media.upload.title,
-        type: 'submenu',
-        items: [{
-          id: 'media-upload-normal',
-          label: plugin.instance.strings.media.upload.normal,
-          action: () => this.uploadMedia(mediaId),
-        }, {
-          id: 'media-upload-spoiler',
-          label: plugin.instance.strings.media.upload.spoiler,
-          action: () => this.uploadMedia(mediaId, true),
-        }],
-      }, {
-        id: 'media-download',
-        label: getDiscordIntl('DOWNLOAD'),
-        action: () => MediaPicker.downloadMedia(media, this.props.type),
-      })
-      const itemsCategories = this.categoriesItems(media)
-      const mediaCategoryId = MediaPicker.getMediaCategoryId(this.props.type, mediaId)
-      if (itemsCategories.length > 0) {
-        items.splice(1, 0, {
-          id: 'media-moveAddTo',
-          label: this.state.category || mediaCategoryId != null ? plugin.instance.strings.media.moveTo : plugin.instance.strings.media.addTo,
-          type: 'submenu',
-          items: itemsCategories,
-        })
-      }
-      if (mediaCategoryId != null) {
-        const mediaThumbnail = MediaFavButton.getThumbnail(this.props.type, media)
-        const categoryThumbnail = MediaPicker.getCategoryThumbnail(this.props.type, mediaCategoryId)
-        if (mediaThumbnail !== categoryThumbnail) {
-          items.push({
-            id: 'category-setThumbnail',
-            label: plugin.instance.strings.category.setThumbnail,
-            action: () => MediaPicker.setCategoryThumbnail(this.props.type, mediaThumbnail, mediaCategoryId),
-          })
-        }
-        items.push({
-          id: 'media-removeFrom',
-          label: plugin.instance.strings.media.removeFrom,
-          danger: true,
-          action: () => MediaPicker.removeMediaCategory(this.props.type, mediaId),
-        })
-      }
-      canClosePicker.context = 'contextmenu'
-      canClosePicker.value = false
-      ContextMenu.openContextMenu(e, ContextMenu.buildMenu([
-        {
-          type: 'group',
-          items,
-        },
-      ]), {
-        onClose: () => {
-          canClosePicker.context = 'contextmenu'
-          canClosePicker.value = true
-        },
-      })
-    }
-
-    static async openImportModal () {
-      const { filePaths } = await openDialog({
-        defaultPath: Plugins.folder,
-        multiSelections: true,
-        filters: [{ name: 'Config', extensions: ['config.json'] }],
-      })
-      if (!filePaths?.[0]) return
-
-      showConfirmationModal(
-        plugin.instance.strings.import.panel,
-        React.createElement(ImportPanel, {
-          paths: filePaths,
-        }), {
-          confirmText: null,
-          cancelText: null,
-        })
-    }
-
-    static async openDatabasePanel () {
-      showConfirmationModal(plugin.instance.strings.cache.panel, React.createElement(DatabasePanel), {
-        confirmText: null,
-        cancelText: null,
-      })
-    }
-
-    static async fetchMediasIntoDB () {
-      const time = new Date().getTime()
-      const mediasUrlToCache = []
-      const keys = await fmdb.getKeys()
-      const types = ['image', 'video', 'gif']
-      for (const type of types) {
-        const medias = Utilities.loadData(config.name, type, { medias: [] }).medias
-        for (const media of medias) {
-          const url = MediaFavButton.getThumbnail(type, media)
-          if (url != null && !keys.includes(url)) mediasUrlToCache.push(url)
-        }
-      }
-
-      if (mediasUrlToCache.length <= 0) {
-        console.info(`[${config.name}]`, 'There is no media to cache')
-        return 0
-      }
-
-      let totalCached = 0
-      const cacheMedia = async (r) => {
-        const buf = await fetchMedia({ url: r.refreshed ?? r.original })
-        await fmdb.set(r.original, buf)
-      }
-
-      const refreshedUrls = await MediaPicker.refreshUrls(mediasUrlToCache)
-      for (const refreshedUrl of refreshedUrls) {
-        await cacheMedia(refreshedUrl).then(() => {
-          totalCached++
-          Dispatcher.dispatch({ type: 'FM_FETCH_INTO_DB', done: totalCached, total: mediasUrlToCache.length })
-        }).catch((err) => {
-          console.warn(`[${config.name}]`, 'Failed to cache media:', refreshedUrl.original, err.message ?? err)
-        })
-      }
-
-      console.info(`[${config.name}]`, `Saved ${totalCached}/${mediasUrlToCache.length} medias in the database in ${((new Date().getTime() - time) / 1000).toFixed(2)}s`)
-
-      return totalCached
-    }
-
-    static async refreshUrls (urls) {
-      const wait = async (delay = 1000) => { await new Promise((resolve) => { setTimeout(resolve) }, delay) }
-
-      const ret = []
-
-      const CHUNKS_SIZE = 50
-      for (let i = 0; i < Math.ceil(urls.length / CHUNKS_SIZE); i++) {
-        const chunkUrls = urls.slice(i * CHUNKS_SIZE, (i + 1) * CHUNKS_SIZE)
-        const response = await RestAPI.post({
-          url: '/attachments/refresh-urls',
-          body: { attachment_urls: chunkUrls },
-          trackedActionData: {},
-        }).catch((res) => {
-          let err
-          try { err = JSON.parse(res.text) } catch (error) { console.error(error) }
-          console.warn(`[${config.name}]`, 'Could not load medias:', chunkUrls, err)
-        })
-        if (response != null && response.ok) ret.push(...response.body.refreshed_urls)
-
-        // to prevent rate-limit
-        await wait(500)
-      }
-
-      return ret
-    }
-
-    static async refreshMediasUrls (type, medias, categories) {
-      const urls = [
-        ...medias.map(m => m.url),
-        ...medias.filter(m => m.poster != null).map(m => m.poster),
-        ...medias.filter(m => m.src != null).map(m => m.src),
-        ...categories.filter(c => c.thumbnail != null).map(c => c.thumbnail),
-      ]
-      const refreshedUrls = await MediaPicker.refreshUrls(urls)
-      const typeData = Utilities.loadData(config.name, type, { categories: [], medias: [] })
-      for (const refreshedUrl of refreshedUrls) {
-        const newUrl = refreshedUrl.refreshed ?? refreshedUrl.original
-
-        // Medias
-        const media = typeData.medias.find((m) => m.url?.includes(refreshedUrl.original))
-        if (media != null) media.url = newUrl
-
-        if (type === 'video') {
-          const mediaVideo = typeData.medias.find((m) => m.poster?.includes(refreshedUrl.original))
-          if (mediaVideo != null) mediaVideo.poster = newUrl
-        }
-
-        if (type === 'gif') {
-          const mediaGif = typeData.medias.find((m) => m.src?.includes(refreshedUrl.original))
-          if (mediaGif != null) mediaGif.src = newUrl
-        }
-
-        // Categories
-        const category = typeData.medias.find((c) => c.thumbnail?.includes(refreshedUrl.original))
-        if (category != null) category.thumbnail = newUrl
-      }
-
-      Utilities.saveData(config.name, type, typeData)
-
-      if (refreshedUrls.length > 0) {
-        showToast(plugin.instance.strings.category.success.refreshUrls, { type: 'success' })
-        EPS.closeExpressionPicker()
-      }
-    }
-
-    render () {
-      return React.createElement('div', {
-        id: `${this.props.type}-picker-tab-panel`,
-        role: 'tabpanel',
-        'aria-labelledby': `${this.props.type}-picker-tab`,
-        className: `${classes.gutter.container} fm-pickerContainer`,
-      },
-      React.createElement('div', {
-        className: `${classes.gutter.header} fm-header`,
-      },
-      React.createElement('div', {
-        className: `${classes.h5} fm-headerRight`,
-      },
-      React.createElement('span', {
-        ref: 'mediasCounter',
-        className: 'fm-mediasCounter',
-      }, this.filteredMedias.length),
-      React.createElement('div', {
-        ref: 'databaseButton',
-        className: `${classes.buttons.button} fm-databaseButton fm-buttonIcon`,
-        onClick: MediaPicker.openDatabasePanel,
-      }, DatabaseSVG()),
-      React.createElement('div', {
-        ref: 'importButton',
-        className: `${classes.buttons.button} fm-importButton fm-buttonIcon`,
-        onClick: MediaPicker.openImportModal,
-      }, ImportSVG()),
-      React.createElement('div', {
-        ref: 'settingsButton',
-        className: `${classes.buttons.button} fm-settingsButton fm-buttonIcon`,
-        onClick: () => Dispatcher.dispatch({ type: 'FM_OPEN_SETTINGS' }),
-      }, CogSVG())
-      ),
-      React.createElement('div', {
-        className: `${classes.flex.flex} ${classes.flex.horizontal} ${classes.flex.justifyStart} ${classes.flex.alignCenter} ${classes.flex.noWrap}`,
-        style: { flex: '1 1 auto' },
-      },
-      this.state.category
-        ? React.createElement('div', {
-          className: classes.gutter.backButton,
-          role: 'button',
-          tabindex: '0',
-          onClick: () => this.backCategory(),
-        },
-        React.createElement('svg', {
-          'aria-hidden': false,
-          width: '24',
-          height: '24',
-          viewBox: '0 0 24 24',
-          fill: 'none',
-        },
-        React.createElement('path', {
-          fill: 'currentColor',
-          d: 'M20 10.9378H14.2199H8.06628L10.502 8.50202L9 7L4 12L9 17L10.502 15.498L8.06628 13.0622H20V10.9378Z',
-        })
-        )
-        )
-        : null,
-      this.state.category
-        ? React.createElement('h5', {
-          className: `${classes.h5} ${classes.gutter.searchHeader}`,
-        }, this.state.category.name)
-        : null,
-      this.state.textFilter && !this.state.category
-        ? React.createElement('div', {
-          className: classes.gutter.backButton,
-          role: 'button',
-          tabindex: '0',
-          onClick: this.clearSearch,
-        },
-        React.createElement('svg', {
-          'aria-hidden': false,
-          width: '24',
-          height: '24',
-          viewBox: '0 0 24 24',
-          fill: 'none',
-        },
-        React.createElement('path', {
-          fill: 'currentColor',
-          d: 'M20 10.9378H14.2199H8.06628L10.502 8.50202L9 7L4 12L9 17L10.502 15.498L8.06628 13.0622H20V10.9378Z',
-        })
-        )
-        )
-        : null,
-      !this.state.category
-        ? React.createElement('div', {
-          className: `${classes.gutter.searchBar} ${classes.container.container} ${classes.container.medium}`,
-        },
-        React.createElement('div', {
-          className: classes.container.inner,
-        },
-        React.createElement('input', {
-          className: classes.container.input,
-          placeholder: plugin.instance.strings.searchItem[this.props.type],
-          autofocus: true,
-          ref: 'input',
-          onChange: e => {
-            this.setState({ textFilter: e.target.value })
-            this.resetScroll()
-          },
-        }),
-        React.createElement('div', {
-          className: `${classes.container.iconLayout} ${classes.container.medium} ${this.state.textFilter ? classes.container.pointer : ''}`,
-          tabindex: '-1',
-          role: 'button',
-          onClick: this.clearSearch,
-        },
-        React.createElement('div', {
-          className: classes.container.iconContainer,
-        },
-        React.createElement('svg', {
-          className: `${classes.container.clear} ${this.state.textFilter ? '' : ` ${classes.container.visible}`}`,
-          'aria-hidden': false,
-          width: '24',
-          height: '24',
-          viewBox: '0 0 24 24',
-        },
-        React.createElement('path', {
-          fill: 'currentColor',
-          d: 'M21.707 20.293L16.314 14.9C17.403 13.504 18 11.799 18 10C18 7.863 17.167 5.854 15.656 4.344C14.146 2.832 12.137 2 10 2C7.863 2 5.854 2.832 4.344 4.344C2.833 5.854 2 7.863 2 10C2 12.137 2.833 14.146 4.344 15.656C5.854 17.168 7.863 18 10 18C11.799 18 13.504 17.404 14.9 16.314L20.293 21.706L21.707 20.293ZM10 16C8.397 16 6.891 15.376 5.758 14.243C4.624 13.11 4 11.603 4 10C4 8.398 4.624 6.891 5.758 5.758C6.891 4.624 8.397 4 10 4C11.603 4 13.109 4.624 14.242 5.758C15.376 6.891 16 8.398 16 10C16 11.603 15.376 13.11 14.242 14.243C13.109 15.376 11.603 16 10 16Z',
-        })
-        ),
-        React.createElement('svg', {
-          className: `${classes.container.clear} ${this.state.textFilter ? ` ${classes.container.visible}` : ''}`,
-          'aria-hidden': false,
-          width: '24',
-          height: '24',
-          viewBox: '0 0 24 24',
-        },
-        React.createElement('path', {
-          fill: 'currentColor',
-          d: 'M18.4 4L12 10.4L5.6 4L4 5.6L10.4 12L4 18.4L5.6 20L12 13.6L18.4 20L20 18.4L13.6 12L20 5.6L18.4 4Z',
-        })
-        )
-        )
-        )
-        )
-        )
-        : null
-      )
-      ),
-      React.createElement('div', {
-        className: `${classes.gutter.content} fm-pickerContent`,
-        style: { height: '100%' },
-      },
-      React.createElement('div', {
-        ref: 'pickerScroll',
-        className: `${classes.category.container} ${classes.scroller.thin} ${classes.scroller.fade} fm-pickerContentContainer`,
-        style: { overflow: 'hidden scroll', 'padding-right': '0' },
-        onContextMenu: this.onContextMenu,
-      },
-      React.createElement('div', {
-        className: `${classes.scroller.content} fm-pickerContentContainerContent`,
-      },
-      React.createElement('div', {
-        style: { position: 'absolute', left: '12px', top: '12px', width: 'calc(100% - 16px)' },
-        ref: 'content',
-      },
-      !this.state.category && (this.state.categories.length + this.state.medias.length === 0)
-        ? React.createElement(EmptyFavorites, { type: this.props.type })
-        : null,
-      this.state.categories.length > 0 && this.state.contentWidth
-        ? React.createElement(RenderList, {
-          component: CategoryCard,
-          items: this.positionedCategories,
-          componentProps: {
-            type: this.props.type,
-            setCategory: this.setCategory,
-            length: this.filteredCategories.length,
-          },
-        })
-        : null,
-      this.state.medias.length > 0 && this.state.contentWidth
-        ? React.createElement(RenderList, {
-          component: MediaCard,
-          items: this.positionedMedias,
-          componentProps: {
-            type: this.props.type,
-            onMediaContextMenu: this.onMediaContextMenu,
-            settings: this.props.settings,
-          },
-        })
-        : null
-      ),
-      this.state.categories.length > 0 || this.state.medias.length > 0
-        ? React.createElement('div', {
-          style: {
-            position: 'absolute',
-            left: '12px',
-            top: `${this.contentHeight + 12}px`,
-            width: 'calc(100% - 16px)',
-            height: '220px',
-          },
-          ref: 'endSticker',
-        },
-        React.createElement('div', {
-          className: classes.result.endContainer,
-          style: {
-            position: 'sticky',
-            top: '0px',
-            left: '0px',
-            width: '100%',
-            height: '220px',
-          },
-        })
-        )
-        : null
-      )
-      ),
-      PageControl != null
-        ? React.createElement('div', {
-          className: 'fm-pageControl',
-        },
-        React.createElement(PageControl, {
-          currentPage: this.state.page,
-          maxVisiblePages: 5,
-          onPageChange: (page) => {
-            this.setState({ page: Number(page) })
-            this.resetScroll()
-          },
-          pageSize: plugin.instance.settings.maxMediasPerPage,
-          totalCount: this.filteredCategories.length + this.filteredMedias.length,
-        })
-        )
-        : null
-      )
-      )
-    }
-  }
-
-  const MediaButton = class extends React.Component {
-    constructor (props) {
-      super(props)
-
-      this.state = {
-        active: false,
-      }
-
-      this.changeActive = this.changeActive.bind(this)
-      this.checkPicker = this.checkPicker.bind(this)
-    }
-
-    get isActive () {
-      const EPSState = EPS.useExpressionPickerStore.getState()
-      return EPSState.activeView === this.props.type && EPSState.activeViewType?.analyticsName === this.props.pickerType?.analyticsName
-    }
-
-    changeActive () {
-      if (this.isActive) {
-        currentChannelId = this.props.channelId
-        currentTextareaInput = findTextareaInput(this.refs.button)
-      }
-      this.setState({ active: this.isActive })
-    }
-
-    checkPicker () {
-      const EPSState = EPS.useExpressionPickerStore.getState()
-      canClosePicker.context = 'mediabutton'
-      canClosePicker.value = EPSState.activeView == null
-    }
-
-    componentDidMount () {
-      Dispatcher.subscribe('FM_PICKER_BUTTON_ACTIVE', this.changeActive)
-    }
-
-    componentWillUnmount () {
-      Dispatcher.unsubscribe('FM_PICKER_BUTTON_ACTIVE', this.changeActive)
-    }
-
-    render () {
-      return React.createElement('div', {
-        className: `${classes.textarea.buttonContainer} fm-buttonContainer fm-${this.props.type}`,
-        ref: 'button',
-      },
-      React.createElement('button', {
-        className: `${classes.look.button} ${classes.look.lookBlank} ${classes.look.colorBrand} ${classes.look.grow}${this.state.active ? ` ${classes.icon.active}` : ''} fm-button`,
-        tabindex: '0',
-        type: 'button',
-        onMouseDown: this.checkPicker,
-        onClick: () => {
-          const EPSState = EPS.useExpressionPickerStore.getState()
-          if (EPSState.activeView === this.props.type && EPSState.activeViewType?.analyticsName !== this.props.pickerType?.analyticsName) {
-            EPS.toggleExpressionPicker(this.props.type, this.props.pickerType ?? EPSState.activeViewType)
-          }
-          EPS.toggleExpressionPicker(this.props.type, this.props.pickerType ?? EPSConstants.NORMAL)
-        },
-      },
-      React.createElement('div', {
-        className: `${classes.look.contents} ${classes.textarea.button} ${classes.icon.button} fm-buttonContent`,
-      },
-      React.createElement('div', {
-        className: `${classes.icon.buttonWrapper} fm-buttonWrapper`,
-        style: { opacity: '1', transform: 'none' },
-      },
-      this.props.type === 'image' ? ImageSVG() : null,
-      this.props.type === 'video' ? VideoSVG() : null,
-      this.props.type === 'audio' ? AudioSVG() : null,
-      this.props.type === 'file' ? FileSVG() : null
-      )
-      )
-      )
-      )
-    }
-  }
-
-  function categoryValidator (type, name, color, id) {
-    if (!name || typeof name !== 'string') return { error: 'error', message: plugin.instance.strings.category.error.needName }
-    if (name.length > 20) return { error: 'error', message: plugin.instance.strings.category.error.invalidNameLength }
-    if (!color || typeof color !== 'string' || !color.startsWith('#')) return { error: 'error', message: plugin.instance.strings.category.error.wrongColor }
-    const typeData = Utilities.loadData(config.name, type, { categories: [], medias: [] })
-    if (typeData.categories.find(c => c.name === name && c.id !== id) !== undefined) return { error: 'error', message: plugin.instance.strings.category.error.nameExists }
-    return typeData
-  }
-
-  function getNewCategoryId (categories = []) {
-    const id = Math.max(...categories.map(c => c.id))
-    if (isNaN(id) || id < 1) return 1
-    return id + 1
-  }
-
-  function createCategory (type, { name, color }, categoryId) {
-    const res = categoryValidator(type, name, color)
-    if (res.error) {
-      console.error(`[${config.name}]`, res.error)
-      showToast(res.message, { type: 'error' })
-      return false
-    }
-
-    res.categories.push({
-      id: getNewCategoryId(res.categories),
-      name,
-      color,
-      category_id: categoryId,
-    })
-    Utilities.saveData(config.name, type, res)
-
-    showToast(plugin.instance.strings.category.success.create, { type: 'success' })
-    return true
-  }
-
-  function editCategory (type, { name, color }, id) {
-    const res = categoryValidator(type, name, color, id)
-    if (res.error) {
-      console.error(`[${config.name}]`, res.error)
-      showToast(res.message, { type: 'error' })
-      return false
-    }
-
-    res.categories[res.categories.findIndex(c => c.id === id)] = { id, name, color }
-    Utilities.saveData(config.name, type, res)
-
-    showToast(plugin.instance.strings.category.success.edit, { type: 'success' })
-    return true
-  }
-
-  function moveCategory (type, id, inc) {
-    const typeData = Utilities.loadData(config.name, type, { categories: [], medias: [] })
-    const oldCategory = typeData.categories.find((c) => c.id === id)
-    if (oldCategory == null) return
-    const categories = typeData.categories.filter((c) => c.category_id === oldCategory.category_id)
-    const oldCategoryLocalIndex = categories.findIndex((c) => c.id === id)
-    if (oldCategoryLocalIndex < 0) return
-    const newCategory = categories[oldCategoryLocalIndex + inc]
-    if (newCategory == null) return
-    const oldCategoryIndex = typeData.categories.findIndex((c) => c.id === oldCategory.id)
-    if (oldCategoryIndex < 0) return
-    const newCategoryIndex = typeData.categories.findIndex((c) => c.id === newCategory.id)
-    if (newCategoryIndex < 0) return
-    typeData.categories[oldCategoryIndex] = newCategory
-    typeData.categories[newCategoryIndex] = oldCategory
-    Utilities.saveData(config.name, type, typeData)
-
-    showToast(plugin.instance.strings.category.success.move, { type: 'success' })
+  static changeCategoryCategory (type, id, categoryId) {
+    const typeData = BdApi.Data.load(plugin.name, type, { medias: [] })
+    const index = typeData.categories.findIndex(c => c.id === id)
+    if (index < 0) return
+    typeData.categories[index].category_id = categoryId
+    BdApi.Data.save(plugin.name, type, typeData)
+    BdApi.UI.showToast(plugin.instance.strings.category.success.move, { type: 'success' })
     Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
   }
 
-  function deleteCategory (type, id) {
-    const typeData = Utilities.loadData(config.name, type, { categories: [], medias: [] })
-    if (typeData.categories.find(c => c.id === id) === undefined) {
-      showToast(plugin.instance.strings.category.error.invalidCategory, { type: 'error' })
-      return false
-    }
-    const deleteCategoryId = (id) => {
-      typeData.categories = typeData.categories.filter(c => c.id !== id)
-      typeData.medias = typeData.medias.map(m => { if (m.category_id === id) delete m.category_id; return m })
-      const categoriesToDelete = typeData.categories.filter((c) => c.category_id === id)
-      categoriesToDelete.forEach((c) => deleteCategoryId(c.id))
-    }
-    deleteCategoryId(id)
-    Utilities.saveData(config.name, type, typeData)
-
-    showToast(plugin.instance.strings.category.success.delete, { type: 'success' })
-    return true
+  static changeMediaCategory (type, url, categoryId) {
+    const typeData = BdApi.Data.load(plugin.name, type, { medias: [], categories: [] })
+    const index = typeData.medias.findIndex(m => MediaFavButton.checkSameUrl(m.url, url))
+    if (index < 0) return
+    typeData.medias[index].category_id = categoryId
+    typeData.categories.forEach((c) => {
+      if (c.thumbnail === MediaFavButton.getThumbnail(type, typeData.medias[index])) {
+        c.thumbnail = undefined
+      }
+    })
+    BdApi.Data.save(plugin.name, type, typeData)
+    BdApi.UI.showToast(plugin.instance.strings.media.success.move[type], { type: 'success' })
+    Dispatcher.dispatch({ type: 'FM_UPDATE_MEDIAS' })
   }
 
-  return class FavoriteMedia extends Plugin {
-    onStart () {
-      plugin.instance.strings = getPluginStrings()
-      loadModules()
+  static removeCategoryCategory (type, categoryId) {
+    const typeData = BdApi.Data.load(plugin.name, type, { categories: [] })
+    const index = typeData.categories.findIndex(m => m.id === categoryId)
+    if (index < 0) return
+    delete typeData.categories[index].category_id
+    BdApi.Data.save(plugin.name, type, typeData)
+    BdApi.UI.showToast(plugin.instance.strings.category.success.move, { type: 'success' })
+    Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
+  }
 
-      this.patchExpressionPicker()
-      this.patchMessageContextMenu()
-      this.patchGIFTab()
-      this.patchClosePicker()
-      this.patchMedias()
-      this.patchChannelTextArea()
+  static removeMediaCategory (type, mediaId) {
+    const typeData = BdApi.Data.load(plugin.name, type, { medias: [], categories: [] })
+    delete typeData.medias[mediaId].category_id
+    typeData.categories.forEach((c) => {
+      if (c.thumbnail === MediaFavButton.getThumbnail(type, typeData.medias[mediaId])) {
+        c.thumbnail = undefined
+      }
+    })
+    BdApi.Data.save(plugin.name, type, typeData)
+    BdApi.UI.showToast(plugin.instance.strings.media.success.remove[type], { type: 'success' })
+    Dispatcher.dispatch({ type: 'FM_UPDATE_MEDIAS' })
+  }
 
-      this.openSettings = this.openSettings.bind(this)
-      Dispatcher.subscribe('FM_OPEN_SETTINGS', this.openSettings)
+  static setCategoryThumbnail (type, url, categoryId) {
+    const typeData = BdApi.Data.load(plugin.name, type, { categories: [] })
+    const index = typeData.categories.findIndex(m => m.id === categoryId)
+    if (index < 0) return
+    typeData.categories[index].thumbnail = url
+    BdApi.Data.save(plugin.name, type, typeData)
+    BdApi.UI.showToast(plugin.instance.strings.category.success.setThumbnail, { type: 'success' })
+    Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
+  }
 
-      DOMTools.addStyle(this.getName() + '-css', `
-        .category-input-color > input[type='color'] {
-          opacity: 0;
-          -webkit-appearance: none;
-          width: 48px;
-          height: 48px;
-        }
-        .category-input-color {
-          transition: 0.2s;
-        }
-        .category-input-color:hover {
-          transform: scale(1.1);
-        }
-        .${classes.image.imageAccessory}:not(.fm-favBtn):has(+ .fm-favBtn) {
-          display: none;
-        }
-        .fm-favBtn.fm-audio,
-        .fm-favBtn.fm-file {
-          right: 0;
-          left: auto;
-          width: auto;
-          margin-right: 10%;
-        }
-        .show-controls {
-          position: absolute;
-          top: 8px;
-          left: 8px;
-          z-index: 4;
-          opacity: 0;
-          -webkit-box-sizing: border-box;
-          box-sizing: border-box;
-          -webkit-transform: translateY(-10px);
-          transform: translateY(-10px);
-          -webkit-transition: opacity .1s ease,-webkit-transform .2s ease;
-          transition: opacity .1s ease,-webkit-transform .2s ease;
-          transition: transform .2s ease,opacity .1s ease;
-          transition: transform .2s ease,opacity .1s ease,-webkit-transform .2s ease;
-          width: 26px;
-          height: 26px;
-          color: var(--interactive-normal);
-        }
-        .show-controls:hover,
-        .show-controls.active {
-          -webkit-transform: none;
-          transform: none;
-          color: var(--interactive-active);
-        }
-        div:hover > .show-controls {
-          opacity: 1;
-          -webkit-transform: none;
-          transform: none;
-        }
-        .${classes.result.result} > .${classes.result.gif}:focus {
-          outline: none;
-        }
-        .${classes.image.imageAccessory} > div:not(.${classes.gif.selected}) > svg {
-          filter: drop-shadow(2px 2px 2px rgb(0 0 0 / 0.3));
-        }
-        .category-dragover:after {
-          -webkit-box-shadow: inset 0 0 0 2px var(--brand-experiment), inset 0 0 0 3px #2f3136 !important;
-          box-shadow: inset 0 0 0 2px var(--brand-experiment), inset 0 0 0 3px #2f3136 !important;
-        }
-        .fm-colorDot {
-          margin-right: 0.7em;
-          margin-left: 0;
-        }
-        .${classes.image.embedWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):focus-within .${classes.gif.gifFavoriteButton1},
-        .${classes.image.embedWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):hover .${classes.gif.gifFavoriteButton1},
-        .${classes.visual.nonVisualMediaItemContainer}:hover .${classes.gif.gifFavoriteButton1} {
-          opacity: 0;
-          -webkit-transform: unset;
-          transform: unset;
-        }
-        .${classes.image.imageWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):focus-within .${classes.gif.gifFavoriteButton1},
-        .${classes.image.imageWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):hover .${classes.gif.gifFavoriteButton1},
-        .${classes.visual.nonVisualMediaItemContainer}:hover .${classes.gif.gifFavoriteButton1} {
-          opacity: 1;
-          -webkit-transform: translateY(0);f
-          transform: translateY(0);
-        }
-        .fm-pickerContainer {
-          height: 100%
-        }
-        #gif-picker-tab-panel .fm-header {
-          padding-top: 16px;
-        }
-        .fm-header .fm-headerRight {
-          height: 100%;
-          display: flex;
-          align-items: center;
-          margin-left: 4px;
-          float: right;
-        }
-        .fm-header .fm-mediasCounter {
-          padding: 6px 7px;
-        }
-        .fm-pageControl {
-          width: 100%;
-          position: absolute;
-          display: flex;
-          justify-content: center;
-          bottom: 0;
-          pointer-events: none;
-          z-index: 10;
-        }
-        .fm-pageControl > div {
-          width: auto;
-          margin-top: 0;
-          background-color: var(--background-secondary);
-          border-top-left-radius: 8px;
-          border-top-right-radius: 8px;
-          pointer-events: all;
-        }
-        .fm-pageControl > div > nav {
-          padding: 8px 0;
-          height: 28px;
-        }
-        .fm-databasePanel {
-          height: 100%;
-          width: 100%;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          padding-top: 16px;
-        }
-        .fm-databasePanel > * {
-          height: 100%;
-          width: 100%;
-        }
-        .fm-databasePanel > button {
-          width: fit-content;
-        }
-        .fm-database {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-        .fm-stats {
-          display: flex;
-          justify-content: space-between;
-        }
-        .fm-stats .fm-statsLines {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-        .fm-stats .fm-statsLines .fm-statsLine {
-          display: flex;
-          gap: 8px;
-        }
-        .fm-stats .fm-statsLines .fm-statsCount {
-          font-weight: bold;
-        }
-        .fm-databaseActions {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-        .fm-buttonIcon {
-          display: flex;
-          border-radius: 4px;
-          padding: 2px;
-        }
-        .fm-databaseFetchMediasProgress {
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          gap: 24px;
-        }
-        .${classes.category.categoryText} {
-          padding: 4px;
-        }
-        .${classes.category.categoryName} {
-          text-align: center;
-          min-width: 0;
-        }
-        .${classes.category.categoryName} > div {
-          overflow: hidden;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-        }
-        .fm-importPanel {
-          display: flex;
-          flex-direction: column;
-          gap: 32px;
-        }
-        .fm-importRecap {
-          display: flex;
-          gap: 48px;
-        }
-        .fm-importLines {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-        .fm-importLines > :first-child {
-          margin-bottom: 8px;
-        }
-        .fm-importLabel {
-          font-weight: bold;
-        }
-        .fm-importValue {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .fm-importValue > input[type="checkbox"] {
-          width: 20px;
-          height: 20px;
-          margin: 0;
-        }
-      `)
+  static unsetCategoryThumbnail (type, categoryId) {
+    const typeData = BdApi.Data.load(plugin.name, type, { categories: [] })
+    const index = typeData.categories.findIndex(m => m.id === categoryId)
+    if (index < 0) return
+    typeData.categories[index].thumbnail = undefined
+    BdApi.Data.save(plugin.name, type, typeData)
+    BdApi.UI.showToast(plugin.instance.strings.category.success.unsetThumbnail, { type: 'success' })
+    Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
+  }
+
+  categoriesItems (media) {
+    return this.state.categories
+      .filter(c => c.id !== (media.category_id) && c.id !== MediaPicker.getMediaCategoryId(this.props.type, media.id))
+      .map(c => ({
+        id: `category-menu-${c.id}`,
+        label: c.name,
+        key: c.id,
+        action: () => MediaPicker.changeMediaCategory(this.props.type, media.url, c.id),
+        render: () => BdApi.React.createElement(CategoryMenuItem, { ...c, key: c.id }),
+      }))
+  }
+
+  static getMediaCategoryId (type, mediaId) {
+    return BdApi.Data.load(plugin.name, type, { medias: [] }).medias[mediaId]?.category_id
+  }
+
+  static getCategoryThumbnail (type, categoryId) {
+    return BdApi.Data.load(plugin.name, type, { categories: [] }).categories.find(c => c.id === categoryId)?.thumbnail
+  }
+
+  get randomThumbnails () {
+    const thumbnails = []
+    for (let c = 0; c < this.state.categories.length; c++) {
+      const id = this.state.categories[c].id
+      const medias = this.state.medias.filter(m => m.category_id === id)
+      let media = null
+      if (medias.length === 0) continue
+      else if (medias.length === 1) media = medias[0]
+      else media = medias[Math.floor(Math.random() * medias.length)]
+      thumbnails[id] = media.poster || media.src || media.url
     }
+    return thumbnails
+  }
 
-    onStop () {
-      this.contextMenu?.()
-      Patcher.unpatchAll()
-      Dispatcher.dispatch({ type: 'FM_UNPATCH_ALL' })
-      Dispatcher.unsubscribe('FM_OPEN_SETTINGS', this.openSettings)
-      Object.keys(mediasCache).forEach((url) => URL.revokeObjectURL(url))
+  loadCategories () {
+    this.setState({ categories: BdApi.Data.load(plugin.name, this.props.type, { categories: [] }).categories })
+  }
 
-      DOMTools.removeStyle(this.getName() + '-css')
+  loadMedias () {
+    this.setState({ medias: BdApi.Data.load(plugin.name, this.props.type, { medias: [] }).medias })
+  }
+
+  backCategory () {
+    const prevCategory = this.state.categories.find((c) => c.id === this.state.category.category_id)
+    this.setState({
+      category: prevCategory,
+      page: 1,
+    })
+    this.resetScroll()
+  }
+
+  async uploadMedia (mediaId, spoiler = false) {
+    const media = structuredClone(this.state.medias[mediaId])
+    if (media == null) return
+
+    const [refreshedUrl] = await MediaPicker.refreshUrls([media.url])
+    media.url = refreshedUrl.refreshed ?? refreshedUrl.original
+
+    const buffer = await fetchMedia(media).catch((err) => BdApi.Logger.error(plugin.name, err.message ?? err))
+    uploadFile(this.props.type, buffer, media)
+
+    setTimeout(() => {
+      if (spoiler) findSpoilerButton()?.click()
+    }, 50)
+    EPS.closeExpressionPicker()
+  }
+
+  sendMedia (e, mediaId) {
+    Dispatcher.dispatch({ type: 'FM_SEND_MEDIA', e, mediaId })
+  }
+
+  onMediaContextMenu (e, mediaId) {
+    const media = BdApi.Data.load(plugin.name, this.props.type, { medias: [] }).medias[mediaId]
+    const items = [{
+      id: 'media-input',
+      label: 'media-input',
+      render: () => BdApi.React.createElement(MediaMenuItemInput, { id: mediaId, type: this.props.type, loadMedias: this.loadMedias }),
+    }, {
+      id: 'media-copy-url',
+      label: getDiscordIntl('COPY_MEDIA_LINK'),
+      action: () => ElectronModule.copy(media.url),
+    }]
+    if (media.message != null) {
+      items.push({
+        id: 'media-copy-message',
+        label: getDiscordIntl('COPY_MESSAGE_LINK'),
+        action: () => ElectronModule.copy(media.message ?? ''),
+      })
     }
-
-    onSwitch () {
-      if (!this.patchedCTA) this.patchChannelTextArea()
+    if (media.source != null) {
+      items.push({
+        id: 'media-copy-source',
+        label: plugin.instance.strings.media.copySource,
+        action: () => ElectronModule.copy(media.source ?? ''),
+      })
     }
-
-    getSettingsPanel () {
-      return this.buildSettingsPanel().getElement()
+    items.push({
+      id: 'media-send-title',
+      label: getDiscordIntl('USER_POPOUT_MESSAGE'),
+      action: (e) => this.sendMedia(e, mediaId),
+    }, {
+      id: 'media-upload-title',
+      label: plugin.instance.strings.media.upload.title,
+      type: 'submenu',
+      items: [{
+        id: 'media-upload-normal',
+        label: plugin.instance.strings.media.upload.normal,
+        action: () => this.uploadMedia(mediaId),
+      }, {
+        id: 'media-upload-spoiler',
+        label: plugin.instance.strings.media.upload.spoiler,
+        action: () => this.uploadMedia(mediaId, true),
+      }],
+    }, {
+      id: 'media-download',
+      label: getDiscordIntl('DOWNLOAD'),
+      action: () => MediaPicker.downloadMedia(media, this.props.type),
+    })
+    const itemsCategories = this.categoriesItems(media)
+    const mediaCategoryId = MediaPicker.getMediaCategoryId(this.props.type, mediaId)
+    if (itemsCategories.length > 0) {
+      items.splice(1, 0, {
+        id: 'media-moveAddTo',
+        label: this.state.category || mediaCategoryId != null ? plugin.instance.strings.media.moveTo : plugin.instance.strings.media.addTo,
+        type: 'submenu',
+        items: itemsCategories,
+      })
     }
+    if (mediaCategoryId != null) {
+      const mediaThumbnail = MediaFavButton.getThumbnail(this.props.type, media)
+      const categoryThumbnail = MediaPicker.getCategoryThumbnail(this.props.type, mediaCategoryId)
+      if (mediaThumbnail !== categoryThumbnail) {
+        items.push({
+          id: 'category-setThumbnail',
+          label: plugin.instance.strings.category.setThumbnail,
+          action: () => MediaPicker.setCategoryThumbnail(this.props.type, mediaThumbnail, mediaCategoryId),
+        })
+      }
+      items.push({
+        id: 'media-removeFrom',
+        label: plugin.instance.strings.media.removeFrom,
+        danger: true,
+        action: () => MediaPicker.removeMediaCategory(this.props.type, mediaId),
+      })
+    }
+    canClosePicker.context = 'contextmenu'
+    canClosePicker.value = false
+    BdApi.ContextMenu.open(e, BdApi.ContextMenu.buildMenu([
+      {
+        type: 'group',
+        items,
+      },
+    ]), {
+      onClose: () => {
+        canClosePicker.context = 'contextmenu'
+        canClosePicker.value = true
+      },
+    })
+  }
 
-    openSettings () {
-      showConfirmationModal(this.name + ' Settings', ReactTools.createWrappedElement(this.getSettingsPanel()), {
+  static async openImportModal () {
+    const { filePaths } = await BdApi.UI.openDialog({
+      defaultPath: BdApi.Plugins.folder,
+      multiSelections: true,
+      filters: [{ name: 'Config', extensions: ['config.json'] }],
+    })
+    if (!filePaths?.[0]) return
+
+    BdApi.UI.showConfirmationModal(
+      plugin.instance.strings.import.panel,
+      BdApi.React.createElement(ImportPanel, {
+        paths: filePaths,
+      }), {
         confirmText: null,
         cancelText: null,
       })
+  }
+
+  static async openDatabasePanel () {
+    BdApi.UI.showConfirmationModal(plugin.instance.strings.cache.panel, BdApi.React.createElement(DatabasePanel), {
+      confirmText: null,
+      cancelText: null,
+    })
+  }
+
+  static async fetchMediasIntoDB () {
+    const time = new Date().getTime()
+    const mediasUrlToCache = []
+    const keys = await fmdb.getKeys()
+    const types = ['image', 'video', 'gif']
+    for (const type of types) {
+      const medias = BdApi.Data.load(plugin.name, type, { medias: [] }).medias
+      for (const media of medias) {
+        const url = MediaFavButton.getThumbnail(type, media)
+        if (url != null && !keys.includes(url)) mediasUrlToCache.push(url)
+      }
     }
 
-    MediaTab (mediaType, elementType) {
-      const selected = mediaType === EPS.useExpressionPickerStore.getState().activeView
-      return React.createElement(elementType, {
-        id: `${mediaType}-picker-tab`,
-        'aria-controls': `${mediaType}-picker-tab-panel`,
-        'aria-selected': selected,
-        className: 'fm-pickerTab',
-        viewType: mediaType,
-        isActive: selected,
-      }, plugin.instance.strings.tabName[mediaType])
+    if (mediasUrlToCache.length <= 0) {
+      BdApi.Logger.info(plugin.name, 'There is no media to cache')
+      return 0
     }
 
-    async waitExpressionPicker () {
-      return new Promise((resolve, reject) => {
-        const unpatch = () => { reject(new Error('Plugin stopped')) }
-        Dispatcher.subscribe('FM_UNPATCH_ALL', unpatch)
-        const selector = `.${classes.contentWrapper.contentWrapper}`
-        const observerSubscription = DOMTools.observer.subscribeToQuerySelector(() => {
-          const $el = document.querySelector(selector)
-          if ($el == null) return
-          Dispatcher.unsubscribe('FM_UNPATCH_ALL', unpatch)
-          resolve(ReactTools.getOwnerInstance($el))
-          DOMTools.observer.unsubscribe(observerSubscription)
-        }, selector, null, true)
+    let totalCached = 0
+    const cacheMedia = async (r) => {
+      const buf = await fetchMedia({ url: r.refreshed ?? r.original })
+      await fmdb.set(r.original, buf)
+    }
+
+    const refreshedUrls = await MediaPicker.refreshUrls(mediasUrlToCache)
+    for (const refreshedUrl of refreshedUrls) {
+      await cacheMedia(refreshedUrl).then(() => {
+        totalCached++
+        Dispatcher.dispatch({ type: 'FM_FETCH_INTO_DB', done: totalCached, total: mediasUrlToCache.length })
+      }).catch((err) => {
+        BdApi.Logger.warn(plugin.name, 'Failed to cache media:', refreshedUrl.original, err.message ?? err)
       })
     }
 
-    async patchExpressionPicker () {
-      let ExpressionPicker = null
-      try {
-        ExpressionPicker = await this.waitExpressionPicker()
-      } catch {
-        // plugin stopped while waiting to expression picker, prevent duplicate patching
-        return
-      }
+    BdApi.Logger.info(plugin.name, `Saved ${totalCached}/${mediasUrlToCache.length} medias in the database in ${((new Date().getTime() - time) / 1000).toFixed(2)}s`)
 
-      if (ExpressionPicker == null) {
-        console.error(`[${config.name}]`, 'ExpressionPicker module not found')
-        return
-      }
+    return totalCached
+  }
 
-      ExpressionPicker.forceUpdate()
+  static async refreshUrls (urls) {
+    const wait = async (delay = 1000) => { await new Promise((resolve) => { setTimeout(resolve) }, delay) }
 
-      // https://github.com/BetterDiscord/BetterDiscord/blob/3b9ad9b75b6ac64e6740e9c2f1d19fd4615010c7/renderer/src/builtins/emotes/emotemenu.js
-      Patcher.after(ExpressionPicker.constructor.prototype, 'render', (_, __, returnValue) => {
-        const originalChildren = returnValue.props?.children
-        if (originalChildren == null) return
+    const ret = []
 
-        returnValue.props.children = (...args) => {
-          const childrenReturn = originalChildren(...args)
-          const head = Utilities.findInTree(childrenReturn, (e) => e?.role === 'tablist', { walkable: ['props', 'children', 'return', 'stateNode'] })?.children
-          const body = Utilities.findInTree(childrenReturn, (e) => e?.[0]?.type === 'nav', { walkable: ['props', 'children', 'return', 'stateNode'] })
-          if (head == null || body == null) return childrenReturn
-
-          try {
-            const elementType = head[0].type.type
-            if (this.settings.image.enabled) head.push(this.MediaTab('image', elementType))
-            if (this.settings.video.enabled) head.push(this.MediaTab('video', elementType))
-            if (this.settings.audio.enabled) head.push(this.MediaTab('audio', elementType))
-            if (this.settings.file.enabled) head.push(this.MediaTab('file', elementType))
-
-            const activeMediaPicker = EPS.useExpressionPickerStore.getState().activeView
-            if (allTypes.includes(activeMediaPicker)) {
-              body.push(React.createElement(MediaPicker, {
-                type: activeMediaPicker,
-                settings: this.settings,
-              }))
-            }
-          } catch (err) {
-            console.error(`[${config.name}]`, 'Error in ExpressionPicker patch:', err.message ?? err)
-          }
-
-          return childrenReturn
-        }
+    const CHUNKS_SIZE = 50
+    for (let i = 0; i < Math.ceil(urls.length / CHUNKS_SIZE); i++) {
+      const chunkUrls = urls.slice(i * CHUNKS_SIZE, (i + 1) * CHUNKS_SIZE)
+      const response = await RestAPI.post({
+        url: '/attachments/refresh-urls',
+        body: { attachment_urls: chunkUrls },
+        trackedActionData: {},
+      }).catch((res) => {
+        let err
+        try { err = JSON.parse(res.text) } catch (error) { BdApi.Logger.error(plugin.name, error) }
+        BdApi.Logger.warn(plugin.name, 'Could not load medias:', chunkUrls, err)
       })
+      if (response != null && response.ok) ret.push(...response.body.refreshed_urls)
+
+      // to prevent rate-limit
+      await wait(500)
     }
 
-    patchChannelTextArea () {
-      loadChannelTextAreaButtons()
-      if (ChannelTextAreaButtons == null) return
-      this.patchedCTA = true
+    return ret
+  }
 
-      Patcher.after(ChannelTextAreaButtons, 'type', (_, [props], returnValue) => {
-        if (returnValue == null || Utilities.getNestedProp(returnValue, 'props.children.1.props.type') === 'sidebar') return
+  static async refreshMediasUrls (type, medias, categories) {
+    const urls = [
+      ...medias.map(m => m.url),
+      ...medias.filter(m => m.poster != null).map(m => m.poster),
+      ...medias.filter(m => m.src != null).map(m => m.src),
+      ...categories.filter(c => c.thumbnail != null).map(c => c.thumbnail),
+    ]
+    const refreshedUrls = await MediaPicker.refreshUrls(urls)
+    const typeData = BdApi.Data.load(plugin.name, type, { categories: [], medias: [] })
+    for (const refreshedUrl of refreshedUrls) {
+      const newUrl = refreshedUrl.refreshed ?? refreshedUrl.original
 
-        currentChannelId = SelectedChannelStore.getChannelId()
-        const channel = ChannelStore.getChannel(currentChannelId)
-        const perms = Permissions.can(PermissionsConstants.SEND_MESSAGES, channel)
-        if (!channel.type && !perms) return
+      // Medias
+      const media = typeData.medias.find((m) => m.url?.includes(refreshedUrl.original))
+      if (media != null) media.url = newUrl
 
-        const buttons = returnValue.props.children
-        if (buttons == null || !Array.isArray(buttons)) return
-        // in user note
-        if (buttons.length === 1 && buttons[0].key === 'emoji') return
-
-        const fmButtons = []
-        if (this.settings.image.enabled && this.settings.image.showBtn) fmButtons.push(React.createElement(MediaButton, { type: 'image', pickerType: props.type, channelId: props.channel.id }))
-        if (this.settings.video.enabled && this.settings.video.showBtn) fmButtons.push(React.createElement(MediaButton, { type: 'video', pickerType: props.type, channelId: props.channel.id }))
-        if (this.settings.audio.enabled && this.settings.audio.showBtn) fmButtons.push(React.createElement(MediaButton, { type: 'audio', pickerType: props.type, channelId: props.channel.id }))
-        if (this.settings.file.enabled && this.settings.file.showBtn) fmButtons.push(React.createElement(MediaButton, { type: 'file', pickerType: props.type, channelId: props.channel.id }))
-
-        let index = (buttons.findIndex((b) => b.key === this.settings.position.btnsPositionKey) + (this.settings.position.btnsPosition === 'right' ? 1 : 0))
-        if (index < 0) index = buttons.length - 1
-        buttons.splice(index, 0, ...fmButtons)
-        buttons.forEach((b) => { if (allTypes.includes(b.props?.type)) b.key = b.props.type })
-
-        setTimeout(() => {
-          currentTextareaInput = findTextareaInput()
-        }, 50)
-      })
-    }
-
-    patchMedias () {
-      // Videos & Audios
-      if (MediaPlayerModule == null) {
-        console.error(`[${config.name}]`, 'MediaPlayer module not found')
-      } else {
-        Patcher.after(MediaPlayerModule.prototype, 'render', ({ props }, __, returnValue) => {
-          const type = returnValue.props.children[1].type === 'audio' ? 'audio' : 'video'
-          if (!this.settings[type].enabled || !this.settings[type].showStar) return
-
-          returnValue.props.children.push(React.createElement(MediaFavButton, {
-            type,
-            url: cleanUrl(removeProxyUrl(props.src)),
-            poster: props.poster,
-            uploaded: props.fileSize != null,
-            target: returnValue.props.children[1]?.ref,
-          }))
-        })
+      if (type === 'video') {
+        const mediaVideo = typeData.medias.find((m) => m.poster?.includes(refreshedUrl.original))
+        if (mediaVideo != null) mediaVideo.poster = newUrl
       }
 
-      // Images & GIFs
-      if (ImageModule == null) {
-        console.error(`[${config.name}]`, 'Image module not found')
-      } else {
-        Patcher.after(ImageModule.prototype, 'render', (_this, __, returnValue) => {
-          const propsButton = Utilities.getNestedProp(returnValue, 'props.children.props.children.1.props')
-          if (propsButton == null) return
-
-          const propsImg = Utilities.getNestedProp(propsButton, 'children.props.children.props')
-          if (propsImg == null || propsImg.type === 'VIDEO' || propsImg.type === 'GIF') return
-
-          const data = { url: cleanUrl(_this.props.src) }
-          if (data.url == null) return
-
-          data.type = propsImg.play != null || data.url?.split('?')[0].endsWith('.gif') ? 'gif' : 'image'
-          if (!this.settings[data.type].enabled || !this.settings[data.type].showStar) return
-
-          if (data.type === 'gif') {
-            data.src = propsImg.src || propsImg.children?.props?.src
-            data.url = returnValue.props.focusTarget.current?.parentElement.firstElementChild.getAttribute('href') || data.url
-          }
-
-          returnValue.props.children.props.children.push(React.createElement(MediaFavButton, {
-            type: data.type,
-            src: data.src,
-            url: data.url,
-            target: returnValue.props.focusTarget,
-          }))
-        })
+      if (type === 'gif') {
+        const mediaGif = typeData.medias.find((m) => m.src?.includes(refreshedUrl.original))
+        if (mediaGif != null) mediaGif.src = newUrl
       }
 
-      // Files
-      if (FileModule == null) {
-        console.error(`[${config.name}]`, 'File module not found')
-      } else {
-        Patcher.after(FileModule, 'Z', (_, [props], returnValue) => {
-          returnValue.props.children.push(React.createElement(MediaFavButton, {
-            type: 'file',
-            name: getUrlName(props.fileName),
-            url: cleanUrl(removeProxyUrl(props.url)),
-            target: { current: document.getElementById(`message-accessories-${props.message.id}`) },
-          }))
-        })
-      }
-
-      // Files rendered
-      if (FileRenderedModule == null) {
-        console.error(`[${config.name}]`, 'FileRendered module not found')
-      } else {
-        Patcher.after(FileRenderedModule, 'ZP', (_, [props], returnValue) => {
-          if (props.item.type !== 'PLAINTEXT_PREVIEW') return
-
-          returnValue.props.children.props.children.push(React.createElement(MediaFavButton, {
-            type: 'file',
-            name: getUrlName(props.item.originalItem.filename),
-            url: cleanUrl(removeProxyUrl(props.item.originalItem.url)),
-            target: { current: document.getElementById(`message-accessories-${props.message.id}`) },
-          }))
-        })
-      }
+      // Categories
+      const category = typeData.medias.find((c) => c.thumbnail?.includes(refreshedUrl.original))
+      if (category != null) category.thumbnail = newUrl
     }
 
-    patchClosePicker () {
-      Patcher.instead(EPSModules, closeExpressionPickerKey, (_, __, originalFunction) => {
-        if (canClosePicker.value) originalFunction()
-        if (canClosePicker.context === 'mediabutton') canClosePicker.value = true
-      })
-    }
+    BdApi.Data.save(plugin.name, type, typeData)
 
-    async patchGIFTab () {
-      const GIFPickerModule = await ReactComponents.getComponent('GIFPicker', '#gif-picker-tab-panel')
-      if (GIFPickerModule == null) {
-        console.error(`[${config.name}]`, 'GIFPicker module not found')
-        return
-      }
-
-      Patcher.after(GIFPickerModule.component.prototype, 'renderContent', (_this, _, returnValue) => {
-        if (!this.settings.gif.enabled || _this.state.resultType !== 'Favorites') return
-        if (!Array.isArray(returnValue.props.data)) return
-        const favorites = [...returnValue.props.data].reverse()
-        const savedGIFs = Utilities.loadData(config.name, 'gif', { medias: [] })
-        const newGIFs = []
-        // keep only favorited GIFs
-        Promise.allSettled(favorites.map(async (props) => {
-          MediaFavButton.getMediaDataFromProps({ ...props, type: 'gif' }).then((data) => {
-            const foundGIF = savedGIFs.medias.find((g) => MediaFavButton.checkSameUrl(g.url, data.url))
-            newGIFs.push(foundGIF ?? data)
-          }).catch((err) => {
-            console.warn(`[${config.name}]`, err.message)
-          })
-        })).then(() => {
-          savedGIFs.medias = newGIFs
-          Utilities.saveData(config.name, 'gif', savedGIFs)
-        })
-
-        returnValue.type = MediaPicker
-        returnValue.props = {
-          type: 'gif',
-          settings: this.settings,
-        }
-      })
-    }
-
-    patchMessageContextMenu () {
-      this.contextMenu = BDContextMenu.patch('message', (returnValue, props) => {
-        if (props == null || returnValue.props?.children?.find(e => e?.props?.id === 'favoriteMedia')) return
-
-        const getMediaContextMenuItems = () => {
-          if (props.target == null) return []
-
-          let type = null
-          if (props.target.tagName === 'IMG' || (props.target.tagName === 'A' && props.target.nextSibling?.firstChild?.firstChild?.tagName === 'IMG')) type = 'image'
-          else if (props.target.tagName === 'A' && props.target.nextSibling?.firstChild?.firstChild?.tagName === 'VIDEO') type = 'gif'
-          else if (props.target.parentElement.firstElementChild.tagName === 'VIDEO') type = 'video'
-          else if (props.target.closest('[class*="wrapperAudio_"]')) {
-            type = 'audio'
-            props.target = props.target.closest('[class*="wrapperAudio_"]')
-          } else if (props.target.closest('[class*="attachment_"]')) {
-            type = 'file'
-            props.target = props.target.closest('[class*="attachment_"]')
-          } else if (props.target.closest('[class*="newMosaicStyle_"]')) {
-            type = 'file'
-            props.target = props.target.closest('[class*="newMosaicStyle_"]')
-          }
-          if (type == null) return []
-
-          const data = {
-            type,
-            url: props.target.getAttribute('href') ?? props.target.getAttribute('src'),
-            poster: null,
-            favorited: undefined,
-            target: { current: props.target },
-          }
-
-          if (data.url?.split('?')[0].endsWith('.gif')) data.type = 'gif'
-          if (data.type === 'image') {
-            data.url = data.url ?? props.target.src
-          } else if (data.type === 'gif') {
-            data.src = props.target.nextSibling.firstChild?.src ?? props.target.nextSibling.firstChild?.firstChild?.src
-          } else if (data.type === 'video') {
-            data.url = props.target.parentElement.firstElementChild.src
-            data.poster = props.target.parentElement.firstElementChild.poster
-          } else if (data.type === 'audio') {
-            data.url = props.target.querySelector('audio').firstElementChild?.src
-          } else if (data.type === 'file') {
-            data.url = props.target.querySelector('a[class*="fileNameLink_"],a[class*="downloadSection_"]').href
-          }
-
-          data.url = cleanUrl(removeProxyUrl(data.url))
-          data.favorited = this.isFavorited(data.type, data.url)
-          const menuItems = [{
-            id: `media-${data.favorited ? 'un' : ''}favorite`,
-            label: data.favorited ? getDiscordIntl('GIF_TOOLTIP_REMOVE_FROM_FAVORITES') : getDiscordIntl('GIF_TOOLTIP_ADD_TO_FAVORITES'),
-            icon: () => React.createElement(StarSVG, { filled: !data.favorited }),
-            action: async () => {
-              const switchFavorite = data.favorited ? MediaFavButton.unfavoriteMedia : MediaFavButton.favoriteMedia
-              switchFavorite(data).then(() => {
-                Dispatcher.dispatch({ type: 'FM_FAVORITE_MEDIA', url: data.url })
-              }).catch((err) => {
-                console.error(`[${config.name}]`, err.message ?? err)
-              })
-            },
-          }]
-          menuItems.push({
-            id: 'media-copy-url',
-            label: getDiscordIntl('COPY_MEDIA_LINK'),
-            action: () => ElectronModule.copy(data.url),
-          })
-          if (data.message != null) {
-            menuItems.push({
-              id: 'media-copy-message',
-              label: getDiscordIntl('COPY_MESSAGE_LINK'),
-              action: () => ElectronModule.copy(data.message ?? ''),
-            })
-          }
-          if (data.source != null) {
-            menuItems.push({
-              id: 'media-copy-source',
-              label: plugin.instance.strings.media.copySource,
-              action: () => ElectronModule.copy(data.source ?? ''),
-            })
-          }
-          menuItems.push({
-            id: 'media-download',
-            label: getDiscordIntl('DOWNLOAD'),
-            action: () => {
-              const media = { url: data.url, name: getUrlName(data.url) }
-              MediaPicker.downloadMedia(media, data.type)
-            },
-          })
-          if (data.favorited) {
-            const medias = Utilities.loadData(this._config.name, data.type, { medias: [] }).medias
-            const mediaId = medias.findIndex(m => MediaFavButton.checkSameUrl(m.url, data.url))
-            const categoryId = medias[mediaId]?.category_id
-            const categories = Utilities.loadData(this._config.name, data.type, { categories: [] }).categories
-            const category = categories.find((c) => c.id === categoryId)
-            const buttonCategories = categories.filter(c => categoryId != null ? c.id !== categoryId : true)
-            if (buttonCategories.length) {
-              const moveAddToItems = []
-              if (MediaPicker.getMediaCategoryId(data.type, mediaId) != null) {
-                moveAddToItems.push({
-                  id: 'media-removeFrom',
-                  label: `${plugin.instance.strings.media.removeFrom} (${category?.name})`,
-                  danger: true,
-                  action: () => MediaPicker.removeMediaCategory(data.type, mediaId),
-                })
-              }
-              moveAddToItems.push(...buttonCategories.map(c => ({
-                id: `category-edit-${c.id}`,
-                label: c.name,
-                key: c.id,
-                action: () => {
-                  MediaPicker.changeMediaCategory(data.type, data.url, c.id)
-                },
-                render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id }),
-              })))
-              menuItems.push({
-                id: 'media-moveAddTo',
-                label: categoryId !== undefined ? plugin.instance.strings.media.moveTo : plugin.instance.strings.media.addTo,
-                type: 'submenu',
-                items: moveAddToItems,
-              })
-            }
-          } else {
-            const categories = Utilities.loadData(this._config.name, data.type, { categories: [] }).categories
-            if (categories.length) {
-              menuItems.push({
-                id: 'media-addTo',
-                label: plugin.instance.strings.media.addTo,
-                type: 'submenu',
-                items: categories.map(c => ({
-                  id: `category-name-${c.id}`,
-                  label: c.name,
-                  key: c.id,
-                  action: async () => {
-                    MediaFavButton.favoriteMedia(data).then(() => {
-                      MediaPicker.changeMediaCategory(data.type, data.url, c.id)
-                      Dispatcher.dispatch({ type: 'FM_FAVORITE_MEDIA', url: data.url })
-                    }).catch((err) => {
-                      console.error(`[${config.name}]`, err.message ?? err)
-                    })
-                  },
-                  render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id }),
-                })),
-              })
-            }
-          }
-          return menuItems
-        }
-
-        const getCategoryContextMenuItems = () => {
-          const getCategories = (type) => Utilities.loadData(this._config.name, type, { categories: [] }).categories
-          const mediaTypes = ['gif', 'image', 'video', 'audio']
-          return [
-            {
-              id: 'category-list',
-              label: plugin.instance.strings.category.list,
-              type: 'submenu',
-              items: mediaTypes.map((type) => ({
-                id: `category-create-${type}`,
-                label: type === 'gif' ? getDiscordIntl('GIF') : plugin.instance.strings.tabName[type],
-                type: 'submenu',
-                items: (() => {
-                  const items = [{
-                    id: `category-create-${type}`,
-                    label: plugin.instance.strings.category.create,
-                    action: () => MediaPicker.openCategoryModal(type, 'create'),
-                  }]
-                  if (getCategories(type).length > 0) {
-                    items.push({
-                      id: 'category-edit',
-                      label: plugin.instance.strings.category.edit,
-                      type: 'submenu',
-                      items: getCategories(type).map((c) => ({
-                        id: `category-edit-${c.id}`,
-                        label: c.name,
-                        key: c.id,
-                        action: () => MediaPicker.openCategoryModal(type, 'edit', { name: c.name, color: c.color, id: c.id }),
-                        render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id }),
-                      })),
-                    }, {
-                      id: 'category-delete',
-                      label: plugin.instance.strings.category.delete,
-                      type: 'submenu',
-                      danger: true,
-                      items: getCategories(type).map((c) => ({
-                        id: `category-delete-${c.id}`,
-                        label: c.name,
-                        key: c.id,
-                        action: () => {
-                          const deleteCategories = () => deleteCategory(type, c.id)
-                          if (MediaPicker.categoryHasSubcategories(type, c.id)) {
-                            showConfirmationModal(plugin.instance.strings.category.delete, plugin.instance.strings.category.deleteConfirm, {
-                              danger: true,
-                              onConfirm: () => deleteCategories(),
-                              confirmText: plugin.instance.strings.category.delete,
-                            })
-                          } else {
-                            deleteCategories()
-                          }
-                        },
-                        render: () => React.createElement(CategoryMenuItem, { ...c, key: c.id }),
-                      })),
-                    })
-                  }
-                  return items
-                })(),
-              })),
-            },
-          ]
-        }
-
-        const separator = ContextMenu.buildMenuItem({ type: 'separator' })
-        const mediaItems = getMediaContextMenuItems()
-        const categoryItems = getCategoryContextMenuItems()
-        const menuItems = [...mediaItems]
-        menuItems.push(...categoryItems)
-        const fmContextMenu = ContextMenu.buildMenuItem({
-          id: 'favoriteMediaMenu',
-          label: this._config.name,
-          type: 'submenu',
-          items: menuItems,
-        })
-        const fmIndex = returnValue.props.children.findIndex((i) => i?.props?.children?.props?.id === 'devmode-copy-id')
-        if (fmIndex > -1) returnValue.props.children.splice(fmIndex, 0, separator, fmContextMenu)
-        else returnValue.props.children.push(separator, fmContextMenu)
-      })
-    }
-
-    isFavorited (type, url) {
-      return Utilities.loadData(this._config.name, type, { medias: [] }).medias.find((e) => MediaFavButton.checkSameUrl(e.url, url)) !== undefined
+    if (refreshedUrls.length > 0) {
+      BdApi.UI.showToast(plugin.instance.strings.category.success.refreshUrls, { type: 'success' })
+      EPS.closeExpressionPicker()
     }
   }
 
-  function getPluginStrings () {
+  render () {
+    return BdApi.React.createElement('div', {
+      id: `${this.props.type}-picker-tab-panel`,
+      role: 'tabpanel',
+      'aria-labelledby': `${this.props.type}-picker-tab`,
+      className: `${classes.gutter.container} fm-pickerContainer`,
+    },
+    BdApi.React.createElement('div', {
+      className: `${classes.gutter.header} fm-header`,
+    },
+    BdApi.React.createElement('div', {
+      className: `${classes.h5} fm-headerRight`,
+    },
+    BdApi.React.createElement('span', {
+      ref: 'mediasCounter',
+      className: 'fm-mediasCounter',
+    }, this.filteredMedias.length),
+    BdApi.React.createElement('div', {
+      ref: 'databaseButton',
+      className: `${classes.buttons.button} fm-databaseButton fm-buttonIcon`,
+      onClick: MediaPicker.openDatabasePanel,
+    }, DatabaseSVG()),
+    BdApi.React.createElement('div', {
+      ref: 'importButton',
+      className: `${classes.buttons.button} fm-importButton fm-buttonIcon`,
+      onClick: MediaPicker.openImportModal,
+    }, ImportSVG()),
+    BdApi.React.createElement('div', {
+      ref: 'settingsButton',
+      className: `${classes.buttons.button} fm-settingsButton fm-buttonIcon`,
+      onClick: () => Dispatcher.dispatch({ type: 'FM_OPEN_SETTINGS' }),
+    }, CogSVG())
+    ),
+    BdApi.React.createElement('div', {
+      className: `${classes.flex.flex} ${classes.flex.horizontal} ${classes.flex.justifyStart} ${classes.flex.alignCenter} ${classes.flex.noWrap}`,
+      style: { flex: '1 1 auto' },
+    },
+    this.state.category
+      ? BdApi.React.createElement('div', {
+        className: classes.gutter.backButton,
+        role: 'button',
+        tabindex: '0',
+        onClick: () => this.backCategory(),
+      },
+      BdApi.React.createElement('svg', {
+        'aria-hidden': false,
+        width: '24',
+        height: '24',
+        viewBox: '0 0 24 24',
+        fill: 'none',
+      },
+      BdApi.React.createElement('path', {
+        fill: 'currentColor',
+        d: 'M20 10.9378H14.2199H8.06628L10.502 8.50202L9 7L4 12L9 17L10.502 15.498L8.06628 13.0622H20V10.9378Z',
+      })
+      )
+      )
+      : null,
+    this.state.category
+      ? BdApi.React.createElement('h5', {
+        className: `${classes.h5} ${classes.gutter.searchHeader}`,
+      }, this.state.category.name)
+      : null,
+    this.state.textFilter && !this.state.category
+      ? BdApi.React.createElement('div', {
+        className: classes.gutter.backButton,
+        role: 'button',
+        tabindex: '0',
+        onClick: this.clearSearch,
+      },
+      BdApi.React.createElement('svg', {
+        'aria-hidden': false,
+        width: '24',
+        height: '24',
+        viewBox: '0 0 24 24',
+        fill: 'none',
+      },
+      BdApi.React.createElement('path', {
+        fill: 'currentColor',
+        d: 'M20 10.9378H14.2199H8.06628L10.502 8.50202L9 7L4 12L9 17L10.502 15.498L8.06628 13.0622H20V10.9378Z',
+      })
+      )
+      )
+      : null,
+    !this.state.category
+      ? BdApi.React.createElement('div', {
+        className: `${classes.gutter.searchBar} ${classes.container.container} ${classes.container.medium}`,
+      },
+      BdApi.React.createElement('div', {
+        className: classes.container.inner,
+      },
+      BdApi.React.createElement('input', {
+        className: classes.container.input,
+        placeholder: plugin.instance.strings.searchItem[this.props.type],
+        autofocus: true,
+        ref: 'input',
+        onChange: e => {
+          this.setState({ textFilter: e.target.value })
+          this.resetScroll()
+        },
+      }),
+      BdApi.React.createElement('div', {
+        className: `${classes.container.iconLayout} ${classes.container.medium} ${this.state.textFilter ? classes.container.pointer : ''}`,
+        tabindex: '-1',
+        role: 'button',
+        onClick: this.clearSearch,
+      },
+      BdApi.React.createElement('div', {
+        className: classes.container.iconContainer,
+      },
+      BdApi.React.createElement('svg', {
+        className: `${classes.container.clear} ${this.state.textFilter ? '' : ` ${classes.container.visible}`}`,
+        'aria-hidden': false,
+        width: '24',
+        height: '24',
+        viewBox: '0 0 24 24',
+      },
+      BdApi.React.createElement('path', {
+        fill: 'currentColor',
+        d: 'M21.707 20.293L16.314 14.9C17.403 13.504 18 11.799 18 10C18 7.863 17.167 5.854 15.656 4.344C14.146 2.832 12.137 2 10 2C7.863 2 5.854 2.832 4.344 4.344C2.833 5.854 2 7.863 2 10C2 12.137 2.833 14.146 4.344 15.656C5.854 17.168 7.863 18 10 18C11.799 18 13.504 17.404 14.9 16.314L20.293 21.706L21.707 20.293ZM10 16C8.397 16 6.891 15.376 5.758 14.243C4.624 13.11 4 11.603 4 10C4 8.398 4.624 6.891 5.758 5.758C6.891 4.624 8.397 4 10 4C11.603 4 13.109 4.624 14.242 5.758C15.376 6.891 16 8.398 16 10C16 11.603 15.376 13.11 14.242 14.243C13.109 15.376 11.603 16 10 16Z',
+      })
+      ),
+      BdApi.React.createElement('svg', {
+        className: `${classes.container.clear} ${this.state.textFilter ? ` ${classes.container.visible}` : ''}`,
+        'aria-hidden': false,
+        width: '24',
+        height: '24',
+        viewBox: '0 0 24 24',
+      },
+      BdApi.React.createElement('path', {
+        fill: 'currentColor',
+        d: 'M18.4 4L12 10.4L5.6 4L4 5.6L10.4 12L4 18.4L5.6 20L12 13.6L18.4 20L20 18.4L13.6 12L20 5.6L18.4 4Z',
+      })
+      )
+      )
+      )
+      )
+      )
+      : null
+    )
+    ),
+    BdApi.React.createElement('div', {
+      className: `${classes.gutter.content} fm-pickerContent`,
+      style: { height: '100%' },
+    },
+    BdApi.React.createElement('div', {
+      ref: 'pickerScroll',
+      className: `${classes.category.container} ${classes.scroller.thin} ${classes.scroller.fade} fm-pickerContentContainer`,
+      style: { overflow: 'hidden scroll', 'padding-right': '0' },
+      onContextMenu: this.onContextMenu,
+    },
+    BdApi.React.createElement('div', {
+      className: `${classes.scroller.content} fm-pickerContentContainerContent`,
+    },
+    BdApi.React.createElement('div', {
+      style: { position: 'absolute', left: '12px', top: '12px', width: 'calc(100% - 16px)' },
+      ref: 'content',
+    },
+    !this.state.category && (this.state.categories.length + this.state.medias.length === 0)
+      ? BdApi.React.createElement(EmptyFavorites, { type: this.props.type })
+      : null,
+    this.state.categories.length > 0 && this.state.contentWidth
+      ? BdApi.React.createElement(RenderList, {
+        component: CategoryCard,
+        items: this.positionedCategories,
+        componentProps: {
+          type: this.props.type,
+          setCategory: this.setCategory,
+          length: this.filteredCategories.length,
+        },
+      })
+      : null,
+    this.state.medias.length > 0 && this.state.contentWidth
+      ? BdApi.React.createElement(RenderList, {
+        component: MediaCard,
+        items: this.positionedMedias,
+        componentProps: {
+          type: this.props.type,
+          onMediaContextMenu: this.onMediaContextMenu,
+          settings: this.props.settings,
+        },
+      })
+      : null
+    ),
+    this.state.categories.length > 0 || this.state.medias.length > 0
+      ? BdApi.React.createElement('div', {
+        style: {
+          position: 'absolute',
+          left: '12px',
+          top: `${this.contentHeight + 12}px`,
+          width: 'calc(100% - 16px)',
+          height: '220px',
+        },
+        ref: 'endSticker',
+      },
+      BdApi.React.createElement('div', {
+        className: classes.result.endContainer,
+        style: {
+          position: 'sticky',
+          top: '0px',
+          left: '0px',
+          width: '100%',
+          height: '220px',
+        },
+      })
+      )
+      : null
+    )
+    ),
+    PageControl != null
+      ? BdApi.React.createElement('div', {
+        className: 'fm-pageControl',
+      },
+      BdApi.React.createElement(PageControl, {
+        currentPage: this.state.page,
+        maxVisiblePages: 5,
+        onPageChange: (page) => {
+          this.setState({ page: Number(page) })
+          this.resetScroll()
+        },
+        pageSize: plugin.instance.settings.maxMediasPerPage,
+        totalCount: this.filteredCategories.length + this.filteredMedias.length,
+      })
+      )
+      : null
+    )
+    )
+  }
+}
+
+class MediaButton extends BdApi.React.Component {
+  constructor (props) {
+    super(props)
+
+    this.state = {
+      active: false,
+    }
+
+    this.changeActive = this.changeActive.bind(this)
+    this.checkPicker = this.checkPicker.bind(this)
+  }
+
+  get isActive () {
+    const EPSState = EPS.useExpressionPickerStore.getState()
+    return EPSState.activeView === this.props.type && EPSState.activeViewType?.analyticsName === this.props.pickerType?.analyticsName
+  }
+
+  changeActive () {
+    if (this.isActive) {
+      currentChannelId = this.props.channelId
+      currentTextareaInput = findTextareaInput(this.refs.button)
+    }
+    this.setState({ active: this.isActive })
+  }
+
+  checkPicker () {
+    const EPSState = EPS.useExpressionPickerStore.getState()
+    canClosePicker.context = 'mediabutton'
+    canClosePicker.value = EPSState.activeView == null
+  }
+
+  componentDidMount () {
+    Dispatcher.subscribe('FM_PICKER_BUTTON_ACTIVE', this.changeActive)
+  }
+
+  componentWillUnmount () {
+    Dispatcher.unsubscribe('FM_PICKER_BUTTON_ACTIVE', this.changeActive)
+  }
+
+  render () {
+    return BdApi.React.createElement('div', {
+      className: `${classes.textarea.buttonContainer} fm-buttonContainer fm-${this.props.type}`,
+      ref: 'button',
+    },
+    BdApi.React.createElement('button', {
+      className: `${classes.look.button} ${classes.look.lookBlank} ${classes.look.colorBrand} ${classes.look.grow}${this.state.active ? ` ${classes.icon.active}` : ''} fm-button`,
+      tabindex: '0',
+      type: 'button',
+      onMouseDown: this.checkPicker,
+      onClick: () => {
+        const EPSState = EPS.useExpressionPickerStore.getState()
+        if (EPSState.activeView === this.props.type && EPSState.activeViewType?.analyticsName !== this.props.pickerType?.analyticsName) {
+          EPS.toggleExpressionPicker(this.props.type, this.props.pickerType ?? EPSState.activeViewType)
+        }
+        EPS.toggleExpressionPicker(this.props.type, this.props.pickerType ?? EPSConstants.NORMAL)
+      },
+    },
+    BdApi.React.createElement('div', {
+      className: `${classes.look.contents} ${classes.textarea.button} ${classes.icon.button} fm-buttonContent`,
+    },
+    BdApi.React.createElement('div', {
+      className: `${classes.icon.buttonWrapper} fm-buttonWrapper`,
+      style: { opacity: '1', transform: 'none' },
+    },
+    this.props.type === 'image' ? ImageSVG() : null,
+    this.props.type === 'video' ? VideoSVG() : null,
+    this.props.type === 'audio' ? AudioSVG() : null,
+    this.props.type === 'file' ? FileSVG() : null
+    )
+    )
+    )
+    )
+  }
+}
+
+function getMediaFromCache (key) {
+  if (!plugin.instance.settings.allowCaching) return key
+  return mediasCache[key] ?? key
+}
+
+function getUrlName (url) {
+  // tenor case, otherwise it would always return 'tenor'
+  if (url.startsWith('https://tenor.com/view/') || url.startsWith('https://media.tenor.com/view/')) return url.match(/view\/(.*)-gif-/)?.[1]
+  return url.replace(/(\.|\/)([^./]*)$/gm, '').split('/').pop()
+}
+
+function getUrlExt (url, type) {
+  const ext = url.match(/\.([0-9a-z]+)(?=[?#])|(\.)(?:[\w]+)$/gmi)?.[0]
+  if (ext != null) return ext
+  return {
+    image: '.png',
+    video: '.mp4',
+    audio: '.mp3',
+    gif: '.gif',
+  }[type] ?? ''
+}
+
+function cleanUrl (url) {
+  if (url == null) return
+  try {
+    const urlObj = new URL(url)
+    urlObj.searchParams.delete('width')
+    urlObj.searchParams.delete('height')
+    urlObj.searchParams.delete('quality')
+    urlObj.searchParams.delete('format')
+    urlObj.searchParams.delete('')
+    // force cdn link because on PC media link videos can't be played
+    return urlObj.toString().replace('media.discordapp.net', 'cdn.discordapp.com')
+  } catch {
+    return url
+  }
+}
+
+function removeProxyUrl (url) {
+  const tmpUrl = url?.split('https/')[1]
+  if (tmpUrl == null) return url
+  return 'https://' + tmpUrl
+}
+
+async function sendInTextarea (clear = false) {
+  return await new Promise((resolve, reject) => {
+    try {
+      const enterEvent = new window.KeyboardEvent('keydown', { charCode: 13, keyCode: 13, bubbles: true })
+      setTimeout(() => {
+        currentTextareaInput?.dispatchEvent(enterEvent)
+        if (clear) ComponentDispatch.dispatchToLastSubscribed('CLEAR_TEXT')
+        resolve()
+      })
+    } catch (error) {
+      reject(error)
+    }
+  })
+}
+
+function uploadFile (type, buffer, media) {
+  // if the textarea has not been patched, file uploading will fail
+  if (currentTextareaInput == null || !document.body.contains(currentTextareaInput)) return BdApi.Logger.error(plugin.name, 'Could not find current textarea, upload file canceled.')
+
+  const isGIF = type === 'gif'
+  const ext = getUrlExt(media.url, type)
+  const fileName = `${isGIF ? getUrlName(media.url).replace(/ /g, '_') : media.name}${ext}`
+  const mime = `${isGIF ? 'image' : type}/${ext.slice(1)}`
+  const file = new File([buffer], fileName, { type: mime })
+  FilesUpload.addFiles({
+    channelId: currentChannelId,
+    draftType: 0,
+    files: [{ file, platform: 1 }],
+    showLargeMessageDialog: false,
+  })
+}
+
+async function fetchMedia (media) {
+  media = structuredClone(media)
+
+  let mediaBuffer = await fmdb.get(media.url)
+  if (mediaBuffer != null) return new Uint8Array(mediaBuffer)
+
+  const fetchUrl = (media.url.startsWith('//') ? 'https:' : '') + media.url
+  mediaBuffer = await BdApi.Net.fetch(fetchUrl).then((r) => r.arrayBuffer())
+  const td = new TextDecoder('utf-8')
+  // no longer cached on Discord CDN
+  if (td.decode(mediaBuffer.slice(0, 5)) === '<?xml') throw new Error('Media no longer cached on the server')
+  // tenor GIF case
+  if (media.url.startsWith('https://tenor.com/view/')) {
+    if (td.decode(mediaBuffer.slice(0, 15)) === '<!DOCTYPE html>') {
+      const url = td.decode(mediaBuffer).match(/src="(https:\/\/media([^.]*)\.tenor\.com\/[^"]*)"/)?.[1]
+      if (url == null) throw new Error('GIF no longer exists on tenor')
+      media.url = url
+      media.name = url.match(/view\/(.*)-gif-/)?.[1]
+      mediaBuffer = await BdApi.Net.fetch(media.url).then((r) => r.arrayBuffer())
+    }
+  }
+
+  // not resolving external link
+  if (td.decode(mediaBuffer.slice(0, 15)) === '<!DOCTYPE html>') return null
+
+  return new Uint8Array(mediaBuffer)
+}
+
+function findTextareaInput ($button = document.getElementsByClassName(classes.textarea.buttonContainer).item(0)) {
+  return $button?.closest(`.${classes.textarea.channelTextArea}`)?.querySelector('[role="textbox"]')
+}
+
+function findSpoilerButton () {
+  return currentTextareaInput?.closest(`.${classes.textarea.channelTextArea}`)?.querySelector(`.${classes.upload.actionBarContainer} [role="button"]:first-child`)
+}
+
+function findMessageIds ($target) {
+  if ($target == null) return [null, null]
+  const ids = $target.closest('[id^="chat-messages-"]')?.getAttribute('id').split('-')?.slice(2)
+  if (ids == null) return [null, null]
+  return ids
+}
+
+function findMessageLink ($target) {
+  if ($target == null) return
+  try {
+    const [channelId, messageId] = findMessageIds($target)
+    const guildId = window.location.href.match(/channels\/(\d+)/)?.[1]
+    return `${window.location.origin}/channels/${guildId}/${channelId}/${messageId}`
+  } catch (error) {
+    BdApi.Logger.error(plugin.name, error)
+  }
+}
+
+function findSourceLink ($target, url) {
+  if ($target == null) return
+  try {
+    const [channelId, messageId] = findMessageIds($target)
+    const fields = ['image', 'thumbnail', 'video']
+    const embed = MessageStore.getMessage(channelId, messageId)?.embeds?.find((e) => {
+      if (e.type !== 'link') return false
+      return fields.some((f) => e[f]?.url?.startsWith(url) || e[f]?.proxyURL?.startsWith(url))
+    })
+    if (embed == null) return
+    return embed.url
+  } catch (error) {
+    BdApi.Logger.error(plugin.name, error)
+  }
+}
+
+async function getMediaDimensions (props) {
+  if (props.width > 0 && props.height > 0) return { width: props.width, height: props.height }
+
+  const dimensions = { width: 0, height: 0 }
+  const $target = props.target?.current?.parentElement?.querySelector('img, video')
+  if ($target == null) return dimensions
+
+  const src = cleanUrl($target.src)
+  if (src == null) return dimensions
+  return new Promise((resolve) => {
+    if ($target.tagName === 'VIDEO') {
+      const $vid = document.createElement('video')
+      $vid.preload = 'metadata'
+      $vid.addEventListener('loadedmetadata', (e) => {
+        dimensions.width = e.target.videoWidth
+        dimensions.height = e.target.videoHeight
+        resolve(dimensions)
+      })
+      $vid.src = src
+    } else if ($target.tagName === 'IMG') {
+      const $img = document.createElement('img')
+      $img.addEventListener('load', () => {
+        dimensions.width = $img.width
+        dimensions.height = $img.height
+        resolve(dimensions)
+      })
+      $img.src = src
+    }
+  })
+}
+
+function getDiscordIntl (key) {
+  return DiscordIntl?.intl?.format(DiscordIntl.t[INTL_CODE_HASH[key]]) ?? key
+}
+
+function loadEPS () {
+  if (EPSModules == null) {
+    BdApi.Logger.warn(plugin.name, 'Failed to load module ExpressionPickerStore')
+    return
+  }
+
+  Object.entries(EPSModules).forEach(([key, fn]) => {
+    const code = String(fn)
+    if (fn.getState && fn.setState) {
+      EPS.useExpressionPickerStore = fn
+    } else if (code.includes('activeView===')) {
+      EPS.toggleExpressionPicker = fn
+    } else if (code.includes('activeView:null')) {
+      EPS.closeExpressionPicker = fn
+      closeExpressionPickerKey = key
+    }
+  })
+}
+
+// https://github.com/Strencher/BetterDiscordStuff/blob/master/InvisibleTyping/InvisibleTyping.plugin.instance.js#L483-L494
+function loadChannelTextAreaButtons () {
+  const vnode = BdApi.ReactUtils.getInternalInstance(document.querySelector(`.${classes.buttons.buttons}`))
+  if (!vnode) return
+  for (let curr = vnode, max = 100; curr !== null && max--; curr = curr.return) {
+    const tree = curr?.pendingProps?.children
+    let buttons
+    if (Array.isArray(tree) && (buttons = tree.find(s => s?.props?.type && s.props.channel && s.type?.$$typeof))) {
+      ChannelTextAreaButtons = buttons.type
+      return
+    }
+  }
+}
+
+function categoryValidator (type, name, color, id) {
+  if (!name || typeof name !== 'string') return { error: 'error', message: plugin.instance.strings.category.error.needName }
+  if (name.length > 20) return { error: 'error', message: plugin.instance.strings.category.error.invalidNameLength }
+  if (!color || typeof color !== 'string' || !color.startsWith('#')) return { error: 'error', message: plugin.instance.strings.category.error.wrongColor }
+  const typeData = BdApi.Data.load(plugin.name, type, { categories: [], medias: [] })
+  if (typeData.categories.find(c => c.name === name && c.id !== id) !== undefined) return { error: 'error', message: plugin.instance.strings.category.error.nameExists }
+  return typeData
+}
+
+function getNewCategoryId (categories = []) {
+  const id = Math.max(...categories.map(c => c.id))
+  if (isNaN(id) || id < 1) return 1
+  return id + 1
+}
+
+function createCategory (type, { name, color }, categoryId) {
+  const res = categoryValidator(type, name, color)
+  if (res.error) {
+    BdApi.Logger.error(plugin.name, res.error)
+    BdApi.UI.showToast(res.message, { type: 'error' })
+    return false
+  }
+
+  res.categories.push({
+    id: getNewCategoryId(res.categories),
+    name,
+    color,
+    category_id: categoryId,
+  })
+  BdApi.Data.save(plugin.name, type, res)
+
+  BdApi.UI.showToast(plugin.instance.strings.category.success.create, { type: 'success' })
+  return true
+}
+
+function editCategory (type, { name, color }, id) {
+  const res = categoryValidator(type, name, color, id)
+  if (res.error) {
+    BdApi.Logger.error(plugin.name, res.error)
+    BdApi.UI.showToast(res.message, { type: 'error' })
+    return false
+  }
+
+  res.categories[res.categories.findIndex(c => c.id === id)] = { id, name, color }
+  BdApi.Data.save(plugin.name, type, res)
+
+  BdApi.UI.showToast(plugin.instance.strings.category.success.edit, { type: 'success' })
+  return true
+}
+
+function moveCategory (type, id, inc) {
+  const typeData = BdApi.Data.load(plugin.name, type, { categories: [], medias: [] })
+  const oldCategory = typeData.categories.find((c) => c.id === id)
+  if (oldCategory == null) return
+  const categories = typeData.categories.filter((c) => c.category_id === oldCategory.category_id)
+  const oldCategoryLocalIndex = categories.findIndex((c) => c.id === id)
+  if (oldCategoryLocalIndex < 0) return
+  const newCategory = categories[oldCategoryLocalIndex + inc]
+  if (newCategory == null) return
+  const oldCategoryIndex = typeData.categories.findIndex((c) => c.id === oldCategory.id)
+  if (oldCategoryIndex < 0) return
+  const newCategoryIndex = typeData.categories.findIndex((c) => c.id === newCategory.id)
+  if (newCategoryIndex < 0) return
+  typeData.categories[oldCategoryIndex] = newCategory
+  typeData.categories[newCategoryIndex] = oldCategory
+  BdApi.Data.save(plugin.name, type, typeData)
+
+  BdApi.UI.showToast(plugin.instance.strings.category.success.move, { type: 'success' })
+  Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
+}
+
+function deleteCategory (type, id) {
+  const typeData = BdApi.Data.load(plugin.name, type, { categories: [], medias: [] })
+  if (typeData.categories.find(c => c.id === id) === undefined) {
+    BdApi.UI.showToast(plugin.instance.strings.category.error.invalidCategory, { type: 'error' })
+    return false
+  }
+  const deleteCategoryId = (id) => {
+    typeData.categories = typeData.categories.filter(c => c.id !== id)
+    typeData.medias = typeData.medias.map(m => { if (m.category_id === id) delete m.category_id; return m })
+    const categoriesToDelete = typeData.categories.filter((c) => c.category_id === id)
+    categoriesToDelete.forEach((c) => deleteCategoryId(c.id))
+  }
+  deleteCategoryId(id)
+  BdApi.Data.save(plugin.name, type, typeData)
+
+  BdApi.UI.showToast(plugin.instance.strings.category.success.delete, { type: 'success' })
+  return true
+}
+
+function hexToRgb (hex) {
+  const bigint = parseInt(hex.replace('#', ''), 16)
+  const r = (bigint >> 16) & 255
+  const g = (bigint >> 8) & 255
+  const b = bigint & 255
+
+  return [r, g, b]
+}
+
+function observe (selector, callback, options = {}, root = document) {
+  if (typeof options.append === 'function') {
+    root = options
+    options = {}
+  }
+  const observer = new window.MutationObserver((_, instance) => {
+    const el = root.querySelector(selector) || root.matches?.(selector) || root.matchesSelector?.(selector)
+    if (el == null) return
+    callback?.(el, instance)
+    if (!options.keep) instance.disconnect()
+  })
+  observer.observe(root, { childList: true, subtree: true, ...options })
+  return observer
+}
+
+// https://github.com/zerebos/BDPluginLibrary/blob/a375c48d7af5e1a000ce0d97a6cbbcf77a9461cc/src/modules/reacttools.js#L46
+function getOwnerInstance (node, { include, exclude = ['Popout', 'Tooltip', 'Scroller', 'BackgroundFlash'], filter = _ => _ } = {}) {
+  if (node === undefined) return undefined
+  const excluding = include === undefined
+  const nameFilter = excluding ? exclude : include
+  function getDisplayName (owner) {
+    const type = owner.type
+    if (!type) return null
+    return type.displayName || type.name || null
+  }
+  function classFilter (owner) {
+    const name = getDisplayName(owner)
+    return (name !== null && !!(nameFilter.includes(name) ^ excluding))
+  }
+
+  let curr = BdApi.ReactUtils.getInternalInstance(node)
+  for (curr = curr && curr.return; curr != null; curr = curr.return) {
+    if (curr == null) continue
+    const owner = curr.stateNode
+    if (owner != null && !(owner instanceof window.HTMLElement) && classFilter(curr) && filter(owner)) return owner
+  }
+
+  return null
+}
+
+module.exports = class FavoriteMedia {
+  constructor (meta) {
+    this.meta = meta
+
+    this.strings = this.getLocaleStrings()
+    LocaleStore.addChangeListener(() => { this.strings = this.getLocaleStrings() })
+
+    this.settings = BdApi.Data.load(plugin.name, 'settings', {})
+  }
+
+  start () {
+    loadEPS()
+    loadChannelTextAreaButtons()
+
+    this.patchExpressionPicker()
+    this.patchMessageContextMenu()
+    this.patchGIFTab()
+    this.patchClosePicker()
+    this.patchMedias()
+    this.patchChannelTextArea()
+
+    this.openSettings = this.openSettings.bind(this)
+    Dispatcher.subscribe('FM_OPEN_SETTINGS', this.openSettings)
+
+    BdApi.DOM.addStyle(plugin.name, this.css)
+
+    const savedVersion = BdApi.Data.load('version')
+    if (savedVersion !== this.meta.version && this.changelogs.length > 0) {
+      BdApi.UI.showChangelogModal({
+        title: this.meta.name,
+        subtitle: this.meta.version,
+        changes: this.changelogs,
+      })
+      BdApi.Data.save(plugin.name, 'version', this.meta.version)
+    }
+  }
+
+  stop () {
+    this.contextMenu?.()
+    BdApi.Patcher.unpatchAll(plugin.name)
+    Dispatcher.dispatch({ type: 'FM_UNPATCH_ALL' })
+    Dispatcher.unsubscribe('FM_OPEN_SETTINGS', this.openSettings)
+    Object.keys(mediasCache).forEach((url) => URL.revokeObjectURL(url))
+
+    BdApi.DOM.removeStyle(plugin.name)
+  }
+
+  getLocaleStrings () {
+    return structuredClone(this.translations[LocaleStore.locale.toLowerCase().split('-')[0]])
+  }
+
+  loadSettings (settings, settingsData) {
+    settings = settings ?? structuredClone(this.defaultSettings)
+    settingsData = settingsData ?? BdApi.Data.load(plugin.name, 'settings', {})
+
+    for (const setting of settings) {
+      if (setting.type !== 'category') {
+        setting.value = settingsData[setting.id]
+      } else {
+        this.loadSettings(setting.settings, settingsData[setting.id])
+      }
+    }
+  }
+
+  prepareSettings (settings, settingsData, settingsStrings) {
+    for (const setting of settings) {
+      if (setting.type !== 'category') {
+        setting.value = settingsData[setting.id]
+      } else {
+        this.prepareSettings(setting.settings, settingsData[setting.id], settingsStrings[setting.id])
+      }
+
+      const settingStrings = settingsStrings[setting.id]
+      if (settingStrings != null) {
+        setting.name = settingStrings.name
+        if (setting.note != null) {
+          setting.note = settingStrings.note
+        }
+      }
+    }
+  }
+
+  getSettingsPanel (settings) {
+    settings = structuredClone(settings ?? this.defaultSettings)
+    settings = Array.isArray(settings) ? settings : [settings]
+
+    this.prepareSettings(settings, this.settings, this.strings.settings)
+
+    return BdApi.UI.buildSettingsPanel({
+      settings,
+      onChange: (category, id, value) => {
+        const settingsData = BdApi.Data.load(plugin.name, 'settings', {})
+        if (category != null) {
+          settingsData[category][id] = value
+        } else {
+          settingsData[id] = value
+        }
+        BdApi.Data.save(plugin.name, 'settings', settingsData)
+        this.loadSettings()
+      },
+    })
+  }
+
+  onSwitch () {
+    if (!this.patchedCTA) this.patchChannelTextArea()
+  }
+
+  openSettings () {
+    const settingsTitle = plugin.name + ' Settings'
+    BdApi.UI.showConfirmationModal(settingsTitle, this.getSettingsPanel(), {
+      confirmText: null,
+      cancelText: null,
+    })
+
+    // No modal size option available
+    setTimeout(() => {
+      console.log(document.querySelectorAll('.bd-modal-header h1'))
+      document.querySelectorAll('.bd-modal-header h1').forEach(($el) => {
+        console.log($el.textContent)
+        if ($el.textContent !== settingsTitle) return
+
+        const modalRoot = $el.closest('.bd-modal-root')
+        modalRoot.classList.remove('bd-modal-small')
+        modalRoot.classList.add('bd-modal-medium')
+      })
+    }, 100)
+  }
+
+  MediaTab (mediaType, elementType) {
+    const selected = mediaType === EPS.useExpressionPickerStore.getState().activeView
+    return BdApi.React.createElement(elementType, {
+      id: `${mediaType}-picker-tab`,
+      'aria-controls': `${mediaType}-picker-tab-panel`,
+      'aria-selected': selected,
+      className: 'fm-pickerTab',
+      viewType: mediaType,
+      isActive: selected,
+    }, plugin.instance.strings.tabName[mediaType])
+  }
+
+  async waitExpressionPicker () {
+    return new Promise((resolve, reject) => {
+      const unpatch = () => { reject(new Error('Plugin stopped')) }
+      Dispatcher.subscribe('FM_UNPATCH_ALL', unpatch)
+      observe(`.${classes.contentWrapper.contentWrapper}`, ($el) => {
+        if ($el == null) return
+        Dispatcher.unsubscribe('FM_UNPATCH_ALL', unpatch)
+        resolve(getOwnerInstance($el))
+      })
+    })
+  }
+
+  async patchExpressionPicker () {
+    let ExpressionPicker = null
+    try {
+      ExpressionPicker = await this.waitExpressionPicker()
+    } catch {
+      return
+    }
+
+    if (ExpressionPicker == null) {
+      BdApi.Logger.error(plugin.name, 'ExpressionPicker module not found')
+      return
+    }
+
+    ExpressionPicker.forceUpdate()
+
+    // https://github.com/BetterDiscord/BetterDiscord/blob/3b9ad9b75b6ac64e6740e9c2f1d19fd4615010c7/renderer/src/builtins/emotes/emotemenu.js
+    BdApi.Patcher.after(plugin.name, ExpressionPicker.constructor.prototype, 'render', (_, __, returnValue) => {
+      const originalChildren = returnValue.props?.children
+      if (originalChildren == null) return
+
+      returnValue.props.children = (...args) => {
+        const childrenReturn = originalChildren(...args)
+        const head = BdApi.Utils.findInTree(childrenReturn, (e) => e?.role === 'tablist', { walkable: ['props', 'children', 'return', 'stateNode'] })?.children
+        const body = BdApi.Utils.findInTree(childrenReturn, (e) => e?.[0]?.type === 'nav', { walkable: ['props', 'children', 'return', 'stateNode'] })
+        if (head == null || body == null) return childrenReturn
+
+        try {
+          const elementType = head[0].type.type
+          if (this.settings.image.enabled) head.push(this.MediaTab('image', elementType))
+          if (this.settings.video.enabled) head.push(this.MediaTab('video', elementType))
+          if (this.settings.audio.enabled) head.push(this.MediaTab('audio', elementType))
+          if (this.settings.file.enabled) head.push(this.MediaTab('file', elementType))
+
+          const activeMediaPicker = EPS.useExpressionPickerStore.getState().activeView
+          if (ALL_TYPES.includes(activeMediaPicker)) {
+            body.push(BdApi.React.createElement(MediaPicker, {
+              type: activeMediaPicker,
+              settings: this.settings,
+            }))
+          }
+        } catch (err) {
+          BdApi.Logger.error(plugin.name, 'Error in ExpressionPicker patch:', err.message ?? err)
+        }
+
+        return childrenReturn
+      }
+    })
+  }
+
+  patchChannelTextArea () {
+    loadChannelTextAreaButtons()
+    if (ChannelTextAreaButtons == null) return
+    this.patchedCTA = true
+
+    BdApi.Patcher.after(plugin.name, ChannelTextAreaButtons, 'type', (_, [props], returnValue) => {
+      if (returnValue == null || BdApi.Utils.getNestedValue(returnValue, 'props.children.1.props.type') === 'sidebar') return
+
+      currentChannelId = SelectedChannelStore.getChannelId()
+      const channel = ChannelStore.getChannel(currentChannelId)
+      const perms = Permissions.can(PermissionsConstants.SEND_MESSAGES, channel)
+      if (!channel.type && !perms) return
+
+      const buttons = returnValue.props.children
+      if (buttons == null || !Array.isArray(buttons)) return
+      // in user note
+      if (buttons.length === 1 && buttons[0].key === 'emoji') return
+
+      const fmButtons = []
+      if (this.settings.image.enabled && this.settings.image.showBtn) fmButtons.push(BdApi.React.createElement(MediaButton, { type: 'image', pickerType: props.type, channelId: props.channel.id }))
+      if (this.settings.video.enabled && this.settings.video.showBtn) fmButtons.push(BdApi.React.createElement(MediaButton, { type: 'video', pickerType: props.type, channelId: props.channel.id }))
+      if (this.settings.audio.enabled && this.settings.audio.showBtn) fmButtons.push(BdApi.React.createElement(MediaButton, { type: 'audio', pickerType: props.type, channelId: props.channel.id }))
+      if (this.settings.file.enabled && this.settings.file.showBtn) fmButtons.push(BdApi.React.createElement(MediaButton, { type: 'file', pickerType: props.type, channelId: props.channel.id }))
+
+      let index = (buttons.findIndex((b) => b.key === this.settings.position.btnsPositionKey) + (this.settings.position.btnsPosition === 'right' ? 1 : 0))
+      if (index < 0) index = buttons.length - 1
+      buttons.splice(index, 0, ...fmButtons)
+      buttons.forEach((b) => { if (ALL_TYPES.includes(b.props?.type)) b.key = b.props.type })
+
+      setTimeout(() => {
+        currentTextareaInput = findTextareaInput()
+      }, 50)
+    })
+  }
+
+  patchMedias () {
+    // Videos & Audios
+    if (MediaPlayerModule == null) {
+      BdApi.Logger.error(plugin.name, 'MediaPlayer module not found')
+    } else {
+      BdApi.Patcher.after(plugin.name, MediaPlayerModule.prototype, 'render', ({ props }, __, returnValue) => {
+        const type = returnValue.props.children[1].type === 'audio' ? 'audio' : 'video'
+        if (!this.settings[type].enabled || !this.settings[type].showStar) return
+
+        returnValue.props.children.push(BdApi.React.createElement(MediaFavButton, {
+          type,
+          url: cleanUrl(removeProxyUrl(props.src)),
+          poster: props.poster,
+          uploaded: props.fileSize != null,
+          target: returnValue.props.children[1]?.ref,
+        }))
+      })
+    }
+
+    // Images & GIFs
+    if (ImageModule == null) {
+      BdApi.Logger.error(plugin.name, 'Image module not found')
+    } else {
+      BdApi.Patcher.after(plugin.name, ImageModule.prototype, 'render', (_this, __, returnValue) => {
+        const propsButton = BdApi.Utils.getNestedValue(returnValue, 'props.children.props.children.1.props')
+        if (propsButton == null) return
+
+        const propsImg = BdApi.Utils.getNestedValue(propsButton, 'children.props.children.props')
+        if (propsImg == null || propsImg.type === 'VIDEO' || propsImg.type === 'GIF') return
+
+        const data = { url: cleanUrl(_this.props.src) }
+        if (data.url == null) return
+
+        data.type = propsImg.play != null || data.url?.split('?')[0].endsWith('.gif') ? 'gif' : 'image'
+        if (!this.settings[data.type].enabled || !this.settings[data.type].showStar) return
+
+        if (data.type === 'gif') {
+          data.src = propsImg.src || propsImg.children?.props?.src
+          data.url = returnValue.props.focusTarget.current?.parentElement.firstElementChild.getAttribute('href') || data.url
+        }
+
+        returnValue.props.children.props.children.push(BdApi.React.createElement(MediaFavButton, {
+          type: data.type,
+          src: data.src,
+          url: data.url,
+          target: returnValue.props.focusTarget,
+        }))
+      })
+    }
+
+    // Files
+    if (FileModule == null) {
+      BdApi.Logger.error(plugin.name, 'File module not found')
+    } else {
+      BdApi.Patcher.after(plugin.name, FileModule, 'Z', (_, [props], returnValue) => {
+        returnValue.props.children.push(BdApi.React.createElement(MediaFavButton, {
+          type: 'file',
+          name: getUrlName(props.fileName),
+          url: cleanUrl(removeProxyUrl(props.url)),
+          target: { current: document.getElementById(`message-accessories-${props.message.id}`) },
+        }))
+      })
+    }
+
+    // Files rendered
+    if (FileRenderedModule == null) {
+      BdApi.Logger.error(plugin.name, 'FileRendered module not found')
+    } else {
+      BdApi.Patcher.after(plugin.name, FileRenderedModule, 'ZP', (_, [props], returnValue) => {
+        if (props.item.type !== 'PLAINTEXT_PREVIEW') return
+
+        returnValue.props.children.props.children.push(BdApi.React.createElement(MediaFavButton, {
+          type: 'file',
+          name: getUrlName(props.item.originalItem.filename),
+          url: cleanUrl(removeProxyUrl(props.item.originalItem.url)),
+          target: { current: document.getElementById(`message-accessories-${props.message.id}`) },
+        }))
+      })
+    }
+  }
+
+  patchClosePicker () {
+    BdApi.Patcher.instead(plugin.name, EPSModules, closeExpressionPickerKey, (_, __, originalFunction) => {
+      if (canClosePicker.value) originalFunction()
+      if (canClosePicker.context === 'mediabutton') canClosePicker.value = true
+    })
+  }
+
+  async waitGIFPicker () {
+    return new Promise((resolve, reject) => {
+      const unpatch = () => { reject(new Error('Plugin stopped')) }
+      Dispatcher.subscribe('FM_UNPATCH_ALL', unpatch)
+      observe('#gif-picker-tab-panel', ($el) => {
+        if ($el == null) return
+        Dispatcher.unsubscribe('FM_UNPATCH_ALL', unpatch)
+        resolve(getOwnerInstance($el))
+      })
+    })
+  }
+
+  async patchGIFTab () {
+    let GIFPicker = null
+    try {
+      GIFPicker = await this.waitGIFPicker()
+    } catch {
+      return
+    }
+
+    if (GIFPicker == null) {
+      BdApi.Logger.error(plugin.name, 'GIFPicker module not found')
+      return
+    }
+
+    BdApi.Patcher.after(plugin.name, GIFPicker.constructor.prototype, 'renderContent', (_this, _, returnValue) => {
+      if (!this.settings.gif.enabled || _this.state.resultType !== 'Favorites') return
+      if (!Array.isArray(returnValue.props.data)) return
+      const favorites = [...returnValue.props.data].reverse()
+      const savedGIFs = BdApi.Data.load(plugin.name, 'gif', { medias: [] })
+      const newGIFs = []
+      // keep only favorited GIFs
+      Promise.allSettled(favorites.map(async (props) => {
+        MediaFavButton.getMediaDataFromProps({ ...props, type: 'gif' }).then((data) => {
+          const foundGIF = savedGIFs.medias.find((g) => MediaFavButton.checkSameUrl(g.url, data.url))
+          newGIFs.push(foundGIF ?? data)
+        }).catch((err) => {
+          BdApi.Logger.warn(plugin.name, err.message)
+        })
+      })).then(() => {
+        savedGIFs.medias = newGIFs
+        BdApi.Data.save(plugin.name, 'gif', savedGIFs)
+      })
+
+      returnValue.type = MediaPicker
+      returnValue.props = {
+        type: 'gif',
+        settings: this.settings,
+      }
+    })
+  }
+
+  patchMessageContextMenu () {
+    this.contextMenu = BdApi.ContextMenu.patch('message', (returnValue, props) => {
+      if (props == null || returnValue.props?.children?.find(e => e?.props?.id === 'favoriteMedia')) return
+
+      const getMediaContextMenuItems = () => {
+        if (props.target == null) return []
+
+        let type = null
+        if (props.target.tagName === 'IMG' || (props.target.tagName === 'A' && props.target.nextSibling?.firstChild?.firstChild?.tagName === 'IMG')) type = 'image'
+        else if (props.target.tagName === 'A' && props.target.nextSibling?.firstChild?.firstChild?.tagName === 'VIDEO') type = 'gif'
+        else if (props.target.parentElement.firstElementChild.tagName === 'VIDEO') type = 'video'
+        else if (props.target.closest('[class*="wrapperAudio_"]')) {
+          type = 'audio'
+          props.target = props.target.closest('[class*="wrapperAudio_"]')
+        } else if (props.target.closest('[class*="attachment_"]')) {
+          type = 'file'
+          props.target = props.target.closest('[class*="attachment_"]')
+        } else if (props.target.closest('[class*="newMosaicStyle_"]')) {
+          type = 'file'
+          props.target = props.target.closest('[class*="newMosaicStyle_"]')
+        }
+        if (type == null) return []
+
+        const data = {
+          type,
+          url: props.target.getAttribute('href') ?? props.target.getAttribute('src'),
+          poster: null,
+          favorited: undefined,
+          target: { current: props.target },
+        }
+
+        if (data.url?.split('?')[0].endsWith('.gif')) data.type = 'gif'
+        if (data.type === 'image') {
+          data.url = data.url ?? props.target.src
+        } else if (data.type === 'gif') {
+          data.src = props.target.nextSibling.firstChild?.src ?? props.target.nextSibling.firstChild?.firstChild?.src
+        } else if (data.type === 'video') {
+          data.url = props.target.parentElement.firstElementChild.src
+          data.poster = props.target.parentElement.firstElementChild.poster
+        } else if (data.type === 'audio') {
+          data.url = props.target.querySelector('audio').firstElementChild?.src
+        } else if (data.type === 'file') {
+          data.url = props.target.querySelector('a[class*="fileNameLink_"],a[class*="downloadSection_"]').href
+        }
+
+        data.url = cleanUrl(removeProxyUrl(data.url))
+        data.favorited = this.isFavorited(data.type, data.url)
+        const menuItems = [{
+          id: `media-${data.favorited ? 'un' : ''}favorite`,
+          label: data.favorited ? getDiscordIntl('GIF_TOOLTIP_REMOVE_FROM_FAVORITES') : getDiscordIntl('GIF_TOOLTIP_ADD_TO_FAVORITES'),
+          icon: () => BdApi.React.createElement(StarSVG, { filled: !data.favorited }),
+          action: async () => {
+            const switchFavorite = data.favorited ? MediaFavButton.unfavoriteMedia : MediaFavButton.favoriteMedia
+            switchFavorite(data).then(() => {
+              Dispatcher.dispatch({ type: 'FM_FAVORITE_MEDIA', url: data.url })
+            }).catch((err) => {
+              BdApi.Logger.error(plugin.name, err.message ?? err)
+            })
+          },
+        }]
+        menuItems.push({
+          id: 'media-copy-url',
+          label: getDiscordIntl('COPY_MEDIA_LINK'),
+          action: () => ElectronModule.copy(data.url),
+        })
+        if (data.message != null) {
+          menuItems.push({
+            id: 'media-copy-message',
+            label: getDiscordIntl('COPY_MESSAGE_LINK'),
+            action: () => ElectronModule.copy(data.message ?? ''),
+          })
+        }
+        if (data.source != null) {
+          menuItems.push({
+            id: 'media-copy-source',
+            label: plugin.instance.strings.media.copySource,
+            action: () => ElectronModule.copy(data.source ?? ''),
+          })
+        }
+        menuItems.push({
+          id: 'media-download',
+          label: getDiscordIntl('DOWNLOAD'),
+          action: () => {
+            const media = { url: data.url, name: getUrlName(data.url) }
+            MediaPicker.downloadMedia(media, data.type)
+          },
+        })
+        if (data.favorited) {
+          const medias = BdApi.Data.load(plugin.name, data.type, { medias: [] }).medias
+          const mediaId = medias.findIndex(m => MediaFavButton.checkSameUrl(m.url, data.url))
+          const categoryId = medias[mediaId]?.category_id
+          const categories = BdApi.Data.load(plugin.name, data.type, { categories: [] }).categories
+          const category = categories.find((c) => c.id === categoryId)
+          const buttonCategories = categories.filter(c => categoryId != null ? c.id !== categoryId : true)
+          if (buttonCategories.length) {
+            const moveAddToItems = []
+            if (MediaPicker.getMediaCategoryId(data.type, mediaId) != null) {
+              moveAddToItems.push({
+                id: 'media-removeFrom',
+                label: `${plugin.instance.strings.media.removeFrom} (${category?.name})`,
+                danger: true,
+                action: () => MediaPicker.removeMediaCategory(data.type, mediaId),
+              })
+            }
+            moveAddToItems.push(...buttonCategories.map(c => ({
+              id: `category-edit-${c.id}`,
+              label: c.name,
+              key: c.id,
+              action: () => {
+                MediaPicker.changeMediaCategory(data.type, data.url, c.id)
+              },
+              render: () => BdApi.React.createElement(CategoryMenuItem, { ...c, key: c.id }),
+            })))
+            menuItems.push({
+              id: 'media-moveAddTo',
+              label: categoryId !== undefined ? plugin.instance.strings.media.moveTo : plugin.instance.strings.media.addTo,
+              type: 'submenu',
+              items: moveAddToItems,
+            })
+          }
+        } else {
+          const categories = BdApi.Data.load(plugin.name, data.type, { categories: [] }).categories
+          if (categories.length) {
+            menuItems.push({
+              id: 'media-addTo',
+              label: plugin.instance.strings.media.addTo,
+              type: 'submenu',
+              items: categories.map(c => ({
+                id: `category-name-${c.id}`,
+                label: c.name,
+                key: c.id,
+                action: async () => {
+                  MediaFavButton.favoriteMedia(data).then(() => {
+                    MediaPicker.changeMediaCategory(data.type, data.url, c.id)
+                    Dispatcher.dispatch({ type: 'FM_FAVORITE_MEDIA', url: data.url })
+                  }).catch((err) => {
+                    BdApi.Logger.error(plugin.name, err.message ?? err)
+                  })
+                },
+                render: () => BdApi.React.createElement(CategoryMenuItem, { ...c, key: c.id }),
+              })),
+            })
+          }
+        }
+        return menuItems
+      }
+
+      const getCategoryContextMenuItems = () => {
+        const getCategories = (type) => BdApi.Data.load(plugin.name, type, { categories: [] }).categories
+        const mediaTypes = ['gif', 'image', 'video', 'audio']
+        return [
+          {
+            id: 'category-list',
+            label: plugin.instance.strings.category.list,
+            type: 'submenu',
+            items: mediaTypes.map((type) => ({
+              id: `category-create-${type}`,
+              label: type === 'gif' ? getDiscordIntl('GIF') : plugin.instance.strings.tabName[type],
+              type: 'submenu',
+              items: (() => {
+                const items = [{
+                  id: `category-create-${type}`,
+                  label: plugin.instance.strings.category.create,
+                  action: () => MediaPicker.openCategoryModal(type, 'create'),
+                }]
+                if (getCategories(type).length > 0) {
+                  items.push({
+                    id: 'category-edit',
+                    label: plugin.instance.strings.category.edit,
+                    type: 'submenu',
+                    items: getCategories(type).map((c) => ({
+                      id: `category-edit-${c.id}`,
+                      label: c.name,
+                      key: c.id,
+                      action: () => MediaPicker.openCategoryModal(type, 'edit', { name: c.name, color: c.color, id: c.id }),
+                      render: () => BdApi.React.createElement(CategoryMenuItem, { ...c, key: c.id }),
+                    })),
+                  }, {
+                    id: 'category-delete',
+                    label: plugin.instance.strings.category.delete,
+                    type: 'submenu',
+                    danger: true,
+                    items: getCategories(type).map((c) => ({
+                      id: `category-delete-${c.id}`,
+                      label: c.name,
+                      key: c.id,
+                      action: () => {
+                        const deleteCategories = () => deleteCategory(type, c.id)
+                        if (MediaPicker.categoryHasSubcategories(type, c.id)) {
+                          BdApi.UI.showConfirmationModal(plugin.instance.strings.category.delete, plugin.instance.strings.category.deleteConfirm, {
+                            danger: true,
+                            onConfirm: () => deleteCategories(),
+                            confirmText: plugin.instance.strings.category.delete,
+                          })
+                        } else {
+                          deleteCategories()
+                        }
+                      },
+                      render: () => BdApi.React.createElement(CategoryMenuItem, { ...c, key: c.id }),
+                    })),
+                  })
+                }
+                return items
+              })(),
+            })),
+          },
+        ]
+      }
+
+      const separator = BdApi.ContextMenu.buildItem({ type: 'separator' })
+      const mediaItems = getMediaContextMenuItems()
+      const categoryItems = getCategoryContextMenuItems()
+      const menuItems = [...mediaItems]
+      menuItems.push(...categoryItems)
+      const fmContextMenu = BdApi.ContextMenu.buildItem({
+        id: 'favoriteMediaMenu',
+        label: plugin.name,
+        type: 'submenu',
+        items: menuItems,
+      })
+      const fmIndex = returnValue.props.children.findIndex((i) => i?.props?.children?.props?.id === 'devmode-copy-id')
+      if (fmIndex > -1) returnValue.props.children.splice(fmIndex, 0, separator, fmContextMenu)
+      else returnValue.props.children.push(separator, fmContextMenu)
+    })
+  }
+
+  isFavorited (type, url) {
+    return BdApi.Data.load(plugin.name, type, { medias: [] }).medias.find((e) => MediaFavButton.checkSameUrl(e.url, url)) !== undefined
+  }
+
+  get css () {
+    return `
+      .category-input-color > input[type='color'] {
+        opacity: 0;
+        -webkit-appearance: none;
+        width: 48px;
+        height: 48px;
+      }
+      .category-input-color {
+        transition: 0.2s;
+      }
+      .category-input-color:hover {
+        transform: scale(1.1);
+      }
+      .${classes.image.imageAccessory}:not(.fm-favBtn):has(+ .fm-favBtn) {
+        display: none;
+      }
+      .fm-favBtn.fm-audio,
+      .fm-favBtn.fm-file {
+        right: 0;
+        left: auto;
+        width: auto;
+        margin-right: 10%;
+      }
+      .show-controls {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        z-index: 4;
+        opacity: 0;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
+        -webkit-transform: translateY(-10px);
+        transform: translateY(-10px);
+        -webkit-transition: opacity .1s ease,-webkit-transform .2s ease;
+        transition: opacity .1s ease,-webkit-transform .2s ease;
+        transition: transform .2s ease,opacity .1s ease;
+        transition: transform .2s ease,opacity .1s ease,-webkit-transform .2s ease;
+        width: 26px;
+        height: 26px;
+        color: var(--interactive-normal);
+      }
+      .show-controls:hover,
+      .show-controls.active {
+        -webkit-transform: none;
+        transform: none;
+        color: var(--interactive-active);
+      }
+      div:hover > .show-controls {
+        opacity: 1;
+        -webkit-transform: none;
+        transform: none;
+      }
+      .${classes.result.result} > .${classes.result.gif}:focus {
+        outline: none;
+      }
+      .${classes.image.imageAccessory} > div:not(.${classes.gif.selected}) > svg {
+        filter: drop-shadow(2px 2px 2px rgb(0 0 0 / 0.3));
+      }
+      .category-dragover:after {
+        -webkit-box-shadow: inset 0 0 0 2px var(--brand-experiment), inset 0 0 0 3px #2f3136 !important;
+        box-shadow: inset 0 0 0 2px var(--brand-experiment), inset 0 0 0 3px #2f3136 !important;
+      }
+      .fm-colorDot {
+        margin-right: 0.7em;
+        margin-left: 0;
+      }
+      .${classes.image.embedWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):focus-within .${classes.gif.gifFavoriteButton1},
+      .${classes.image.embedWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):hover .${classes.gif.gifFavoriteButton1},
+      .${classes.visual.nonVisualMediaItemContainer}:hover .${classes.gif.gifFavoriteButton1} {
+        opacity: 0;
+        -webkit-transform: unset;
+        transform: unset;
+      }
+      .${classes.image.imageWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):focus-within .${classes.gif.gifFavoriteButton1},
+      .${classes.image.imageWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):hover .${classes.gif.gifFavoriteButton1},
+      .${classes.visual.nonVisualMediaItemContainer}:hover .${classes.gif.gifFavoriteButton1} {
+        opacity: 1;
+        -webkit-transform: translateY(0);f
+        transform: translateY(0);
+      }
+      .fm-pickerContainer {
+        height: 100%
+      }
+      #gif-picker-tab-panel .fm-header {
+        padding-top: 16px;
+      }
+      .fm-header .fm-headerRight {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        margin-left: 4px;
+        float: right;
+      }
+      .fm-header .fm-mediasCounter {
+        padding: 6px 7px;
+      }
+      .fm-pageControl {
+        width: 100%;
+        position: absolute;
+        display: flex;
+        justify-content: center;
+        bottom: 0;
+        pointer-events: none;
+        z-index: 10;
+      }
+      .fm-pageControl > div {
+        width: auto;
+        margin-top: 0;
+        background-color: var(--background-secondary);
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        pointer-events: all;
+      }
+      .fm-pageControl > div > nav {
+        padding: 8px 0;
+        height: 28px;
+      }
+      .fm-databasePanel {
+        height: 100%;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding-top: 16px;
+      }
+      .fm-databasePanel > * {
+        height: 100%;
+        width: 100%;
+      }
+      .fm-databasePanel > button {
+        width: fit-content;
+      }
+      .fm-database {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .fm-stats {
+        display: flex;
+        justify-content: space-between;
+      }
+      .fm-stats .fm-statsLines {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .fm-stats .fm-statsLines .fm-statsLine {
+        display: flex;
+        gap: 8px;
+      }
+      .fm-stats .fm-statsLines .fm-statsCount {
+        font-weight: bold;
+      }
+      .fm-databaseActions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .fm-buttonIcon {
+        display: flex;
+        border-radius: 4px;
+        padding: 2px;
+      }
+      .fm-databaseFetchMediasProgress {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 24px;
+      }
+      .${classes.category.categoryText} {
+        padding: 4px;
+      }
+      .${classes.category.categoryName} {
+        text-align: center;
+        min-width: 0;
+      }
+      .${classes.category.categoryName} > div {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      .fm-importPanel {
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+      }
+      .fm-importRecap {
+        display: flex;
+        gap: 48px;
+      }
+      .fm-importLines {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .fm-importLines > :first-child {
+        margin-bottom: 8px;
+      }
+      .fm-importLabel {
+        font-weight: bold;
+      }
+      .fm-importValue {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .fm-importValue > input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        margin: 0;
+      }
+    `
+  }
+
+  get changelogs () {
+    return []
+  }
+
+  get defaultSettings () {
+    return [
+      {
+        type: 'switch',
+        id: 'hideUnsortedMedias',
+        name: 'Hide medias',
+        note: 'Hide medias in the picker tab which are in a category',
+        value: true,
+      },
+      {
+        type: 'switch',
+        id: 'hideThumbnail',
+        name: 'Hide thumbnail',
+        note: 'Show the category color instead of a random media thumbnail',
+        value: false,
+      },
+      {
+        type: 'switch',
+        id: 'allowCaching',
+        name: 'Allow medias preview caching',
+        note: 'Uses local offline database to cache medias preview',
+        value: true,
+      },
+      {
+        type: 'slider',
+        id: 'mediaVolume',
+        name: 'Preview media volume',
+        note: 'Volume of the previews medias on the picker tab',
+        min: 0,
+        max: 100,
+        markers: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+        value: 10,
+      },
+      {
+        type: 'dropdown',
+        id: 'maxMediasPerPage',
+        name: 'Max medias per page',
+        note: 'The maximum amount of displayed medias per page in the picker tab',
+        value: 50,
+        options: [
+          {
+            label: '20',
+            value: 20,
+          },
+          {
+            label: '50',
+            value: 50,
+          },
+          {
+            label: '100',
+            value: 100,
+          },
+        ],
+      },
+      {
+        type: 'category',
+        id: 'position',
+        name: 'Buttons position',
+        collapsible: true,
+        shown: false,
+        settings: [
+          {
+            type: 'dropdown',
+            id: 'btnsPositionKey',
+            name: 'Buttons relative position',
+            note: 'Near which other button the buttons have to be placed',
+            value: 'emoji',
+            options: [
+              {
+                label: 'Gift',
+                value: 'gift',
+              },
+              {
+                label: 'GIF',
+                value: 'gif',
+              },
+              {
+                label: 'Sticker',
+                value: 'sticker',
+              },
+              {
+                label: 'Emoji',
+                value: 'emoji',
+              },
+            ],
+          },
+          {
+            type: 'dropdown',
+            id: 'btnsPosition',
+            name: 'Buttons direction',
+            note: 'Direction of the buttons on the chat',
+            value: 'right',
+            options: [
+              {
+                label: 'Right',
+                value: 'right',
+              },
+              {
+                label: 'Left',
+                value: 'left',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        type: 'category',
+        id: 'gif',
+        name: 'GIFs settings',
+        collapsible: true,
+        shown: false,
+        settings: [
+          {
+            type: 'switch',
+            id: 'enabled',
+            name: 'General',
+            note: 'Replace Discord GIFs tab',
+            value: true,
+          },
+          {
+            type: 'switch',
+            id: 'alwaysSendInstantly',
+            name: 'Instant send',
+            note: 'Send instantly medias links and/or files',
+            value: true,
+          },
+          {
+            type: 'switch',
+            id: 'alwaysUploadFile',
+            name: 'Always upload as file',
+            note: 'Uploads media as file instead of sending a link',
+            value: false,
+          },
+        ],
+      },
+      {
+        type: 'category',
+        id: 'image',
+        name: 'Images settings',
+        collapsible: true,
+        shown: false,
+        settings: [
+          {
+            type: 'switch',
+            id: 'enabled',
+            name: 'General',
+            note: 'Enable this type of media',
+            value: true,
+          },
+          {
+            type: 'switch',
+            id: 'showBtn',
+            name: 'Button',
+            note: 'Show button on chat',
+            value: true,
+          },
+          {
+            type: 'switch',
+            id: 'showStar',
+            name: 'Star',
+            note: 'Show favorite star on medias',
+            value: true,
+          },
+          {
+            type: 'switch',
+            id: 'alwaysSendInstantly',
+            name: 'Instant send',
+            note: 'Send instantly medias links and/or files',
+            value: true,
+          },
+          {
+            type: 'switch',
+            id: 'alwaysUploadFile',
+            name: 'Upload',
+            note: 'Uploads media as file instead of sending a link',
+            value: false,
+          },
+        ],
+      },
+      {
+        type: 'category',
+        id: 'video',
+        name: 'Videos settings',
+        collapsible: true,
+        shown: false,
+        settings: [
+          {
+            type: 'switch',
+            id: 'enabled',
+            name: 'General',
+            note: 'Enable this type of media',
+            value: true,
+          },
+          {
+            type: 'switch',
+            id: 'showBtn',
+            name: 'Button',
+            note: 'Show button on chat',
+            value: true,
+          },
+          {
+            type: 'switch',
+            id: 'showStar',
+            name: 'Star',
+            note: 'Show favorite star on medias',
+            value: true,
+          },
+          {
+            type: 'switch',
+            id: 'alwaysSendInstantly',
+            name: 'Instant send',
+            note: 'Send instantly medias links and/or files',
+            value: true,
+          },
+          {
+            type: 'switch',
+            id: 'alwaysUploadFile',
+            name: 'Upload',
+            note: 'Uploads media as file instead of sending a link',
+            value: false,
+          },
+        ],
+      },
+      {
+        type: 'category',
+        id: 'audio',
+        name: 'Audios settings',
+        collapsible: true,
+        shown: false,
+        settings: [
+          {
+            type: 'switch',
+            id: 'enabled',
+            name: 'General',
+            note: 'Enable this type of media',
+            value: true,
+          },
+          {
+            type: 'switch',
+            id: 'showBtn',
+            name: 'Button',
+            note: 'Show button on chat',
+            value: true,
+          },
+          {
+            type: 'switch',
+            id: 'showStar',
+            name: 'Star',
+            note: 'Show favorite star on medias',
+            value: true,
+          },
+        ],
+      },
+      {
+        type: 'category',
+        id: 'file',
+        name: 'Files settings',
+        collapsible: true,
+        shown: false,
+        settings: [
+          {
+            type: 'switch',
+            id: 'enabled',
+            name: 'General',
+            note: 'Enable this type of media',
+            value: true,
+          },
+          {
+            type: 'switch',
+            id: 'showBtn',
+            name: 'Button',
+            note: 'Show button on chat',
+            value: true,
+          },
+          {
+            type: 'switch',
+            id: 'showStar',
+            name: 'Star',
+            note: 'Show favorite star on medias',
+            value: true,
+          },
+          {
+            type: 'switch',
+            id: 'alwaysSendInstantly',
+            name: 'Instant send',
+            note: 'Send instantly medias links and/or files',
+            value: true,
+          },
+          {
+            type: 'switch',
+            id: 'alwaysUploadFile',
+            name: 'Upload',
+            note: 'Uploads media as file instead of sending a link',
+            value: false,
+          },
+        ],
+      },
+    ]
+  }
+
+  get translations () {
     return {
       bg: { // Bulgarian
         tabName: {
@@ -12003,7 +12051,4 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       },
     }
   }
-};
-     return plugin(Plugin, Api);
-})(global.ZeresPluginLibrary.buildPlugin(config));
-/*@end@*/
+}
