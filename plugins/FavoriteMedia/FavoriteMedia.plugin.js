@@ -3065,19 +3065,6 @@ module.exports = class FavoriteMedia {
     return structuredClone(this.translations[LocaleStore.locale.toLowerCase().split('-')[0]])
   }
 
-  loadSettings (settings, settingsData) {
-    settings = settings ?? structuredClone(this.defaultSettings)
-    settingsData = settingsData ?? BdApi.Data.load(plugin.name, 'settings', {})
-
-    for (const setting of settings) {
-      if (setting.type !== 'category') {
-        setting.value = settingsData[setting.id]
-      } else {
-        this.loadSettings(setting.settings, settingsData[setting.id])
-      }
-    }
-  }
-
   prepareSettings (settings, settingsData, settingsStrings) {
     for (const setting of settings) {
       if (setting.type !== 'category') {
@@ -3112,7 +3099,6 @@ module.exports = class FavoriteMedia {
           settingsData[id] = value
         }
         BdApi.Data.save(plugin.name, 'settings', settingsData)
-        this.loadSettings()
       },
     })
   }
