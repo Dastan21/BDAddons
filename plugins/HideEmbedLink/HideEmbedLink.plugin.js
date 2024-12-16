@@ -1,7 +1,7 @@
 /**
  * @name HideEmbedLink
  * @description Hides embed messages link.
- * @version 2.2.0
+ * @version 2.2.1
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink
@@ -78,7 +78,7 @@ module.exports = class HideEmbedLink {
   constructor (meta) {
     this.meta = meta
 
-    this.settings = BdApi.Data.load(this.meta.name, 'settings', {})
+    this.settings = BdApi.Data.load(this.meta.name, 'settings') ?? {}
   }
 
   start () {
@@ -112,8 +112,9 @@ module.exports = class HideEmbedLink {
     return BdApi.UI.buildSettingsPanel({
       settings,
       onChange: (category, id, value) => {
-        const settingsData = BdApi.Data.load(this.meta.name, 'settings', {})
+        const settingsData = BdApi.Data.load(this.meta.name, 'settings') ?? {}
         if (category != null) {
+          settingsData[category] ??= {}
           settingsData[category][id] = value
         } else {
           settingsData[id] = value
