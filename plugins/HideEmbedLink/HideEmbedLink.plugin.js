@@ -78,7 +78,7 @@ module.exports = class HideEmbedLink {
   constructor (meta) {
     this.meta = meta
 
-    this.settings = BdApi.Data.load(this.meta.name, 'settings') ?? {}
+    this.settings = this.loadSettings()
   }
 
   start () {
@@ -94,12 +94,38 @@ module.exports = class HideEmbedLink {
     BdApi.Patcher.unpatchAll(this.meta.name)
   }
 
+  loadSettings () {
+    const settingsData = BdApi.Data.load(this.meta.name, 'settings') ?? {}
+    const settings = structuredClone(this.defaultSettings)
+    this.prepareSettings(settings, settingsData)
+
+    // Default value
+    for (const setting of settings) {
+      if (setting.type !== 'category') {
+        settingsData[setting.id] ??= setting.value
+      } else {
+        for (const subSetting of setting.settings) {
+          settingsData[setting.id] ??= {}
+          settingsData[setting.id][subSetting.id] ??= subSetting.value
+        }
+      }
+    }
+
+    BdApi.Data.save(this.meta.name, 'settings', settingsData)
+
+    return settingsData
+  }
+
   prepareSettings (settings, settingsData) {
     for (const setting of settings) {
       if (setting.type !== 'category') {
-        setting.value = settingsData[setting.id]
+        if (!Object.hasOwn(settingsData, setting.id)) {
+          settingsData[setting.id] = setting.value
+        } else {
+          setting.value = settingsData[setting.id]
+        }
       } else {
-        this.prepareSettings(setting.settings, settingsData[setting.id])
+        this.prepareSettings(setting.settings, settingsData[setting.id] ?? {})
       }
     }
   }
