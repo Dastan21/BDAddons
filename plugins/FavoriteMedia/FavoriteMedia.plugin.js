@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.12.0
+ * @version 1.12.1
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -343,7 +343,7 @@ const fmdb = new FMDB()
 
 class MediaMenuItemInput extends BdApi.React.Component {
   componentDidMount () {
-    const media = BdApi.Data.load(plugin.name, this.props.type, { medias: [] }).medias[this.props.id]
+    const media = loadData(this.props.type, { medias: [] }).medias[this.props.id]
     this.refs.inputName.value = media.name || ''
     this.refs.inputName.onkeydown = (e) => {
       // allow space input
@@ -359,11 +359,11 @@ class MediaMenuItemInput extends BdApi.React.Component {
   componentWillUnmount () {
     const name = this.refs.inputName.value
     if (!name || name === '') return
-    const typeData = BdApi.Data.load(plugin.name, this.props.type, { medias: [] })
+    const typeData = loadData(this.props.type, { medias: [] })
     if (!typeData.medias.length) return
     if (!typeData.medias[this.props.id]) return
     typeData.medias[this.props.id].name = name
-    BdApi.Data.save(plugin.name, this.props.type, typeData)
+    saveData(this.props.type, typeData)
     this.props.loadMedias()
   }
 
@@ -435,7 +435,7 @@ class MediaFavButton extends BdApi.React.Component {
 
   get isFavorited () {
     if (!this.props.url) return false
-    return BdApi.Data.load(plugin.name, this.props.type, { medias: [] }).medias.find(e => MediaFavButton.checkSameUrl(e.url, this.props.url)) !== undefined
+    return loadData(this.props.type, { medias: [] }).medias.find(e => MediaFavButton.checkSameUrl(e.url, this.props.url)) !== undefined
   }
 
   static checkSameUrl (url1, url2) {
@@ -551,18 +551,18 @@ class MediaFavButton extends BdApi.React.Component {
       props.message = findMessageLink($target)
       props.source = findSourceLink($target, props.url)
     }
-    const typeData = BdApi.Data.load(plugin.name, props.type, { medias: [] })
+    const typeData = loadData(props.type, { medias: [] })
     if (typeData.medias.find(m => MediaFavButton.checkSameUrl(m.url, props.url))) return
     const data = await MediaFavButton.getMediaDataFromProps(props)
     if (props.type === 'gif') await MediaFavButton.favoriteGIF(data)
     typeData.medias.push(data)
-    BdApi.Data.save(plugin.name, props.type, typeData)
+    saveData(props.type, typeData)
     if (plugin.instance.settings.allowCaching) MediaFavButton.cacheMedia(data.url)
     return props
   }
 
   static async unfavoriteMedia (props) {
-    const typeData = BdApi.Data.load(plugin.name, props.type, { medias: [], categories: [] })
+    const typeData = loadData(props.type, { medias: [], categories: [] })
     if (!typeData.medias.length) return
     typeData.medias = typeData.medias.filter(e => !MediaFavButton.checkSameUrl(e.url, props.url))
     if (props.type === 'gif') await MediaFavButton.unfavoriteGIF(props)
@@ -571,7 +571,7 @@ class MediaFavButton extends BdApi.React.Component {
         c.thumbnail = undefined
       }
     })
-    BdApi.Data.save(plugin.name, props.type, typeData)
+    saveData(props.type, typeData)
     if (props.fromPicker) Dispatcher.dispatch({ type: 'FM_UPDATE_MEDIAS' })
     if (plugin.instance.settings.allowCaching) MediaFavButton.uncacheMedia(props.url)
     return props
@@ -610,7 +610,7 @@ class MediaFavButton extends BdApi.React.Component {
 
   favButton () {
     return BdApi.React.createElement('div', {
-      className: `${this.props.fromPicker ? classes.result.favButton : classes.gif.gifFavoriteButton1} ${classes.gif.size} ${classes.gif.gifFavoriteButton2}${this.state.favorited ? ` ${classes.gif.selected}` : ''}${this.state.pulse ? ` ${classes.gif.showPulse}` : ''}`,
+      className: `${this.props.fromPicker ? classes.result.favButton : classes.gif.gifFavoriteButton1} ${classes.gif.gifFavoriteButton2}${this.state.favorited ? ` ${classes.gif.selected}` : ''}${this.state.pulse ? ` ${classes.gif.showPulse}` : ''}`,
       tabindex: '-1',
       role: 'button',
       ref: 'tooltipFav',
@@ -785,7 +785,7 @@ class ImportPanel extends BdApi.React.Component {
           const typeData = conf[mediaType]
           if (typeData == null) continue
 
-          const currentTypeData = BdApi.Data.load(plugin.name, mediaType, { medias: [], categories: [] })
+          const currentTypeData = loadData(mediaType, { medias: [], categories: [] })
 
           if (typeData.categories != null && Array.isArray(typeData.categories) && typeData.categories.length > 0) {
             typeData.categories.forEach((category) => {
@@ -825,7 +825,7 @@ class ImportPanel extends BdApi.React.Component {
       const importTypeData = structuredClone(this.importData[mediaType])
       if (importTypeData == null) continue
 
-      const currentTypeData = BdApi.Data.load(plugin.name, mediaType, { medias: [], categories: [] })
+      const currentTypeData = loadData(mediaType, { medias: [], categories: [] })
 
       importTypeData.categories.forEach((category) => {
         const importCatId = category.id
@@ -852,7 +852,7 @@ class ImportPanel extends BdApi.React.Component {
 
       currentTypeData.medias = currentTypeData.medias.concat(importTypeData.medias)
 
-      BdApi.Data.save(plugin.name, mediaType, currentTypeData)
+      saveData(mediaType, currentTypeData)
     }
 
     this.setState({ imported: true })
@@ -1041,7 +1041,7 @@ class DatabasePanel extends BdApi.React.Component {
   }
 
   saveSettings () {
-    BdApi.Data.save(plugin.name, 'settings', plugin.instance.settings)
+    saveData('settings', plugin.instance.settings)
   }
 
   openModalClearDatabase () {
@@ -1636,9 +1636,9 @@ class MediaPicker extends BdApi.React.Component {
 
     this.state = {
       textFilter: '',
-      categories: BdApi.Data.load(plugin.name, this.props.type, { categories: [] }).categories,
+      categories: loadData(this.props.type, { categories: [] }).categories,
       category: null,
-      medias: BdApi.Data.load(plugin.name, this.props.type, { medias: [] }).medias,
+      medias: loadData(this.props.type, { medias: [] }).medias,
       contentWidth: null,
       page: 1,
     }
@@ -1859,7 +1859,7 @@ class MediaPicker extends BdApi.React.Component {
   }
 
   static categoryHasSubcategories (type, categoryId) {
-    return BdApi.Data.load(plugin.name, type, { categories: [] }).categories.some((c) => c.category_id === categoryId)
+    return loadData(type, { categories: [] }).categories.some((c) => c.category_id === categoryId)
   }
 
   static openCategoryModal (type, op, values, categoryId) {
@@ -1888,7 +1888,7 @@ class MediaPicker extends BdApi.React.Component {
     const categoryFolder = path.join(filePaths[0], props.name ?? '')
     await MediaPicker.createFolder(categoryFolder)
 
-    const medias = BdApi.Data.load(plugin.name, props.type, { medias: [] }).medias.filter(m => m.category_id === props.categoryId).map(m => {
+    const medias = loadData(props.type, { medias: [] }).medias.filter(m => m.category_id === props.categoryId).map(m => {
       if (!MediaFavButton.hasPreview(props.type)) return m
       return { ...m, ext: props.type === 'gif' ? '.gif' : getUrlExt(m.url, props.type) }
     })
@@ -2000,17 +2000,17 @@ class MediaPicker extends BdApi.React.Component {
   }
 
   static changeCategoryCategory (type, id, categoryId) {
-    const typeData = BdApi.Data.load(plugin.name, type, { medias: [] })
+    const typeData = loadData(type, { medias: [] })
     const index = typeData.categories.findIndex(c => c.id === id)
     if (index < 0) return
     typeData.categories[index].category_id = categoryId
-    BdApi.Data.save(plugin.name, type, typeData)
+    saveData(type, typeData)
     BdApi.UI.showToast(plugin.instance.strings.category.success.move, { type: 'success' })
     Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
   }
 
   static changeMediaCategory (type, url, categoryId) {
-    const typeData = BdApi.Data.load(plugin.name, type, { medias: [], categories: [] })
+    const typeData = loadData(type, { medias: [], categories: [] })
     const index = typeData.medias.findIndex(m => MediaFavButton.checkSameUrl(m.url, url))
     if (index < 0) return
     typeData.medias[index].category_id = categoryId
@@ -2019,50 +2019,50 @@ class MediaPicker extends BdApi.React.Component {
         c.thumbnail = undefined
       }
     })
-    BdApi.Data.save(plugin.name, type, typeData)
+    saveData(type, typeData)
     BdApi.UI.showToast(plugin.instance.strings.media.success.move[type], { type: 'success' })
     Dispatcher.dispatch({ type: 'FM_UPDATE_MEDIAS' })
   }
 
   static removeCategoryCategory (type, categoryId) {
-    const typeData = BdApi.Data.load(plugin.name, type, { categories: [] })
+    const typeData = loadData(type, { categories: [] })
     const index = typeData.categories.findIndex(m => m.id === categoryId)
     if (index < 0) return
     delete typeData.categories[index].category_id
-    BdApi.Data.save(plugin.name, type, typeData)
+    saveData(type, typeData)
     BdApi.UI.showToast(plugin.instance.strings.category.success.move, { type: 'success' })
     Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
   }
 
   static removeMediaCategory (type, mediaId) {
-    const typeData = BdApi.Data.load(plugin.name, type, { medias: [], categories: [] })
+    const typeData = loadData(type, { medias: [], categories: [] })
     delete typeData.medias[mediaId].category_id
     typeData.categories.forEach((c) => {
       if (c.thumbnail === MediaFavButton.getThumbnail(type, typeData.medias[mediaId])) {
         c.thumbnail = undefined
       }
     })
-    BdApi.Data.save(plugin.name, type, typeData)
+    saveData(type, typeData)
     BdApi.UI.showToast(plugin.instance.strings.media.success.remove[type], { type: 'success' })
     Dispatcher.dispatch({ type: 'FM_UPDATE_MEDIAS' })
   }
 
   static setCategoryThumbnail (type, url, categoryId) {
-    const typeData = BdApi.Data.load(plugin.name, type, { categories: [] })
+    const typeData = loadData(type, { categories: [] })
     const index = typeData.categories.findIndex(m => m.id === categoryId)
     if (index < 0) return
     typeData.categories[index].thumbnail = url
-    BdApi.Data.save(plugin.name, type, typeData)
+    saveData(type, typeData)
     BdApi.UI.showToast(plugin.instance.strings.category.success.setThumbnail, { type: 'success' })
     Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
   }
 
   static unsetCategoryThumbnail (type, categoryId) {
-    const typeData = BdApi.Data.load(plugin.name, type, { categories: [] })
+    const typeData = loadData(type, { categories: [] })
     const index = typeData.categories.findIndex(m => m.id === categoryId)
     if (index < 0) return
     typeData.categories[index].thumbnail = undefined
-    BdApi.Data.save(plugin.name, type, typeData)
+    saveData(type, typeData)
     BdApi.UI.showToast(plugin.instance.strings.category.success.unsetThumbnail, { type: 'success' })
     Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
   }
@@ -2080,11 +2080,11 @@ class MediaPicker extends BdApi.React.Component {
   }
 
   static getMediaCategoryId (type, mediaId) {
-    return BdApi.Data.load(plugin.name, type, { medias: [] }).medias[mediaId]?.category_id
+    return loadData(type, { medias: [] }).medias[mediaId]?.category_id
   }
 
   static getCategoryThumbnail (type, categoryId) {
-    return BdApi.Data.load(plugin.name, type, { categories: [] }).categories.find(c => c.id === categoryId)?.thumbnail
+    return loadData(type, { categories: [] }).categories.find(c => c.id === categoryId)?.thumbnail
   }
 
   get randomThumbnails () {
@@ -2102,11 +2102,11 @@ class MediaPicker extends BdApi.React.Component {
   }
 
   loadCategories () {
-    this.setState({ categories: BdApi.Data.load(plugin.name, this.props.type, { categories: [] }).categories })
+    this.setState({ categories: loadData(this.props.type, { categories: [] }).categories })
   }
 
   loadMedias () {
-    this.setState({ medias: BdApi.Data.load(plugin.name, this.props.type, { medias: [] }).medias })
+    this.setState({ medias: loadData(this.props.type, { medias: [] }).medias })
   }
 
   backCategory () {
@@ -2139,7 +2139,7 @@ class MediaPicker extends BdApi.React.Component {
   }
 
   onMediaContextMenu (e, mediaId) {
-    const media = BdApi.Data.load(plugin.name, this.props.type, { medias: [] }).medias[mediaId]
+    const media = loadData(this.props.type, { medias: [] }).medias[mediaId]
     const items = [{
       id: 'media-input',
       label: 'media-input',
@@ -2258,7 +2258,7 @@ class MediaPicker extends BdApi.React.Component {
     const keys = await fmdb.getKeys()
     const types = ['image', 'video', 'gif']
     for (const type of types) {
-      const medias = BdApi.Data.load(plugin.name, type, { medias: [] }).medias
+      const medias = loadData(type, { medias: [] }).medias
       for (const media of medias) {
         const url = MediaFavButton.getThumbnail(type, media)
         if (url != null && !keys.includes(url)) mediasUrlToCache.push(url)
@@ -2325,7 +2325,7 @@ class MediaPicker extends BdApi.React.Component {
       ...categories.filter(c => c.thumbnail != null).map(c => c.thumbnail),
     ]
     const refreshedUrls = await MediaPicker.refreshUrls(urls)
-    const typeData = BdApi.Data.load(plugin.name, type, { categories: [], medias: [] })
+    const typeData = loadData(type, { categories: [], medias: [] })
     for (const refreshedUrl of refreshedUrls) {
       const newUrl = refreshedUrl.refreshed ?? refreshedUrl.original
 
@@ -2348,7 +2348,7 @@ class MediaPicker extends BdApi.React.Component {
       if (category != null) category.thumbnail = newUrl
     }
 
-    BdApi.Data.save(plugin.name, type, typeData)
+    saveData(type, typeData)
 
     if (refreshedUrls.length > 0) {
       BdApi.UI.showToast(plugin.instance.strings.category.success.refreshUrls, { type: 'success' })
@@ -2881,7 +2881,7 @@ function categoryValidator (type, name, color, id) {
   if (!name || typeof name !== 'string') return { error: 'error', message: plugin.instance.strings.category.error.needName }
   if (name.length > 20) return { error: 'error', message: plugin.instance.strings.category.error.invalidNameLength }
   if (!color || typeof color !== 'string' || !color.startsWith('#')) return { error: 'error', message: plugin.instance.strings.category.error.wrongColor }
-  const typeData = BdApi.Data.load(plugin.name, type, { categories: [], medias: [] })
+  const typeData = loadData(type, { categories: [], medias: [] })
   if (typeData.categories.find(c => c.name === name && c.id !== id) !== undefined) return { error: 'error', message: plugin.instance.strings.category.error.nameExists }
   return typeData
 }
@@ -2906,7 +2906,7 @@ function createCategory (type, { name, color }, categoryId) {
     color,
     category_id: categoryId,
   })
-  BdApi.Data.save(plugin.name, type, res)
+  saveData(type, res)
 
   BdApi.UI.showToast(plugin.instance.strings.category.success.create, { type: 'success' })
   return true
@@ -2921,14 +2921,14 @@ function editCategory (type, { name, color }, id) {
   }
 
   res.categories[res.categories.findIndex(c => c.id === id)] = { id, name, color }
-  BdApi.Data.save(plugin.name, type, res)
+  saveData(type, res)
 
   BdApi.UI.showToast(plugin.instance.strings.category.success.edit, { type: 'success' })
   return true
 }
 
 function moveCategory (type, id, inc) {
-  const typeData = BdApi.Data.load(plugin.name, type, { categories: [], medias: [] })
+  const typeData = loadData(type, { categories: [], medias: [] })
   const oldCategory = typeData.categories.find((c) => c.id === id)
   if (oldCategory == null) return
   const categories = typeData.categories.filter((c) => c.category_id === oldCategory.category_id)
@@ -2942,14 +2942,14 @@ function moveCategory (type, id, inc) {
   if (newCategoryIndex < 0) return
   typeData.categories[oldCategoryIndex] = newCategory
   typeData.categories[newCategoryIndex] = oldCategory
-  BdApi.Data.save(plugin.name, type, typeData)
+  saveData(type, typeData)
 
   BdApi.UI.showToast(plugin.instance.strings.category.success.move, { type: 'success' })
   Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
 }
 
 function deleteCategory (type, id) {
-  const typeData = BdApi.Data.load(plugin.name, type, { categories: [], medias: [] })
+  const typeData = loadData(type, { categories: [], medias: [] })
   if (typeData.categories.find(c => c.id === id) === undefined) {
     BdApi.UI.showToast(plugin.instance.strings.category.error.invalidCategory, { type: 'error' })
     return false
@@ -2961,7 +2961,7 @@ function deleteCategory (type, id) {
     categoriesToDelete.forEach((c) => deleteCategoryId(c.id))
   }
   deleteCategoryId(id)
-  BdApi.Data.save(plugin.name, type, typeData)
+  saveData(type, typeData)
 
   BdApi.UI.showToast(plugin.instance.strings.category.success.delete, { type: 'success' })
   return true
@@ -3016,6 +3016,26 @@ function getOwnerInstance (node, { include, exclude = ['Popout', 'Tooltip', 'Scr
   return null
 }
 
+function loadData (key, defaultData) {
+  defaultData = structuredClone(defaultData)
+
+  const data = BdApi.Data.load(plugin.name, key)
+  if (data == null) return defaultData
+
+  // Default value
+  for (const key in defaultData) {
+    if (data[key] == null && defaultData[key] != null) {
+      data[key] = defaultData[key]
+    }
+  }
+
+  return data
+}
+
+function saveData (key, data) {
+  BdApi.Data.save(plugin.name, key, data)
+}
+
 module.exports = class FavoriteMedia {
   constructor (meta) {
     this.meta = meta
@@ -3023,7 +3043,7 @@ module.exports = class FavoriteMedia {
     this.strings = this.getLocaleStrings()
     LocaleStore.addChangeListener(() => { this.strings = this.getLocaleStrings() })
 
-    this.settings = BdApi.Data.load(plugin.name, 'settings', {})
+    this.settings = this.loadSettings()
   }
 
   start () {
@@ -3040,39 +3060,65 @@ module.exports = class FavoriteMedia {
     this.openSettings = this.openSettings.bind(this)
     Dispatcher.subscribe('FM_OPEN_SETTINGS', this.openSettings)
 
-    BdApi.DOM.addStyle(plugin.name, this.css)
+    BdApi.DOM.addStyle(this.meta.name, this.css)
 
-    const savedVersion = BdApi.Data.load('version')
+    const savedVersion = loadData('version')
     if (savedVersion !== this.meta.version && this.changelogs.length > 0) {
       BdApi.UI.showChangelogModal({
         title: this.meta.name,
         subtitle: this.meta.version,
         changes: this.changelogs,
       })
-      BdApi.Data.save(plugin.name, 'version', this.meta.version)
+      saveData('version', this.meta.version)
     }
   }
 
   stop () {
     this.contextMenu?.()
-    BdApi.Patcher.unpatchAll(plugin.name)
+    BdApi.Patcher.unpatchAll(this.meta.name)
     Dispatcher.dispatch({ type: 'FM_UNPATCH_ALL' })
     Dispatcher.unsubscribe('FM_OPEN_SETTINGS', this.openSettings)
     Object.keys(mediasCache).forEach((url) => URL.revokeObjectURL(url))
 
-    BdApi.DOM.removeStyle(plugin.name)
+    BdApi.DOM.removeStyle(this.meta.name)
   }
 
   getLocaleStrings () {
     return structuredClone(this.translations[LocaleStore.locale.toLowerCase().split('-')[0]])
   }
 
-  prepareSettings (settings, settingsData, settingsStrings) {
+  loadSettings () {
+    const settingsData = loadData('settings', {})
+    const settings = structuredClone(this.defaultSettings)
+    this.prepareSettings(settings, settingsData)
+
+    // Default value
     for (const setting of settings) {
       if (setting.type !== 'category') {
-        setting.value = settingsData[setting.id]
+        settingsData[setting.id] ??= setting.value
       } else {
-        this.prepareSettings(setting.settings, settingsData[setting.id], settingsStrings[setting.id])
+        for (const subSetting of setting.settings) {
+          settingsData[setting.id] ??= {}
+          settingsData[setting.id][subSetting.id] ??= subSetting.value
+        }
+      }
+    }
+
+    saveData('settings', settingsData)
+
+    return settingsData
+  }
+
+  prepareSettings (settings = [], settingsData = {}, settingsStrings = {}) {
+    for (const setting of settings) {
+      if (setting.type !== 'category') {
+        if (!Object.hasOwn(settingsData, setting.id)) {
+          settingsData[setting.id] = setting.value
+        } else {
+          setting.value = settingsData[setting.id]
+        }
+      } else {
+        this.prepareSettings(setting.settings, settingsData[setting.id] ?? {}, settingsStrings[setting.id])
       }
 
       const settingStrings = settingsStrings[setting.id]
@@ -3094,13 +3140,13 @@ module.exports = class FavoriteMedia {
     return BdApi.UI.buildSettingsPanel({
       settings,
       onChange: (category, id, value) => {
-        const settingsData = BdApi.Data.load(plugin.name, 'settings', {})
+        const settingsData = loadData('settings', {})
         if (category != null) {
           settingsData[category][id] = value
         } else {
           settingsData[id] = value
         }
-        BdApi.Data.save(plugin.name, 'settings', settingsData)
+        saveData('settings', settingsData)
       },
     })
   }
@@ -3110,7 +3156,7 @@ module.exports = class FavoriteMedia {
   }
 
   openSettings () {
-    const settingsTitle = plugin.name + ' Settings'
+    const settingsTitle = this.meta.name + ' Settings'
     BdApi.UI.showConfirmationModal(settingsTitle, this.getSettingsPanel(), {
       confirmText: null,
       cancelText: null,
@@ -3118,9 +3164,7 @@ module.exports = class FavoriteMedia {
 
     // No modal size option available
     setTimeout(() => {
-      console.log(document.querySelectorAll('.bd-modal-header h1'))
       document.querySelectorAll('.bd-modal-header h1').forEach(($el) => {
-        console.log($el.textContent)
         if ($el.textContent !== settingsTitle) return
 
         const modalRoot = $el.closest('.bd-modal-root')
@@ -3163,14 +3207,14 @@ module.exports = class FavoriteMedia {
     }
 
     if (ExpressionPicker == null) {
-      BdApi.Logger.error(plugin.name, 'ExpressionPicker module not found')
+      BdApi.Logger.error(this.meta.name, 'ExpressionPicker module not found')
       return
     }
 
     ExpressionPicker.forceUpdate()
 
     // https://github.com/BetterDiscord/BetterDiscord/blob/3b9ad9b75b6ac64e6740e9c2f1d19fd4615010c7/renderer/src/builtins/emotes/emotemenu.js
-    BdApi.Patcher.after(plugin.name, ExpressionPicker.constructor.prototype, 'render', (_, __, returnValue) => {
+    BdApi.Patcher.after(this.meta.name, ExpressionPicker.constructor.prototype, 'render', (_, __, returnValue) => {
       const originalChildren = returnValue.props?.children
       if (originalChildren == null) return
 
@@ -3195,7 +3239,7 @@ module.exports = class FavoriteMedia {
             }))
           }
         } catch (err) {
-          BdApi.Logger.error(plugin.name, 'Error in ExpressionPicker patch:', err.message ?? err)
+          BdApi.Logger.error(this.meta.name, 'Error in ExpressionPicker patch:', err.message ?? err)
         }
 
         return childrenReturn
@@ -3208,7 +3252,7 @@ module.exports = class FavoriteMedia {
     if (ChannelTextAreaButtons == null) return
     this.patchedCTA = true
 
-    BdApi.Patcher.after(plugin.name, ChannelTextAreaButtons, 'type', (_, [props], returnValue) => {
+    BdApi.Patcher.after(this.meta.name, ChannelTextAreaButtons, 'type', (_, [props], returnValue) => {
       if (returnValue == null || BdApi.Utils.getNestedValue(returnValue, 'props.children.1.props.type') === 'sidebar') return
 
       currentChannelId = SelectedChannelStore.getChannelId()
@@ -3241,9 +3285,9 @@ module.exports = class FavoriteMedia {
   patchMedias () {
     // Videos & Audios
     if (MediaPlayerModule == null) {
-      BdApi.Logger.error(plugin.name, 'MediaPlayer module not found')
+      BdApi.Logger.error(this.meta.name, 'MediaPlayer module not found')
     } else {
-      BdApi.Patcher.after(plugin.name, MediaPlayerModule.prototype, 'render', ({ props }, __, returnValue) => {
+      BdApi.Patcher.after(this.meta.name, MediaPlayerModule.prototype, 'render', ({ props }, __, returnValue) => {
         const type = returnValue.props.children[1].type === 'audio' ? 'audio' : 'video'
         if (!this.settings[type].enabled || !this.settings[type].showStar) return
 
@@ -3259,9 +3303,9 @@ module.exports = class FavoriteMedia {
 
     // Images & GIFs
     if (ImageModule == null) {
-      BdApi.Logger.error(plugin.name, 'Image module not found')
+      BdApi.Logger.error(this.meta.name, 'Image module not found')
     } else {
-      BdApi.Patcher.after(plugin.name, ImageModule.prototype, 'render', (_this, __, returnValue) => {
+      BdApi.Patcher.after(this.meta.name, ImageModule.prototype, 'render', (_this, __, returnValue) => {
         const propsButton = BdApi.Utils.getNestedValue(returnValue, 'props.children.props.children.1.props')
         if (propsButton == null) return
 
@@ -3290,9 +3334,9 @@ module.exports = class FavoriteMedia {
 
     // Files
     if (FileModule == null) {
-      BdApi.Logger.error(plugin.name, 'File module not found')
+      BdApi.Logger.error(this.meta.name, 'File module not found')
     } else {
-      BdApi.Patcher.after(plugin.name, FileModule, 'Z', (_, [props], returnValue) => {
+      BdApi.Patcher.after(this.meta.name, FileModule, 'Z', (_, [props], returnValue) => {
         returnValue.props.children.push(BdApi.React.createElement(MediaFavButton, {
           type: 'file',
           name: getUrlName(props.fileName),
@@ -3304,9 +3348,9 @@ module.exports = class FavoriteMedia {
 
     // Files rendered
     if (FileRenderedModule == null) {
-      BdApi.Logger.error(plugin.name, 'FileRendered module not found')
+      BdApi.Logger.error(this.meta.name, 'FileRendered module not found')
     } else {
-      BdApi.Patcher.after(plugin.name, FileRenderedModule, 'ZP', (_, [props], returnValue) => {
+      BdApi.Patcher.after(this.meta.name, FileRenderedModule, 'ZP', (_, [props], returnValue) => {
         if (props.item.type !== 'PLAINTEXT_PREVIEW') return
 
         returnValue.props.children.props.children.push(BdApi.React.createElement(MediaFavButton, {
@@ -3320,7 +3364,7 @@ module.exports = class FavoriteMedia {
   }
 
   patchClosePicker () {
-    BdApi.Patcher.instead(plugin.name, EPSModules, closeExpressionPickerKey, (_, __, originalFunction) => {
+    BdApi.Patcher.instead(this.meta.name, EPSModules, closeExpressionPickerKey, (_, __, originalFunction) => {
       if (canClosePicker.value) originalFunction()
       if (canClosePicker.context === 'mediabutton') canClosePicker.value = true
     })
@@ -3347,15 +3391,15 @@ module.exports = class FavoriteMedia {
     }
 
     if (GIFPicker == null) {
-      BdApi.Logger.error(plugin.name, 'GIFPicker module not found')
+      BdApi.Logger.error(this.meta.name, 'GIFPicker module not found')
       return
     }
 
-    BdApi.Patcher.after(plugin.name, GIFPicker.constructor.prototype, 'renderContent', (_this, _, returnValue) => {
+    BdApi.Patcher.after(this.meta.name, GIFPicker.constructor.prototype, 'renderContent', (_this, _, returnValue) => {
       if (!this.settings.gif.enabled || _this.state.resultType !== 'Favorites') return
       if (!Array.isArray(returnValue.props.data)) return
       const favorites = [...returnValue.props.data].reverse()
-      const savedGIFs = BdApi.Data.load(plugin.name, 'gif', { medias: [] })
+      const savedGIFs = loadData('gif', { medias: [] })
       const newGIFs = []
       // keep only favorited GIFs
       Promise.allSettled(favorites.map(async (props) => {
@@ -3363,11 +3407,11 @@ module.exports = class FavoriteMedia {
           const foundGIF = savedGIFs.medias.find((g) => MediaFavButton.checkSameUrl(g.url, data.url))
           newGIFs.push(foundGIF ?? data)
         }).catch((err) => {
-          BdApi.Logger.warn(plugin.name, err.message)
+          BdApi.Logger.warn(this.meta.name, err.message)
         })
       })).then(() => {
         savedGIFs.medias = newGIFs
-        BdApi.Data.save(plugin.name, 'gif', savedGIFs)
+        saveData('gif', savedGIFs)
       })
 
       returnValue.type = MediaPicker
@@ -3434,7 +3478,7 @@ module.exports = class FavoriteMedia {
             switchFavorite(data).then(() => {
               Dispatcher.dispatch({ type: 'FM_FAVORITE_MEDIA', url: data.url })
             }).catch((err) => {
-              BdApi.Logger.error(plugin.name, err.message ?? err)
+              BdApi.Logger.error(this.meta.name, err.message ?? err)
             })
           },
         }]
@@ -3466,10 +3510,10 @@ module.exports = class FavoriteMedia {
           },
         })
         if (data.favorited) {
-          const medias = BdApi.Data.load(plugin.name, data.type, { medias: [] }).medias
+          const medias = loadData(data.type, { medias: [] }).medias
           const mediaId = medias.findIndex(m => MediaFavButton.checkSameUrl(m.url, data.url))
           const categoryId = medias[mediaId]?.category_id
-          const categories = BdApi.Data.load(plugin.name, data.type, { categories: [] }).categories
+          const categories = loadData(data.type, { categories: [] }).categories
           const category = categories.find((c) => c.id === categoryId)
           const buttonCategories = categories.filter(c => categoryId != null ? c.id !== categoryId : true)
           if (buttonCategories.length) {
@@ -3499,7 +3543,7 @@ module.exports = class FavoriteMedia {
             })
           }
         } else {
-          const categories = BdApi.Data.load(plugin.name, data.type, { categories: [] }).categories
+          const categories = loadData(data.type, { categories: [] }).categories
           if (categories.length) {
             menuItems.push({
               id: 'media-addTo',
@@ -3514,7 +3558,7 @@ module.exports = class FavoriteMedia {
                     MediaPicker.changeMediaCategory(data.type, data.url, c.id)
                     Dispatcher.dispatch({ type: 'FM_FAVORITE_MEDIA', url: data.url })
                   }).catch((err) => {
-                    BdApi.Logger.error(plugin.name, err.message ?? err)
+                    BdApi.Logger.error(this.meta.name, err.message ?? err)
                   })
                 },
                 render: () => BdApi.React.createElement(CategoryMenuItem, { ...c, key: c.id }),
@@ -3526,7 +3570,7 @@ module.exports = class FavoriteMedia {
       }
 
       const getCategoryContextMenuItems = () => {
-        const getCategories = (type) => BdApi.Data.load(plugin.name, type, { categories: [] }).categories
+        const getCategories = (type) => loadData(type, { categories: [] }).categories
         const mediaTypes = ['gif', 'image', 'video', 'audio']
         return [
           {
@@ -3594,7 +3638,7 @@ module.exports = class FavoriteMedia {
       menuItems.push(...categoryItems)
       const fmContextMenu = BdApi.ContextMenu.buildItem({
         id: 'favoriteMediaMenu',
-        label: plugin.name,
+        label: this.meta.name,
         type: 'submenu',
         items: menuItems,
       })
@@ -3605,7 +3649,7 @@ module.exports = class FavoriteMedia {
   }
 
   isFavorited (type, url) {
-    return BdApi.Data.load(plugin.name, type, { medias: [] }).medias.find((e) => MediaFavButton.checkSameUrl(e.url, url)) !== undefined
+    return loadData(type, { medias: [] }).medias.find((e) => MediaFavButton.checkSameUrl(e.url, url)) !== undefined
   }
 
   get css () {
