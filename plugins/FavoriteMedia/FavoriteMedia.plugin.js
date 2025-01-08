@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.12.1
+ * @version 1.12.2
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -199,10 +199,13 @@ const LocaleStore = BdApi.Webpack.getByKeys('locale', 'initialize')
 const EPS = {}
 const EPSModules = BdApi.Webpack.getModule(m => Object.keys(m).some(key => m[key]?.toString?.().includes('isSearchSuggestion')))
 const EPSConstants = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byProps('FORUM_CHANNEL_GUIDELINES', 'CREATE_FORUM_POST'), { searchExports: true })
-const GIFUtils = {
-  favorite: BdApi.Webpack.getByStrings('Object.values(t.gifs)', { searchExports: true }),
-  unfavorite: BdApi.Webpack.getByStrings('delete t.gifs', { searchExports: true }),
-}
+const GIFUtils = (() => {
+  const modules = BdApi.Webpack.getModules(m => m.toString?.()?.includes('updateAsync("favoriteGifs'), { searchExports: true })
+  return {
+    favorite: modules[1],
+    unfavorite: modules[0],
+  }
+})()
 const Permissions = BdApi.Webpack.getByKeys('computePermissions')
 const PermissionsConstants = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byProps('ADD_REACTIONS'), { searchExports: true })
 const MediaPlayerModule = BdApi.Webpack.getModule(m => m.Types?.VIDEO, { searchExports: true })
@@ -3069,8 +3072,8 @@ module.exports = class FavoriteMedia {
         subtitle: this.meta.version,
         changes: this.changelogs,
       })
-      saveData('version', this.meta.version)
     }
+    saveData('version', this.meta.version)
   }
 
   stop () {
