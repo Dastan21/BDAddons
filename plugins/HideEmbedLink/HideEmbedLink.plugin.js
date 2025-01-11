@@ -1,7 +1,7 @@
 /**
  * @name HideEmbedLink
  * @description Hides embed messages link.
- * @version 2.2.1
+ * @version 2.2.2
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink
@@ -238,7 +238,11 @@ module.exports = class HideEmbedLink {
 
   isValid (href, urls = []) {
     if (!href || !urls?.length) return false
-    if (urls.includes(href)) return true
+
+    for (const url of urls) {
+      if (url.startsWith(href)) return true
+    }
+
     return FIX_LIST.some(l => l.match.test(String(href)) && urls.includes(l.replace(href)))
   }
 
