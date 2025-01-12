@@ -1,7 +1,7 @@
 /**
  * @name HideEmbedLink
  * @description Hides embed messages link.
- * @version 2.2.2
+ * @version 2.2.3
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink
@@ -175,7 +175,7 @@ module.exports = class HideEmbedLink {
         if (props.message.showLinks == null || m.props == null || !this.hasEmbed(m, props.message.embeds)) return
 
         const index = Math.min(i, props.message.embeds.length - 1)
-        const isMedia = props.message.embeds[index].rawDescription == null
+        const isMedia = props.message.embeds[index].rawDescription == null && props.message.embeds[index].rawTitle == null
         const hide = hideLinksCache[`${props.message.id}_${index}_${m.props.href}`] ?? (isMedia || (!isMedia && !this.settings.hideMediasOnly))
         if (hide) m.props.className += ' hel-hideLink'
         i++
