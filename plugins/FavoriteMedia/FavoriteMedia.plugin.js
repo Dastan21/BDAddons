@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.12.2
+ * @version 1.12.3
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -1635,7 +1635,7 @@ class MediaPicker extends BdApi.React.Component {
   static HEIGHT = 400
 
   constructor (props) {
-    super(props)
+    super({ ...props, type: props.type.replace('fm-', '') })
 
     this.state = {
       textFilter: '',
@@ -2361,9 +2361,9 @@ class MediaPicker extends BdApi.React.Component {
 
   render () {
     return BdApi.React.createElement('div', {
-      id: `${this.props.type}-picker-tab-panel`,
+      id: `fm-${this.props.type}-picker-tab-panel`,
       role: 'tabpanel',
-      'aria-labelledby': `${this.props.type}-picker-tab`,
+      'aria-labelledby': `fm-${this.props.type}-picker-tab`,
       className: `${classes.gutter.container} fm-pickerContainer`,
     },
     BdApi.React.createElement('div', {
@@ -2640,10 +2640,11 @@ class MediaButton extends BdApi.React.Component {
       onMouseDown: this.checkPicker,
       onClick: () => {
         const EPSState = EPS.useExpressionPickerStore.getState()
-        if (EPSState.activeView === this.props.type && EPSState.activeViewType?.analyticsName !== this.props.pickerType?.analyticsName) {
-          EPS.toggleExpressionPicker(this.props.type, this.props.pickerType ?? EPSState.activeViewType)
+        const typeId = `fm-${this.props.type}`
+        if (EPSState.activeView === typeId && EPSState.activeViewType?.analyticsName !== this.props.pickerType?.analyticsName) {
+          EPS.toggleExpressionPicker(typeId, this.props.pickerType ?? EPSState.activeViewType)
         }
-        EPS.toggleExpressionPicker(this.props.type, this.props.pickerType ?? EPSConstants.NORMAL)
+        EPS.toggleExpressionPicker(typeId, this.props.pickerType ?? EPSConstants.NORMAL)
       },
     },
     BdApi.React.createElement('div', {
@@ -3178,13 +3179,14 @@ module.exports = class FavoriteMedia {
   }
 
   MediaTab (mediaType, elementType) {
-    const selected = mediaType === EPS.useExpressionPickerStore.getState().activeView
+    const mediaTypeId = `fm-${mediaType}`
+    const selected = mediaTypeId === EPS.useExpressionPickerStore.getState().activeView
     return BdApi.React.createElement(elementType, {
-      id: `${mediaType}-picker-tab`,
-      'aria-controls': `${mediaType}-picker-tab-panel`,
+      id: `${mediaTypeId}-picker-tab`,
+      'aria-controls': `${mediaTypeId}-picker-tab-panel`,
       'aria-selected': selected,
       className: 'fm-pickerTab',
-      viewType: mediaType,
+      viewType: mediaTypeId,
       isActive: selected,
     }, plugin.instance.strings.tabName[mediaType])
   }
@@ -3218,10 +3220,10 @@ module.exports = class FavoriteMedia {
 
     // https://github.com/BetterDiscord/BetterDiscord/blob/3b9ad9b75b6ac64e6740e9c2f1d19fd4615010c7/renderer/src/builtins/emotes/emotemenu.js
     BdApi.Patcher.after(this.meta.name, ExpressionPicker.constructor.prototype, 'render', (_, __, returnValue) => {
-      const originalChildren = returnValue.props?.children
+      const originalChildren = returnValue.props?.children?.props?.children
       if (originalChildren == null) return
 
-      returnValue.props.children = (...args) => {
+      returnValue.props.children.props.children = (...args) => {
         const childrenReturn = originalChildren(...args)
         const head = BdApi.Utils.findInTree(childrenReturn, (e) => e?.role === 'tablist', { walkable: ['props', 'children', 'return', 'stateNode'] })?.children
         const body = BdApi.Utils.findInTree(childrenReturn, (e) => e?.[0]?.type === 'nav', { walkable: ['props', 'children', 'return', 'stateNode'] })
@@ -3234,10 +3236,10 @@ module.exports = class FavoriteMedia {
           if (this.settings.audio.enabled) head.push(this.MediaTab('audio', elementType))
           if (this.settings.file.enabled) head.push(this.MediaTab('file', elementType))
 
-          const activeMediaPicker = EPS.useExpressionPickerStore.getState().activeView
-          if (ALL_TYPES.includes(activeMediaPicker)) {
+          const activeMediaPickerType = EPS.useExpressionPickerStore.getState().activeView.replace('fm-', '')
+          if (ALL_TYPES.includes(activeMediaPickerType)) {
             body.push(BdApi.React.createElement(MediaPicker, {
-              type: activeMediaPicker,
+              type: activeMediaPickerType,
               settings: this.settings,
             }))
           }
