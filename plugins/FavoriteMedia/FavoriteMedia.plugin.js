@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.12.3
+ * @version 1.12.4
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -215,7 +215,6 @@ const FileRenderedModule = BdApi.Webpack.getByStrings('getObscureReason', 'media
 const FilesUpload = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byProps('addFiles'))
 const MessagesManager = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byProps('sendMessage'))
 const PageControl = BdApi.Webpack.getModule(m => typeof m === 'function' && m.toString()?.includes('totalCount'), { searchExports: true })
-const DiscordComponents = BdApi.Webpack.getByKeys('Button', 'Card', 'Modal')
 const DiscordIntl = BdApi.Webpack.getModule(m => m.intl)
 const RestAPI = BdApi.Webpack.getModules(m => Object.keys(m).some(key => Object.prototype.hasOwnProperty.call(m[key] ?? {}, 'post')))?.slice(-1)?.[0]?.Z
 
@@ -971,14 +970,14 @@ class ImportPanel extends BdApi.React.Component {
           className: 'fm-importActions',
         },
         !this.isEmpty && !this.state.imported
-          ? BdApi.React.createElement(DiscordComponents.Button, {
+          ? BdApi.React.createElement(BdApi.Components.Button, {
               className: 'fm-importMediasButton',
               onClick: this.importMedias,
             }, plugin.instance.strings.import.buttonImport)
           : null
         )
         )
-      : BdApi.React.createElement(DiscordComponents.Spinner)
+      : BdApi.React.createElement(BdApi.Components.Spinner)
   }
 }
 
@@ -1131,13 +1130,13 @@ class DatabasePanel extends BdApi.React.Component {
           className: 'fm-databaseActions',
         },
         this.state.count > 0
-          ? BdApi.React.createElement(DiscordComponents.Button, {
-              color: DiscordComponents.ButtonColors.RED,
+          ? BdApi.React.createElement(BdApi.Components.Button, {
+              color: BdApi.Components.Button.Colors.RED,
               className: 'fm-clearDatabaseButton',
               onClick: this.openModalClearDatabase,
             }, plugin.instance.strings.cache.clear.button)
           : null,
-        BdApi.React.createElement(DiscordComponents.Button, {
+        BdApi.React.createElement(BdApi.Components.Button, {
           className: 'fm-cacheDatabaseButton',
           onClick: this.openCacheMediasConfirm,
         }, plugin.instance.strings.cache.cacheAll.button)
@@ -1146,7 +1145,7 @@ class DatabasePanel extends BdApi.React.Component {
       : BdApi.React.createElement('div', {
           className: `${classes.color.colorStandard} fm-databaseFetchMediasProgress`,
         },
-        BdApi.React.createElement(DiscordComponents.Spinner),
+        BdApi.React.createElement(BdApi.Components.Spinner),
         BdApi.React.createElement('span', {}, this.state.fetchMediasProgress)
         )
     )
