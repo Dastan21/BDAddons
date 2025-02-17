@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.12.4
+ * @version 1.12.5
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -2787,7 +2787,10 @@ function findMessageLink ($target) {
   if ($target == null) return
   try {
     const [channelId, messageId] = findMessageIds($target)
-    const guildId = window.location.href.match(/channels\/(\d+)/)?.[1]
+    let guildId = window.location.href.match(/channels\/(\d+)/)?.[1]
+    if (window.location.pathname.startsWith('/channels/@me/')) {
+      guildId = window.location.href.match(/channels\/@me\/(\d+)/)?.[1]
+    }
     return `${window.location.origin}/channels/${guildId}/${channelId}/${messageId}`
   } catch (error) {
     BdApi.Logger.error(plugin.name, error)
