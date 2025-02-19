@@ -218,23 +218,13 @@ const FilesUpload = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byProps('addFi
 const MessagesManager = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byProps('sendMessage'))
 const PageControl = BdApi.Webpack.getModule(m => typeof m === 'function' && m.toString()?.includes('totalCount'), { searchExports: true })
 const DiscordIntl = BdApi.Webpack.getModule(m => m.intl)
+const RestAPI = BdApi.Webpack.getModule(m => typeof m === 'object' && m.del && m.put, { searchExports: true })
 
 let ChannelTextAreaButtons = null
 const canClosePicker = { context: '', value: true }
 let currentChannelId = ''
 let currentTextareaInput = null
 let closeExpressionPickerKey = ''
-
-const RestAPI = (() => {
-  const modules = BdApi.Webpack.getModules((m) => Object.keys(m).some((key) => key !== 'Z' && ['get', 'post', 'put', 'patch'].every((k) => Object.prototype.hasOwnProperty.call(m[key] ?? {}, k))))?.slice(-1)?.[0]
-  const restModule = Object.values(modules ?? {}).find((m) => typeof m.post === 'function')
-  if (restModule == null) {
-    BdApi.Logger.warn(plugin.name, 'Failed to get module RestAPI')
-    return {}
-  }
-
-  return restModule
-})()
 
 class FMDB {
   static DB_NAME = 'FavoriteMedia'
