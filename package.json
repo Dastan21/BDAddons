@@ -1,20 +1,12 @@
 {
   "name": "bdaddons",
-  "version": "0.0.1",
   "author": "Dastan21",
-  "license": "Apache-2.0",
-  "zplConfig": {
-    "base": "./src/plugins",
-    "out": "./plugins",
-    "copyToBD": true,
-    "addInstallScript": true
-  },
+  "license": "GPL-3.0",
   "devDependencies": {
-    "@eslint/js": "^9.17.0",
-    "eslint": "^9.17.0",
-    "globals": "^15.14.0",
-    "neostandard": "^0.12.0",
-    "prettier": "^3.4.2"
+    "@eslint/js": "^9.20.0",
+    "eslint": "^9.20.1",
+    "globals": "^15.15.0",
+    "neostandard": "^0.12.1"
   },
-  "packageManager": "pnpm@9.15.3"
+  "packageManager": "pnpm@10.4.1"
 }
