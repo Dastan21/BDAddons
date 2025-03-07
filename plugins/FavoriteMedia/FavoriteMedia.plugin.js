@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.12.6
+ * @version 1.12.7
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -217,7 +217,10 @@ const FileRenderedModule = BdApi.Webpack.getByStrings('getObscureReason', 'media
 const FilesUpload = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byProps('addFiles'))
 const MessagesManager = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byProps('sendMessage'))
 const PageControl = BdApi.Webpack.getModule(m => typeof m === 'function' && m.toString()?.includes('totalCount'), { searchExports: true })
-const DiscordIntl = BdApi.Webpack.getModule(m => m.intl)
+const DiscordIntl = BdApi.Webpack.getMangled('defaultLocale:"en-US"', {
+  intl: BdApi.Webpack.Filters.byKeys('format'),
+  t: x => x.getOwnPropertyDescriptor
+})
 const RestAPI = BdApi.Webpack.getModule(m => typeof m === 'object' && m.del && m.put, { searchExports: true })
 
 let ChannelTextAreaButtons = null
@@ -3360,7 +3363,7 @@ module.exports = class FavoriteMedia {
       BdApi.Patcher.after(this.meta.name, FileRenderedModule, 'ZP', (_, [props], returnValue) => {
         if (props.item.type !== 'PLAINTEXT_PREVIEW') return
 
-        returnValue.props.children.props.children.push(BdApi.React.createElement(MediaFavButton, {
+        returnValue.props.children.push(BdApi.React.createElement(MediaFavButton, {
           type: 'file',
           name: getUrlName(props.item.originalItem.filename),
           url: cleanUrl(removeProxyUrl(props.item.originalItem.url)),
@@ -3446,9 +3449,9 @@ module.exports = class FavoriteMedia {
         } else if (props.target.closest('[class*="attachment_"]')) {
           type = 'file'
           props.target = props.target.closest('[class*="attachment_"]')
-        } else if (props.target.closest('[class*="newMosaicStyle_"]')) {
+        } else if (props.target.closest('[class*="mosaicItemContent_"]')?.querySelector('a[class*="fileNameLink_"],a[class*="downloadSection_"]')) {
           type = 'file'
-          props.target = props.target.closest('[class*="newMosaicStyle_"]')
+          props.target = props.target.closest('[class*="mosaicItemContent_"]')
         }
         if (type == null) return []
 
@@ -3676,13 +3679,6 @@ module.exports = class FavoriteMedia {
       .${classes.image.imageAccessory}:not(.fm-favBtn):has(+ .fm-favBtn) {
         display: none;
       }
-      .fm-favBtn.fm-audio,
-      .fm-favBtn.fm-file {
-        right: 0;
-        left: auto;
-        width: auto;
-        margin-right: 10%;
-      }
       .show-controls {
         position: absolute;
         top: 8px;
@@ -3726,15 +3722,15 @@ module.exports = class FavoriteMedia {
         margin-right: 0.7em;
         margin-left: 0;
       }
-      .${classes.image.embedWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):focus-within .${classes.gif.gifFavoriteButton1},
-      .${classes.image.embedWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):hover .${classes.gif.gifFavoriteButton1},
+      .${classes.image.embedWrapper}:focus-within .${classes.gif.gifFavoriteButton1},
+      .${classes.image.embedWrapper}:hover .${classes.gif.gifFavoriteButton1},
       .${classes.visual.nonVisualMediaItemContainer}:hover .${classes.gif.gifFavoriteButton1} {
         opacity: 0;
         -webkit-transform: unset;
         transform: unset;
       }
-      .${classes.image.imageWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):focus-within .${classes.gif.gifFavoriteButton1},
-      .${classes.image.imageWrapper}:not(.${classes.audio.wrapperAudio.split(' ')[0]}):hover .${classes.gif.gifFavoriteButton1},
+      .${classes.image.imageWrapper}:focus-within .${classes.gif.gifFavoriteButton1},
+      .${classes.image.imageWrapper}:hover .${classes.gif.gifFavoriteButton1},
       .${classes.visual.nonVisualMediaItemContainer}:hover .${classes.gif.gifFavoriteButton1} {
         opacity: 1;
         -webkit-transform: translateY(0);f
