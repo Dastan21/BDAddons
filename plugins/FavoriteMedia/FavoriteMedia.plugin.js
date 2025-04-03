@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.12.7
+ * @version 1.12.8
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -208,6 +208,7 @@ const GIFUtils = (() => {
     unfavorite: modules[0],
   }
 })()
+const ChannelTextArea = BdApi.Webpack.getModule((m) => m?.type?.render?.toString?.()?.includes?.('CHANNEL_TEXT_AREA'))
 const Permissions = BdApi.Webpack.getByKeys('computePermissions')
 const PermissionsConstants = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byProps('ADD_REACTIONS'), { searchExports: true })
 const MediaPlayerModule = BdApi.Webpack.getModule(m => m.Types?.VIDEO, { searchExports: true })
@@ -223,7 +224,6 @@ const DiscordIntl = BdApi.Webpack.getMangled('defaultLocale:"en-US"', {
 })
 const RestAPI = BdApi.Webpack.getModule(m => typeof m === 'object' && m.del && m.put, { searchExports: true })
 
-let ChannelTextAreaButtons = null
 const canClosePicker = { context: '', value: true }
 let currentChannelId = ''
 let currentTextareaInput = null
@@ -2870,22 +2870,6 @@ function loadEPS () {
   })
 }
 
-// https://github.com/Strencher/BetterDiscordStuff/blob/master/InvisibleTyping/InvisibleTyping.plugin.instance.js#L483-L494
-function loadChannelTextAreaButtons () {
-  const $buttons = document.querySelector(`.${classes.buttons.buttons}`)
-  if ($buttons == null) return
-  const vnode = BdApi.ReactUtils.getInternalInstance($buttons)
-  if (!vnode) return
-  for (let curr = vnode, max = 100; curr !== null && max--; curr = curr.return) {
-    const tree = curr?.pendingProps?.children
-    let buttons
-    if (Array.isArray(tree) && (buttons = tree.find(s => s?.props?.type && s.props.channel && s.type?.$$typeof))) {
-      ChannelTextAreaButtons = buttons.type
-      return
-    }
-  }
-}
-
 function categoryValidator (type, name, color, id) {
   if (!name || typeof name !== 'string') return { error: 'error', message: plugin.instance.strings.category.error.needName }
   if (name.length > 20) return { error: 'error', message: plugin.instance.strings.category.error.invalidNameLength }
@@ -3057,7 +3041,6 @@ module.exports = class FavoriteMedia {
 
   start () {
     loadEPS()
-    loadChannelTextAreaButtons()
 
     this.patchExpressionPicker()
     this.patchMessageContextMenu()
@@ -3160,10 +3143,6 @@ module.exports = class FavoriteMedia {
     })
   }
 
-  onSwitch () {
-    if (!this.patchedCTA) this.patchChannelTextArea()
-  }
-
   openSettings () {
     const settingsTitle = this.meta.name + ' Settings'
     BdApi.UI.showConfirmationModal(settingsTitle, this.getSettingsPanel(), {
@@ -3257,23 +3236,22 @@ module.exports = class FavoriteMedia {
     })
   }
 
+  // https://github.com/Strencher/BetterDiscordStuff/blob/7333c41514bb97fe509e2258abc628a2080b5cf8/InvisibleTyping/InvisibleTyping.plugin.js#L418-L437
   patchChannelTextArea () {
-    loadChannelTextAreaButtons()
-    if (ChannelTextAreaButtons == null) return
-    this.patchedCTA = true
+    BdApi.Patcher.after(this.meta.name, ChannelTextArea.type, 'render', (_, [props], returnValue) => {
+      const isProfilePopout = BdApi.Utils.findInTree(returnValue, (e) => Array.isArray(e?.value) && e.value.some((v) => v === 'bite size profile popout'), { walkable: ['children', 'props'] })
+      if (isProfilePopout) return
 
-    BdApi.Patcher.after(this.meta.name, ChannelTextAreaButtons, 'type', (_, [props], returnValue) => {
-      if (returnValue == null || BdApi.Utils.getNestedValue(returnValue, 'props.children.1.props.type') === 'sidebar') return
+      const chatBar = BdApi.Utils.findInTree(returnValue, (e) => Array.isArray(e?.children) && e.children.some((c) => c?.props?.className?.startsWith('attachButton')), { walkable: ['children', 'props'] })
+      if (!chatBar) return
+
+      const textAreaState = BdApi.Utils.findInTree(chatBar, (e) => e?.props?.channel, { walkable: ['children'] })
+      if (!textAreaState) return
 
       currentChannelId = SelectedChannelStore.getChannelId()
       const channel = ChannelStore.getChannel(currentChannelId)
       const perms = Permissions.can(PermissionsConstants.SEND_MESSAGES, channel)
       if (!channel.type && !perms) return
-
-      const buttons = returnValue.props.children
-      if (buttons == null || !Array.isArray(buttons)) return
-      // in user note
-      if (buttons.length === 1 && buttons[0].key === 'emoji') return
 
       const fmButtons = []
       if (this.settings.image.enabled && this.settings.image.showBtn) fmButtons.push(BdApi.React.createElement(MediaButton, { type: 'image', pickerType: props.type, channelId: props.channel.id }))
@@ -3281,10 +3259,8 @@ module.exports = class FavoriteMedia {
       if (this.settings.audio.enabled && this.settings.audio.showBtn) fmButtons.push(BdApi.React.createElement(MediaButton, { type: 'audio', pickerType: props.type, channelId: props.channel.id }))
       if (this.settings.file.enabled && this.settings.file.showBtn) fmButtons.push(BdApi.React.createElement(MediaButton, { type: 'file', pickerType: props.type, channelId: props.channel.id }))
 
-      let index = (buttons.findIndex((b) => b.key === this.settings.position.btnsPositionKey) + (this.settings.position.btnsPosition === 'right' ? 1 : 0))
-      if (index < 0) index = buttons.length - 1
-      buttons.splice(index, 0, ...fmButtons)
-      buttons.forEach((b) => { if (ALL_TYPES.includes(b.props?.type)) b.key = b.props.type })
+      chatBar.children.push(...fmButtons)
+      chatBar.children.forEach((b) => { if (ALL_TYPES.includes(b.props?.type)) b.key = b.props.type })
 
       setTimeout(() => {
         currentTextareaInput = findTextareaInput()
@@ -3931,57 +3907,6 @@ module.exports = class FavoriteMedia {
       },
       {
         type: 'category',
-        id: 'position',
-        name: 'Buttons position',
-        collapsible: true,
-        shown: false,
-        settings: [
-          {
-            type: 'dropdown',
-            id: 'btnsPositionKey',
-            name: 'Buttons relative position',
-            note: 'Near which other button the buttons have to be placed',
-            value: 'emoji',
-            options: [
-              {
-                label: 'Gift',
-                value: 'gift',
-              },
-              {
-                label: 'GIF',
-                value: 'gif',
-              },
-              {
-                label: 'Sticker',
-                value: 'sticker',
-              },
-              {
-                label: 'Emoji',
-                value: 'emoji',
-              },
-            ],
-          },
-          {
-            type: 'dropdown',
-            id: 'btnsPosition',
-            name: 'Buttons direction',
-            note: 'Direction of the buttons on the chat',
-            value: 'right',
-            options: [
-              {
-                label: 'Right',
-                value: 'right',
-              },
-              {
-                label: 'Left',
-                value: 'left',
-              },
-            ],
-          },
-        ],
-      },
-      {
-        type: 'category',
         id: 'gif',
         name: 'GIFs settings',
         collapsible: true,
@@ -4343,14 +4268,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Позиция на бутона',
-            btnsPositionKey: {
-              name: 'Относително разположение на бутоните',
-              note: 'До кой друг бутон трябва да се поставят бутоните',
-            },
-            btnsPosition: {
-              name: 'Посока на бутона',
-              note: 'Посока на бутоните в лентата за чат',
-            },
           },
           gif: {
             name: 'GIF настройки',
@@ -4620,14 +4537,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Pozice tlačítka',
-            btnsPositionKey: {
-              name: 'Relativní poloha tlačítek',
-              note: 'Vedle kterého dalšího tlačítka by měla být tlačítka umístěna',
-            },
-            btnsPosition: {
-              name: 'Směr tlačítka',
-              note: 'Směr tlačítek na liště chatu',
-            },
           },
           gif: {
             name: 'Nastavení GIF',
@@ -4897,14 +4806,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Knap position',
-            btnsPositionKey: {
-              name: 'Relativ placering af knapper',
-              note: 'Ved siden af hvilken anden knap skal knapperne placeres',
-            },
-            btnsPosition: {
-              name: 'Knappens retning',
-              note: 'Retning af knapper på chat bar',
-            },
           },
           gif: {
             name: 'GIF-indstillinger',
@@ -5174,14 +5075,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Knopfposition',
-            btnsPositionKey: {
-              name: 'Relative Position der Schaltflächen',
-              note: 'Neben welcher anderen Schaltfläche sollen die Schaltflächen platziert werden?',
-            },
-            btnsPosition: {
-              name: 'Tastenrichtung',
-              note: 'Richtung der Schaltflächen in der Chatleiste',
-            },
           },
           gif: {
             name: 'GIF-Einstellungen',
@@ -5451,14 +5344,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Θέση κουμπιού',
-            btnsPositionKey: {
-              name: 'Σχετική θέση κουμπιών',
-              note: 'Δίπλα σε ποιο άλλο κουμπί πρέπει να τοποθετηθούν τα κουμπιά',
-            },
-            btnsPosition: {
-              name: 'Κατεύθυνση κουμπιού',
-              note: 'Κατεύθυνση των κουμπιών στη γραμμή συνομιλίας',
-            },
           },
           gif: {
             name: 'Ρυθμίσεις GIF',
@@ -5879,14 +5764,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Posición del botón',
-            btnsPositionKey: {
-              name: 'Posición relativa de los botones.',
-              note: '¿Junto a qué otro botón se deben colocar los botones?',
-            },
-            btnsPosition: {
-              name: 'Dirección del botón',
-              note: 'Dirección de los botones en la barra de chat.',
-            },
           },
           gif: {
             name: 'Configuración de GIF',
@@ -6156,14 +6033,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Painikkeen asento',
-            btnsPositionKey: {
-              name: 'Painikkeiden suhteellinen sijainti',
-              note: 'Minkä muun painikkeen viereen painikkeet tulee sijoittaa',
-            },
-            btnsPosition: {
-              name: 'Painikkeen suunta',
-              note: 'Painikkeiden suunta chat-palkissa',
-            },
           },
           gif: {
             name: 'GIF-asetukset',
@@ -6433,14 +6302,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Position des boutons',
-            btnsPositionKey: {
-              name: 'Position relative des boutons',
-              note: 'À côté de quel autre bouton les boutons doivent être placés',
-            },
-            btnsPosition: {
-              name: 'Direction des boutons',
-              note: 'Direction des boutons sur la barre de discussion',
-            },
           },
           gif: {
             name: 'Paramètres des GIFs',
@@ -6710,14 +6571,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'बटन की स्थिति',
-            btnsPositionKey: {
-              name: 'बटनों की सापेक्ष स्थिति',
-              note: 'किस बटन के आगे दूसरे बटन लगाने चाहिए',
-            },
-            btnsPosition: {
-              name: 'बटन की दिशा',
-              note: 'चैट बार पर बटनों की दिशा',
-            },
           },
           gif: {
             name: 'जीआईएफ सेटिंग्स',
@@ -6987,14 +6840,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Položaj gumba',
-            btnsPositionKey: {
-              name: 'Relativni položaj gumba',
-              note: 'Pored kojeg drugog gumba treba staviti gumbe',
-            },
-            btnsPosition: {
-              name: 'Smjer gumba',
-              note: 'Smjer gumba na traci za chat',
-            },
           },
           gif: {
             name: 'GIF postavke',
@@ -7264,14 +7109,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'A gomb pozíciója',
-            btnsPositionKey: {
-              name: 'gombok relatív helyzete',
-              note: 'Melyik másik gomb mellé kell elhelyezni a gombokat',
-            },
-            btnsPosition: {
-              name: 'Gomb iránya',
-              note: 'A gombok iránya a csevegősávon',
-            },
           },
           gif: {
             name: 'GIF beállítások',
@@ -7541,14 +7378,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Posizione del pulsante',
-            btnsPositionKey: {
-              name: 'Posizione relativa dei pulsanti',
-              note: 'Accanto a quale altro pulsante devono essere posizionati i pulsanti',
-            },
-            btnsPosition: {
-              name: 'Direzione del pulsante',
-              note: 'Direzione dei pulsanti sulla barra della chat',
-            },
           },
           gif: {
             name: 'Impostazioni GIF',
@@ -7818,14 +7647,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'ボタンの位置',
-            btnsPositionKey: {
-              name: 'ボタンの相対位置',
-              note: '他のボタンの隣にボタンを配置する必要があります',
-            },
-            btnsPosition: {
-              name: 'ボタンの方向',
-              note: 'チャットバーのボタンの方向',
-            },
           },
           gif: {
             name: 'GIF設定',
@@ -8095,14 +7916,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: '버튼 위치',
-            btnsPositionKey: {
-              name: '버튼의 상대적 위치',
-              note: '버튼을 어느 버튼 옆에 배치해야 할까요?',
-            },
-            btnsPosition: {
-              name: '버튼 방향',
-              note: '채팅바 버튼 방향',
-            },
           },
           gif: {
             name: 'GIF 설정',
@@ -8372,14 +8185,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Mygtuko padėtis',
-            btnsPositionKey: {
-              name: 'Santykinė mygtukų padėtis',
-              note: 'Šalia kurio kito mygtuko reikia dėti mygtukus',
-            },
-            btnsPosition: {
-              name: 'Mygtuko kryptis',
-              note: 'Mygtukų kryptis pokalbių juostoje',
-            },
           },
           gif: {
             name: 'GIF nustatymai',
@@ -8649,14 +8454,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Knop positie',
-            btnsPositionKey: {
-              name: 'Relatieve positie van knoppen',
-              note: 'Naast welke andere knop moeten de knoppen worden geplaatst',
-            },
-            btnsPosition: {
-              name: 'Knop richting',
-              note: 'Richting van de knoppen op de chatbalk',
-            },
           },
           gif: {
             name: 'GIF-instellingen',
@@ -8926,14 +8723,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Knappposisjon',
-            btnsPositionKey: {
-              name: 'Relativ plassering av knapper',
-              note: 'Ved siden av hvilken annen knapp skal knappene plasseres',
-            },
-            btnsPosition: {
-              name: 'Knappretning',
-              note: 'Retning av knapper på chat bar',
-            },
           },
           gif: {
             name: 'GIF-innstillinger',
@@ -9203,14 +8992,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Pozycja przycisku',
-            btnsPositionKey: {
-              name: 'Względne położenie przycisków',
-              note: 'Obok jakiego innego przycisku należy umieścić przyciski',
-            },
-            btnsPosition: {
-              name: 'Kierunek przycisku',
-              note: 'Kierunek przycisków na pasku czatu',
-            },
           },
           gif: {
             name: 'Ustawienia GIF',
@@ -9480,14 +9261,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Posição do botão',
-            btnsPositionKey: {
-              name: 'Posição relativa dos botões',
-              note: 'Ao lado de qual outro botão os botões devem ser colocados',
-            },
-            btnsPosition: {
-              name: 'Direção do botão',
-              note: 'Direção dos botões na barra de chat',
-            },
           },
           gif: {
             name: 'Configurações de GIF',
@@ -9757,14 +9530,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Poziția butonului',
-            btnsPositionKey: {
-              name: 'Poziția relativă a butoanelor',
-              note: 'Lângă ce alt buton ar trebui să fie plasate butoanele',
-            },
-            btnsPosition: {
-              name: 'Direcția butonului',
-              note: 'Direcția butoanelor de pe bara de chat',
-            },
           },
           gif: {
             name: 'setări GIF',
@@ -10034,14 +9799,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Положение кнопки',
-            btnsPositionKey: {
-              name: 'Взаимное расположение кнопок',
-              note: 'Рядом с какой другой кнопкой следует разместить кнопки',
-            },
-            btnsPosition: {
-              name: 'Направление кнопки',
-              note: 'Направление кнопок на панели чата',
-            },
           },
           gif: {
             name: 'Настройки GIF',
@@ -10311,14 +10068,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Položaj gumba',
-            btnsPositionKey: {
-              name: 'Relativni položaj gumbov',
-              note: 'Poleg katerega drugega gumba naj bodo gumbi postavljeni',
-            },
-            btnsPosition: {
-              name: 'Smer gumba',
-              note: 'Smer gumbov v vrstici za klepet',
-            },
           },
           gif: {
             name: 'nastavitve GIF',
@@ -10588,14 +10337,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Knappens läge',
-            btnsPositionKey: {
-              name: 'Relativ placering av knappar',
-              note: 'Bredvid vilken annan knapp ska knapparna placeras',
-            },
-            btnsPosition: {
-              name: 'Knappens riktning',
-              note: 'Riktning av knappar på chattfältet',
-            },
           },
           gif: {
             name: 'GIF-inställningar',
@@ -10865,14 +10606,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'ตำแหน่งปุ่ม',
-            btnsPositionKey: {
-              name: 'ตำแหน่งสัมพันธ์ของปุ่ม',
-              note: 'ถัดจากปุ่มอื่นที่ควรวางปุ่มต่างๆ',
-            },
-            btnsPosition: {
-              name: 'ทิศทางของปุ่ม',
-              note: 'ทิศทางของปุ่มบนแถบแชท',
-            },
           },
           gif: {
             name: 'การตั้งค่า GIF',
@@ -11142,14 +10875,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Düğme konumu',
-            btnsPositionKey: {
-              name: 'Düğmelerin göreceli konumu',
-              note: 'Düğmeler başka hangi düğmenin yanına yerleştirilmelidir?',
-            },
-            btnsPosition: {
-              name: 'Düğme yönü',
-              note: 'Sohbet çubuğundaki düğmelerin yönü',
-            },
           },
           gif: {
             name: 'GIF ayarları',
@@ -11419,14 +11144,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Розташування кнопки',
-            btnsPositionKey: {
-              name: 'Взаємне розташування кнопок',
-              note: 'Біля якої ще кнопки слід розташувати кнопки',
-            },
-            btnsPosition: {
-              name: 'Напрямок кнопки',
-              note: 'Напрямок кнопок на панелі чату',
-            },
           },
           gif: {
             name: 'Налаштування GIF',
@@ -11696,14 +11413,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: 'Vị trí nút',
-            btnsPositionKey: {
-              name: 'Vị trí tương đối của các nút',
-              note: 'Các nút nên được đặt bên cạnh nút nào',
-            },
-            btnsPosition: {
-              name: 'Hướng nút',
-              note: 'Hướng các nút trên thanh trò chuyện',
-            },
           },
           gif: {
             name: 'cài đặt GIF',
@@ -11973,14 +11682,6 @@ module.exports = class FavoriteMedia {
           },
           position: {
             name: '按钮位置',
-            btnsPositionKey: {
-              name: '按钮的相对位置',
-              note: '这些按钮应该放置在哪个其他按钮旁边',
-            },
-            btnsPosition: {
-              name: '按钮方向',
-              note: '聊天栏按钮的方向',
-            },
           },
           gif: {
             name: 'GIF 设置',
