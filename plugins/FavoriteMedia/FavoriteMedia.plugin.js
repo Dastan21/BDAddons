@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.12.9
+ * @version 1.12.10
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -3628,7 +3628,7 @@ module.exports = class FavoriteMedia {
         type: 'submenu',
         items: menuItems,
       })
-      const fmIndex = returnValue.props.children.findIndex((i) => i?.props?.children?.props?.id === 'devmode-copy-id')
+      const fmIndex = returnValue.props.children.findIndex((i) => i?.props?.children?.find?.((j) => j?.props?.id === 'forward'))
       if (fmIndex > -1) returnValue.props.children.splice(fmIndex, 0, separator, fmContextMenu)
       else returnValue.props.children.push(separator, fmContextMenu)
     })
