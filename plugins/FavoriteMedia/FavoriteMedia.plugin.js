@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.12.10
+ * @version 1.12.11
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -3287,34 +3287,38 @@ module.exports = class FavoriteMedia {
       })
     }
 
-    // Images & GIFs
+    // Images
     if (ImageModule == null) {
       BdApi.Logger.error(this.meta.name, 'Image module not found')
     } else {
       BdApi.Patcher.after(this.meta.name, ImageModule.prototype, 'render', (_this, __, returnValue) => {
-        const propsButton = BdApi.Utils.getNestedValue(returnValue, 'props.children.props.children.1.props')
-        if (propsButton == null) return
+        const $image = returnValue.ref.current
+        if ($image != null && $image.getElementsByClassName(classes.image.imageAccessory).length <= 0) {
+          const $container = document.createElement('div')
+          $container.classList.add('fm-imageAccessoryContainer')
+          $image.append($container)
+          const root = BdApi.ReactDOM.createRoot($container)
 
-        const propsImg = BdApi.Utils.getNestedValue(propsButton, 'children.props.children.props')
-        if (propsImg == null || propsImg.type === 'VIDEO' || propsImg.type === 'GIF') return
+          const data = {
+            url: returnValue.props.original,
+            type: 'image'
+          }
+          if (data.url == null) return
 
-        const data = { url: cleanUrl(_this.props.src) }
-        if (data.url == null) return
+          if (/\.gif($|\?|#)/i.test(data.url) || /\.webp($|\?|#)/i.test(data.url) || /\.avif($|\?|#)/i.test(data.url)) {
+            data.type = 'gif'
+            data.src = returnValue.props.src
+          }
 
-        data.type = propsImg.play != null || data.url?.split('?')[0].endsWith('.gif') ? 'gif' : 'image'
-        if (!this.settings[data.type].enabled || !this.settings[data.type].showStar) return
+          if (!this.settings[data.type].enabled || !this.settings[data.type].showStar) return
 
-        if (data.type === 'gif') {
-          data.src = propsImg.src || propsImg.children?.props?.src
-          data.url = returnValue.props.focusTarget.current?.parentElement.firstElementChild.getAttribute('href') || data.url
+          root.render(BdApi.React.createElement(MediaFavButton, {
+            type: data.type,
+            src: data.src,
+            url: data.url,
+            target: returnValue.ref,
+          }))
         }
-
-        returnValue.props.children.props.children.push(BdApi.React.createElement(MediaFavButton, {
-          type: data.type,
-          src: data.src,
-          url: data.url,
-          target: returnValue.props.focusTarget,
-        }))
       })
     }
 
