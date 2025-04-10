@@ -3848,6 +3848,9 @@ module.exports = class FavoriteMedia {
         height: 20px;
         margin: 0;
       }
+      .fm-buttonContainer {
+        margin-left: 8px;
+      }
     `
   }
 
