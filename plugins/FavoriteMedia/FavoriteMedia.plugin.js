@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.12.11
+ * @version 1.12.12
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -218,10 +218,7 @@ const FileRenderedModule = BdApi.Webpack.getByStrings('getObscureReason', 'media
 const FilesUpload = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('addFiles'))
 const MessagesManager = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('sendMessage'))
 const PageControl = BdApi.Webpack.getModule(m => typeof m === 'function' && m.toString()?.includes('totalCount'), { searchExports: true })
-const DiscordIntl = BdApi.Webpack.getMangled('defaultLocale:"en-US"', {
-  intl: BdApi.Webpack.Filters.byKeys('format'),
-  t: x => x.getOwnPropertyDescriptor
-})
+const DiscordIntl = BdApi.Webpack.getByKeys('intl')
 const RestAPI = BdApi.Webpack.getModule(m => typeof m === 'object' && m.del && m.put, { searchExports: true })
 
 const canClosePicker = { context: '', value: true }
@@ -2848,7 +2845,7 @@ async function getMediaDimensions (props) {
 }
 
 function getDiscordIntl (key) {
-  return DiscordIntl?.intl?.format(DiscordIntl.t[INTL_CODE_HASH[key]]) ?? key
+  return DiscordIntl?.intl?.string(DiscordIntl.t[INTL_CODE_HASH[key]]) ?? key
 }
 
 function loadEPS () {
@@ -3414,7 +3411,7 @@ module.exports = class FavoriteMedia {
 
   patchMessageContextMenu () {
     this.contextMenu = BdApi.ContextMenu.patch('message', (returnValue, props) => {
-      if (props == null || returnValue.props?.children?.find(e => e?.props?.id === 'favoriteMedia')) return
+      if (props == null || returnValue.props?.children?.props?.children?.find(e => e?.props?.id === 'favoriteMedia')) return
 
       const getMediaContextMenuItems = () => {
         if (props.target == null) return []
@@ -3632,9 +3629,9 @@ module.exports = class FavoriteMedia {
         type: 'submenu',
         items: menuItems,
       })
-      const fmIndex = returnValue.props.children.findIndex((i) => i?.props?.children?.find?.((j) => j?.props?.id === 'forward'))
-      if (fmIndex > -1) returnValue.props.children.splice(fmIndex, 0, separator, fmContextMenu)
-      else returnValue.props.children.push(separator, fmContextMenu)
+      const fmIndex = returnValue.props.children.props.children.findIndex((i) => i?.props?.children?.find?.((j) => j?.props?.id === 'forward'))
+      if (fmIndex > -1) returnValue.props.children.props.children.splice(fmIndex, 0, separator, fmContextMenu)
+      else returnValue.props.children.props.children.push(separator, fmContextMenu)
     })
   }
 
