@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.12.12
+ * @version 1.13.0
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -344,22 +344,28 @@ const mediasCache = {}
 const fmdb = new FMDB()
 
 class MediaMenuItemInput extends BdApi.React.Component {
+  constructor (props) {
+    super(props)
+
+    this.inputNameRef = BdApi.React.createRef()
+  }
+
   componentDidMount () {
     const media = loadData(this.props.type, { medias: [] }).medias[this.props.id]
-    this.refs.inputName.value = media.name || ''
-    this.refs.inputName.onkeydown = (e) => {
+    this.inputNameRef.current.value = media.name || ''
+    this.inputNameRef.current.onkeydown = (e) => {
       // allow space input
       if (e.key === ' ') {
         const cursor = e.target.selectionStart
-        this.refs.inputName.value = this.refs.inputName.value.slice(0, cursor) + ' ' + this.refs.inputName.value.slice(cursor)
-        this.refs.inputName.setSelectionRange(cursor + 1, cursor + 1)
+        this.inputNameRef.current.value = this.inputNameRef.current.value.slice(0, cursor) + ' ' + this.inputNameRef.current.value.slice(cursor)
+        this.inputNameRef.current.setSelectionRange(cursor + 1, cursor + 1)
       }
       e.stopPropagation()
     }
   }
 
   componentWillUnmount () {
-    const name = this.refs.inputName.value
+    const name = this.inputNameRef.current.value
     if (!name || name === '') return
     const typeData = loadData(this.props.type, { medias: [] })
     if (!typeData.medias.length) return
@@ -382,7 +388,7 @@ class MediaMenuItemInput extends BdApi.React.Component {
       type: 'text',
       placeholder: plugin.instance.strings.media.placeholder[this.props.type],
       maxlength: '40',
-      ref: 'inputName',
+      ref: this.inputNameRef,
     })
     )
   }
@@ -424,10 +430,12 @@ class MediaFavButton extends BdApi.React.Component {
     this.updateFavorite = this.updateFavorite.bind(this)
     this.changeFavorite = this.changeFavorite.bind(this)
     this.favButton = this.favButton.bind(this)
+
+    this.tooltipFavRef = BdApi.React.createRef()
   }
 
   componentDidMount () {
-    this.tooltipFav = BdApi.UI.createTooltip(this.refs.tooltipFav, this.isFavorited ? getDiscordIntl('GIF_TOOLTIP_REMOVE_FROM_FAVORITES') : getDiscordIntl('GIF_TOOLTIP_ADD_TO_FAVORITES'), { style: 'primary' })
+    this.tooltipFav = BdApi.UI.createTooltip(this.tooltipFavRef.current, this.isFavorited ? getDiscordIntl('GIF_TOOLTIP_REMOVE_FROM_FAVORITES') : getDiscordIntl('GIF_TOOLTIP_ADD_TO_FAVORITES'), { style: 'primary' })
     Dispatcher.subscribe('FM_FAVORITE_MEDIA', this.updateFavorite)
   }
 
@@ -615,7 +623,7 @@ class MediaFavButton extends BdApi.React.Component {
       className: `${this.props.fromPicker ? classes.result.favButton : classes.gif.gifFavoriteButton1} ${classes.gif.gifFavoriteButton2}${this.state.favorited ? ` ${classes.gif.selected}` : ''}${this.state.pulse ? ` ${classes.gif.showPulse}` : ''}`,
       tabindex: '-1',
       role: 'button',
-      ref: 'tooltipFav',
+      ref: this.tooltipFavRef,
       onClick: this.changeFavorite,
     },
     BdApi.React.createElement(StarSVG, {
@@ -634,10 +642,16 @@ class MediaFavButton extends BdApi.React.Component {
 }
 
 class ColorPicker extends BdApi.React.Component {
+  constructor (props) {
+    super(props)
+
+    this.inputColorRef = BdApi.React.createRef()
+  }
+
   componentDidMount () {
-    this.refs.inputColor.value = this.props.color || DEFAULT_BACKGROUND_COLOR
-    this.props.setRef(this.refs.inputColor)
-    this.refs.inputColor.parentNode.style['background-color'] = this.refs.inputColor.value
+    this.inputColorRef.current.value = this.props.color || DEFAULT_BACKGROUND_COLOR
+    this.props.setRef(this.inputColorRef)
+    this.inputColorRef.current.parentNode.style['background-color'] = this.inputColorRef.current.value
   }
 
   render () {
@@ -649,7 +663,7 @@ class ColorPicker extends BdApi.React.Component {
       type: 'color',
       id: 'category-input-color',
       name: 'category-input-color',
-      ref: 'inputColor',
+      ref: this.inputColorRef,
       onChange: e => { e.target.parentNode.style['background-color'] = e.target.value },
     })
     )
@@ -709,15 +723,17 @@ class CategoryModal extends BdApi.React.Component {
 
     this.setRef = this.setRef.bind(this)
     this.getValues = this.getValues.bind(this)
+
+    this.inputNameRef = BdApi.React.createRef()
   }
 
-  setRef (input) {
-    this.inputColor = input
+  setRef (inputRef) {
+    this.inputColorRef = inputRef
   }
 
   componentDidMount () {
     this.props.modalRef(this)
-    this.refs.inputName.value = this.props.name || ''
+    this.inputNameRef.current.value = this.props.name || ''
   }
 
   componentWillUnmount () {
@@ -726,8 +742,8 @@ class CategoryModal extends BdApi.React.Component {
 
   getValues () {
     return {
-      name: this.refs.inputName && this.refs.inputName.value,
-      color: this.inputColor && this.inputColor.value,
+      name: this.inputNameRef?.current?.value,
+      color: this.inputColorRef?.current?.value,
     }
   }
 
@@ -746,7 +762,7 @@ class CategoryModal extends BdApi.React.Component {
       type: 'text',
       placeholder: plugin.instance.strings.category.placeholder,
       maxlength: '20',
-      ref: 'inputName',
+      ref: this.inputNameRef,
     })
     ),
     BdApi.React.createElement(ColorPicker, {
@@ -770,6 +786,10 @@ class ImportPanel extends BdApi.React.Component {
     this.importMedias = this.importMedias.bind(this)
 
     this.data = {}
+
+    for (const mediaType of ALL_TYPES) {
+      this[`checkboxImport-medias-${mediaType}Ref`] = BdApi.React.createRef()
+    }
   }
 
   componentDidMount () {
@@ -868,12 +888,12 @@ class ImportPanel extends BdApi.React.Component {
     const data = structuredClone(this.data)
 
     for (const mediaType of Object.keys(this.data)) {
-      const checkboxMedias = this.refs[`checkboxImport-medias-${mediaType}`]
+      const checkboxMedias = this[`checkboxImport-medias-${mediaType}Ref`]
       if (checkboxMedias != null && !checkboxMedias.checked) {
         data[mediaType].medias = []
       }
 
-      const checkboxCategories = this.refs[`checkboxImport-categories-${mediaType}`]
+      const checkboxCategories = this[`checkboxImport-categories-${mediaType}Ref`]
       if (checkboxCategories != null && !checkboxCategories.checked) {
         data[mediaType].categories = []
       }
@@ -920,7 +940,7 @@ class ImportPanel extends BdApi.React.Component {
         ? BdApi.React.createElement('input', {
           type: 'checkbox',
           defaultChecked: true,
-          ref: `checkboxImport-medias-${mediaType}`,
+          ref: this[`checkboxImport-medias-${mediaType}Ref`],
           style: { visibility: mediasCount > 0 ? 'visible' : 'hidden' },
         })
         : null,
@@ -935,7 +955,7 @@ class ImportPanel extends BdApi.React.Component {
         ? BdApi.React.createElement('input', {
           type: 'checkbox',
           defaultChecked: true,
-          ref: `checkboxImport-categories-${mediaType}`,
+          ref: this[`checkboxImport-categories-${mediaType}Ref`],
           style: { visibility: categoriesCount > 0 ? 'visible' : 'hidden' },
         })
         : null,
@@ -1000,6 +1020,8 @@ class DatabasePanel extends BdApi.React.Component {
     this.clearDatabase = this.clearDatabase.bind(this)
     this.openCacheMediasConfirm = this.openCacheMediasConfirm.bind(this)
     this.updateFetchMediasProgress = this.updateFetchMediasProgress.bind(this)
+
+    this.refreshButtonRef = BdApi.React.createRef()
   }
 
   componentDidMount () {
@@ -1008,8 +1030,8 @@ class DatabasePanel extends BdApi.React.Component {
   }
 
   componentDidUpdate () {
-    if (this.refs.refreshButton != null) {
-      this.tooltipRefresh = BdApi.UI.createTooltip(this.refs.refreshButton, plugin.instance.strings.cache.refreshButton, { style: 'primary' })
+    if (this.refreshButtonRef != null) {
+      this.tooltipRefresh = BdApi.UI.createTooltip(this.refreshButtonRef.current, plugin.instance.strings.cache.refreshButton, { style: 'primary' })
     }
   }
 
@@ -1121,7 +1143,7 @@ class DatabasePanel extends BdApi.React.Component {
       )
       ),
       BdApi.React.createElement('div', {
-        ref: 'refreshButton',
+        ref: this.refreshButtonRef,
         className: `${classes.buttons.button} fm-refreshStatsButton fm-btn-icon`,
         onClick: this.loadStats,
       }, RefreshSVG())
@@ -1161,12 +1183,14 @@ class CategoryCard extends BdApi.React.Component {
       src: getMediaFromCache(this.thumbnail),
     }
 
+    this.prev_thumbnail = this.thumbnail
+
     this.onContextMenu = this.onContextMenu.bind(this)
     this.onDragStart = this.onDragStart.bind(this)
     this.onDrop = this.onDrop.bind(this)
     this.onError = this.onError.bind(this)
 
-    this.prev_thumbnail = this.thumbnail
+    this.categoryRef = BdApi.React.createRef()
   }
 
   componentDidUpdate () {
@@ -1303,7 +1327,7 @@ class CategoryCard extends BdApi.React.Component {
     } else if (data.type === 'category') {
       if (data.id !== this.props.id) MediaPicker.changeCategoryCategory(this.props.type, data.id, this.props.id)
     }
-    this.refs.category.classList.remove('category-dragover')
+    this.categoryRef.current.classList.remove('category-dragover')
   }
 
   async onError () {
@@ -1336,11 +1360,11 @@ class CategoryCard extends BdApi.React.Component {
         width: `${this.props.positions.width}px`,
         height: '110px',
       },
-      ref: 'category',
+      ref: this.categoryRef,
       onClick: () => this.props.setCategory({ name: this.props.name, color: this.props.color, id: this.props.id, category_id: this.props.category_id }),
       onContextMenu: this.onContextMenu,
-      onDragEnter: e => { e.preventDefault(); this.refs.category.classList.add('category-dragover') },
-      onDragLeave: e => { e.preventDefault(); this.refs.category.classList.remove('category-dragover') },
+      onDragEnter: e => { e.preventDefault(); this.categoryRef.current.classList.add('category-dragover') },
+      onDragLeave: e => { e.preventDefault(); this.categoryRef.current.classList.remove('category-dragover') },
       onDragOver: e => { e.stopPropagation(); e.preventDefault() },
       onDragStart: this.onDragStart,
       onDrop: this.onDrop,
@@ -1388,6 +1412,8 @@ class MediaCard extends BdApi.React.Component {
     this.sendMedia = this.sendMedia.bind(this)
     this.onDragStart = this.onDragStart.bind(this)
     this.onError = this.onError.bind(this)
+
+    this.mediaRef = BdApi.React.createRef()
   }
 
   get isGIF () {
@@ -1424,7 +1450,7 @@ class MediaCard extends BdApi.React.Component {
     Dispatcher.subscribe('FM_TOGGLE_CONTROLS', this.hideControls)
     Dispatcher.subscribe('FM_SEND_MEDIA', this.sendMedia)
     this.url = this.props.url
-    if (MediaFavButton.isPlayable(this.props.type) && this.refs.tooltipControls) this.tooltipControls = BdApi.UI.createTooltip(this.refs.tooltipControls, this.state.showControls ? plugin.instance.strings.media.controls.hide : plugin.instance.strings.media.controls.show, { style: 'primary' })
+    if (MediaFavButton.isPlayable(this.props.type) && this.tooltipControlsRef?.current) this.tooltipControls = BdApi.UI.createTooltip(this.tooltipControlsRef.current, this.state.showControls ? plugin.instance.strings.media.controls.hide : plugin.instance.strings.media.controls.show, { style: 'primary' })
   }
 
   componentWillUnmount () {
@@ -1442,8 +1468,8 @@ class MediaCard extends BdApi.React.Component {
         })
       })
     }
-    if (MediaFavButton.isPlayable(this.props.type) && !this.tooltipControls && this.refs.tooltipControls) this.tooltipControls = BdApi.UI.createTooltip(this.refs.tooltipControls, this.state.showControls ? plugin.instance.strings.media.controls.hide : plugin.instance.strings.media.controls.show, { style: 'primary' })
-    if (this.state.showControls && this.refs.media) this.refs.media.volume = this.props.settings.mediaVolume / 100 || 0.1
+    if (MediaFavButton.isPlayable(this.props.type) && !this.tooltipControls && this.tooltipControlsRef?.current) this.tooltipControls = BdApi.UI.createTooltip(this.tooltipControlsRef.current, this.state.showControls ? plugin.instance.strings.media.controls.hide : plugin.instance.strings.media.controls.show, { style: 'primary' })
+    if (this.state.showControls && this.mediaRef?.current) this.mediaRef.current.volume = this.props.settings.mediaVolume / 100 || 0.1
     this.url = this.props.url
   }
 
@@ -1557,7 +1583,7 @@ class MediaCard extends BdApi.React.Component {
         className: `show-controls ${classes.gif.size}${this.state.showControls ? ` ${classes.gif.selected} active` : ''}`,
         tabindex: '-1',
         role: 'button',
-        ref: 'tooltipControls',
+        ref: this.tooltipControlsRef,
         onClick: () => this.changeControls(),
       },
       BdApi.React.createElement('svg', {
@@ -1590,7 +1616,7 @@ class MediaCard extends BdApi.React.Component {
         poster: this.state.poster,
         width: this.props.positions.width,
         height: this.props.positions.height,
-        ref: 'media',
+        ref: this.mediaRef,
         controls: this.state.showControls,
         style: !MediaFavButton.hasPreview(this.props.type) ? { position: 'absolute', bottom: '0', left: '0', 'z-index': '2' } : null,
         draggable: false,
@@ -1661,11 +1687,20 @@ class MediaPicker extends BdApi.React.Component {
     this.setContentHeight = this.setContentHeight.bind(this)
     this.sendMedia = this.sendMedia.bind(this)
     this.resetScroll = this.resetScroll.bind(this)
+
+    this.mediasCounterRef = BdApi.React.createRef()
+    this.databaseButtonRef = BdApi.React.createRef()
+    this.importButtonRef = BdApi.React.createRef()
+    this.settingsButtonRef = BdApi.React.createRef()
+    this.inputRef = BdApi.React.createRef()
+    this.pickerScrollRef = BdApi.React.createRef()
+    this.contentRef = BdApi.React.createRef()
+    this.endStickerRef = BdApi.React.createRef()
   }
 
   componentDidMount () {
-    this.refs.input?.focus()
-    this.setState({ contentWidth: this.refs.content?.clientWidth })
+    this.inputRef?.current?.focus()
+    this.setState({ contentWidth: this.contentRef?.current?.clientWidth })
     Dispatcher.subscribe('FM_UPDATE_MEDIAS', this.loadMedias)
     Dispatcher.subscribe('FM_UPDATE_CATEGORIES', this.loadCategories)
     Dispatcher.dispatch({ type: 'FM_PICKER_BUTTON_ACTIVE' })
@@ -1683,7 +1718,7 @@ class MediaPicker extends BdApi.React.Component {
       this.loadMedias()
       Dispatcher.dispatch({ type: 'FM_PICKER_BUTTON_ACTIVE' })
     }
-    if (this.state.contentWidth !== this.refs.content?.clientWidth) this.setState({ contentWidth: this.refs.content?.clientWidth })
+    if (this.state.contentWidth !== this.contentRef?.current?.clientWidth) this.setState({ contentWidth: this.contentRef.current.clientWidth })
     this.createButtonsTooltips()
   }
 
@@ -1694,14 +1729,14 @@ class MediaPicker extends BdApi.React.Component {
   }
 
   createButtonsTooltips () {
-    if (this.databaseButton == null && this.refs.databaseButton != null) this.databaseButton = BdApi.UI.createTooltip(this.refs.databaseButton, plugin.instance.strings.cache.panel, { style: 'primary' })
-    if (this.importButton == null && this.refs.importButton != null) this.importButton = BdApi.UI.createTooltip(this.refs.importButton, plugin.instance.strings.import.panel, { style: 'primary' })
-    if (this.settingsButton == null && this.refs.settingsButton != null) this.settingsButton = BdApi.UI.createTooltip(this.refs.settingsButton, plugin.instance.strings.settings.panel, { style: 'primary' })
-    if (this.mediasCounter == null && this.refs.mediasCounter != null) this.mediasCounter = BdApi.UI.createTooltip(this.refs.mediasCounter, plugin.instance.strings.mediasCounter, { style: 'primary' })
+    if (this.databaseButton == null && this.databaseButtonRef?.current != null) this.databaseButton = BdApi.UI.createTooltip(this.databaseButtonRef.current, plugin.instance.strings.cache.panel, { style: 'primary' })
+    if (this.importButton == null && this.importButtonRef?.current != null) this.importButton = BdApi.UI.createTooltip(this.importButtonRef.current, plugin.instance.strings.import.panel, { style: 'primary' })
+    if (this.settingsButton == null && this.settingsButtonRef?.current != null) this.settingsButton = BdApi.UI.createTooltip(this.settingsButtonRef.current, plugin.instance.strings.settings.panel, { style: 'primary' })
+    if (this.mediasCounter == null && this.mediasCounterRef?.current != null) this.mediasCounter = BdApi.UI.createTooltip(this.mediasCounterRef.current, plugin.instance.strings.mediasCounter, { style: 'primary' })
   }
 
   clearSearch () {
-    if (this.refs.input) this.refs.input.value = ''
+    if (this.inputRef?.current) this.inputRef.current.value = ''
     this.setState({ textFilter: '' })
   }
 
@@ -1711,8 +1746,8 @@ class MediaPicker extends BdApi.React.Component {
 
   setContentHeight (height) {
     this.contentHeight = height
-    if (this.refs.content) this.refs.content.style.height = `${this.contentHeight}px`
-    if (this.refs.endSticker) this.refs.endSticker.style.top = `${this.contentHeight + 12}px`
+    if (this.contentRef?.current) this.contentRef.current.style.height = `${this.contentHeight}px`
+    if (this.endStickerRef?.current) this.endStickerRef.current.style.top = `${this.contentHeight + 12}px`
   }
 
   get heights () {
@@ -1998,7 +2033,7 @@ class MediaPicker extends BdApi.React.Component {
   }
 
   resetScroll () {
-    this.refs.pickerScroll?.scroll(0, 0)
+    this.pickerScrollRef?.current?.scroll(0, 0)
   }
 
   static changeCategoryCategory (type, id, categoryId) {
@@ -2372,21 +2407,21 @@ class MediaPicker extends BdApi.React.Component {
       className: `${classes.h5} fm-headerRight`,
     },
     BdApi.React.createElement('span', {
-      ref: 'mediasCounter',
+      ref: this.mediasCounterRef,
       className: 'fm-mediasCounter',
     }, this.filteredMedias.length),
     BdApi.React.createElement('div', {
-      ref: 'databaseButton',
+      ref: this.databaseButtonRef,
       className: `${classes.buttons.button} fm-databaseButton fm-buttonIcon`,
       onClick: MediaPicker.openDatabasePanel,
     }, DatabaseSVG()),
     BdApi.React.createElement('div', {
-      ref: 'importButton',
+      ref: this.importButtonRef,
       className: `${classes.buttons.button} fm-importButton fm-buttonIcon`,
       onClick: MediaPicker.openImportModal,
     }, ImportSVG()),
     BdApi.React.createElement('div', {
-      ref: 'settingsButton',
+      ref: this.settingsButtonRef,
       className: `${classes.buttons.button} fm-settingsButton fm-buttonIcon`,
       onClick: () => Dispatcher.dispatch({ type: 'FM_OPEN_SETTINGS' }),
     }, CogSVG())
@@ -2453,7 +2488,7 @@ class MediaPicker extends BdApi.React.Component {
         className: classes.container.input,
         placeholder: plugin.instance.strings.searchItem[this.props.type],
         autofocus: true,
-        ref: 'input',
+        ref: this.inputRef,
         onChange: e => {
           this.setState({ textFilter: e.target.value })
           this.resetScroll()
@@ -2504,7 +2539,7 @@ class MediaPicker extends BdApi.React.Component {
       style: { height: '100%' },
     },
     BdApi.React.createElement('div', {
-      ref: 'pickerScroll',
+      ref: this.pickerScrollRef,
       className: `${classes.category.container} ${classes.scroller.thin} ${classes.scroller.fade} fm-pickerContentContainer`,
       style: { overflow: 'hidden scroll', 'padding-right': '0' },
       onContextMenu: this.onContextMenu,
@@ -2514,7 +2549,7 @@ class MediaPicker extends BdApi.React.Component {
     },
     BdApi.React.createElement('div', {
       style: { position: 'absolute', left: '12px', top: '12px', width: 'calc(100% - 16px)' },
-      ref: 'content',
+      ref: this.contentRef,
     },
     !this.state.category && (this.state.categories.length + this.state.medias.length === 0)
       ? BdApi.React.createElement(EmptyFavorites, { type: this.props.type })
@@ -2551,7 +2586,7 @@ class MediaPicker extends BdApi.React.Component {
           width: 'calc(100% - 16px)',
           height: '220px',
         },
-        ref: 'endSticker',
+        ref: this.endStickerRef,
       },
       BdApi.React.createElement('div', {
         className: classes.result.endContainer,
@@ -2598,6 +2633,8 @@ class MediaButton extends BdApi.React.Component {
 
     this.changeActive = this.changeActive.bind(this)
     this.checkPicker = this.checkPicker.bind(this)
+
+    this.buttonRef = BdApi.React.createRef()
   }
 
   get isActive () {
@@ -2608,7 +2645,7 @@ class MediaButton extends BdApi.React.Component {
   changeActive () {
     if (this.isActive) {
       currentChannelId = this.props.channelId
-      currentTextareaInput = findTextareaInput(this.refs.button)
+      currentTextareaInput = findTextareaInput(this.buttonRef?.current)
     }
     this.setState({ active: this.isActive })
   }
@@ -2630,7 +2667,7 @@ class MediaButton extends BdApi.React.Component {
   render () {
     return BdApi.React.createElement('div', {
       className: `${classes.textarea.buttonContainer} fm-buttonContainer fm-${this.props.type}`,
-      ref: 'button',
+      ref: this.buttonRef,
     },
     BdApi.React.createElement('button', {
       className: `${classes.look.button} ${classes.look.lookBlank} ${classes.look.colorBrand} ${classes.look.grow}${this.state.active ? ` ${classes.icon.active}` : ''} fm-button`,
