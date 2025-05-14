@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.0
+ * @version 1.13.1
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -1030,7 +1030,7 @@ class DatabasePanel extends BdApi.React.Component {
   }
 
   componentDidUpdate () {
-    if (this.refreshButtonRef != null) {
+    if (this.refreshButtonRef?.current != null) {
       this.tooltipRefresh = BdApi.UI.createTooltip(this.refreshButtonRef.current, plugin.instance.strings.cache.refreshButton, { style: 'primary' })
     }
   }
