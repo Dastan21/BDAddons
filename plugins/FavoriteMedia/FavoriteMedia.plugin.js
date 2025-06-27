@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.1
+ * @version 1.13.2
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -46,7 +46,8 @@ const classModules = {
   input: BdApi.Webpack.getByKeys('inputDefault', 'inputWrapper', 'inputPrefix'),
   role: BdApi.Webpack.getByKeys('roleCircle', 'dot'),
   gif: BdApi.Webpack.getByKeys('icon', 'gifFavoriteButton', 'selected'),
-  gif2: BdApi.Webpack.getByKeys('container', 'gifFavoriteButton', 'embedWrapper'),
+  gif2: BdApi.Webpack.getByKeys('container', 'gifFavoriteButton', 'referralContainer'),
+  embed: BdApi.Webpack.getByKeys('embed', 'embedMedia', 'embedImage'),
   file: BdApi.Webpack.getByKeys('size', 'file', 'fileInner'),
   image: BdApi.Webpack.getByKeys('clickable', 'imageWrapper', 'imageAccessory'),
   control: BdApi.Webpack.getByKeys('container', 'labelRow', 'control'),
@@ -110,7 +111,7 @@ const classes = {
   image: {
     imageAccessory: classModules.image.imageAccessory,
     clickable: classModules.image.clickable,
-    embedWrapper: classModules.gif2.embedWrapper,
+    embedMedia: classModules.embed.embedMedia,
     imageWrapper: classModules.image.imageWrapper,
   },
   control: classModules.control.control,
@@ -3736,8 +3737,8 @@ module.exports = class FavoriteMedia {
         margin-right: 0.7em;
         margin-left: 0;
       }
-      .${classes.image.embedWrapper}:focus-within .${classes.gif.gifFavoriteButton1},
-      .${classes.image.embedWrapper}:hover .${classes.gif.gifFavoriteButton1},
+      .${classes.image.embedMedia}:focus-within .${classes.gif.gifFavoriteButton1},
+      .${classes.image.embedMedia}:hover .${classes.gif.gifFavoriteButton1},
       .${classes.visual.nonVisualMediaItemContainer}:hover .${classes.gif.gifFavoriteButton1} {
         opacity: 0;
         -webkit-transform: unset;
