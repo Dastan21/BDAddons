@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.2
+ * @version 1.13.3
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -65,7 +65,6 @@ const classModules = {
   buttons: BdApi.Webpack.getByKeys('profileBioInput', 'buttons', 'attachButton'),
   upload: BdApi.Webpack.getByKeys('actionBarContainer', 'actionBar', 'upload'),
   button: BdApi.Webpack.getByKeys('button', 'separator', 'dangerous'),
-  color: BdApi.Webpack.getByKeys('colorStandard', 'colorBrand', 'colorError'),
   visual: BdApi.Webpack.getByKeys('nonVisualMediaItemContainer', 'nonVisualMediaItem', 'visualMediaItemContainer'),
   code: BdApi.Webpack.getByKeys('newMosaicStyle', 'attachmentName', 'codeView'),
 }
@@ -178,9 +177,6 @@ const classes = {
   },
   upload: {
     actionBarContainer: classModules.upload.actionBarContainer,
-  },
-  color: {
-    colorStandard: classModules.color.colorStandard,
   },
   visual: {
     nonVisualMediaItemContainer: classModules.visual.nonVisualMediaItemContainer,
@@ -966,13 +962,13 @@ class ImportPanel extends BdApi.React.Component {
 
     return [
       BdApi.React.createElement('div', {
-        className: `${classes.color.colorStandard} fm-importLines`,
+        className: 'fm-importLines',
       }, ...$types),
       BdApi.React.createElement('div', {
-        className: `${classes.color.colorStandard} fm-importLines`,
+        className: 'fm-importLines',
       }, ...$medias),
       BdApi.React.createElement('div', {
-        className: `${classes.color.colorStandard} fm-importLines`,
+        className: 'fm-importLines',
       }, ...$categories),
     ]
   }
@@ -1124,7 +1120,7 @@ class DatabasePanel extends BdApi.React.Component {
         className: 'fm-stats',
       },
       BdApi.React.createElement('div', {
-        className: 'fm-statsLines ' + classes.color.colorStandard,
+        className: 'fm-statsLines',
       },
       BdApi.React.createElement('div', {
         className: 'fm-statsLine',
@@ -1166,7 +1162,7 @@ class DatabasePanel extends BdApi.React.Component {
       )
       )
       : BdApi.React.createElement('div', {
-        className: `${classes.color.colorStandard} fm-databaseFetchMediasProgress`,
+        className: 'fm-databaseFetchMediasProgress',
       },
       BdApi.React.createElement(BdApi.Components.Spinner),
       BdApi.React.createElement('span', {}, this.state.fetchMediasProgress)
@@ -3816,6 +3812,7 @@ module.exports = class FavoriteMedia {
         display: flex;
         flex-direction: column;
         gap: 4px;
+        color: var(--text-default);
       }
       .fm-stats .fm-statsLines .fm-statsLine {
         display: flex;
@@ -3840,6 +3837,7 @@ module.exports = class FavoriteMedia {
         justify-content: center;
         align-items: center;
         gap: 24px;
+        color: var(--text-default);
       }
       .${classes.category.categoryText} {
         padding: 4px;
@@ -3866,6 +3864,7 @@ module.exports = class FavoriteMedia {
         display: flex;
         flex-direction: column;
         gap: 4px;
+        color: var(--text-default);
       }
       .fm-importLines > :first-child {
         margin-bottom: 8px;
