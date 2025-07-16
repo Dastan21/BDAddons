@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.3
+ * @version 1.13.4
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -43,7 +43,7 @@ const classModules = {
   icon: BdApi.Webpack.getByKeys('icon', 'active', 'buttonWrapper'),
   menu: BdApi.Webpack.getByKeys('menu', 'labelContainer', 'colorDefault'),
   result: BdApi.Webpack.getByKeys('result', 'emptyHints', 'emptyHintText'),
-  input: BdApi.Webpack.getByKeys('inputDefault', 'inputWrapper', 'inputPrefix'),
+  input: BdApi.Webpack.getByKeys('input', 'inputWrapper', 'disabled'),
   role: BdApi.Webpack.getByKeys('roleCircle', 'dot'),
   gif: BdApi.Webpack.getByKeys('icon', 'gifFavoriteButton', 'selected'),
   gif2: BdApi.Webpack.getByKeys('container', 'gifFavoriteButton', 'referralContainer'),
@@ -95,7 +95,7 @@ const classes = {
     endContainer: classModules.result.endContainer,
   },
   input: {
-    inputDefault: classModules.input.inputDefault,
+    input: classModules.input.input,
     inputWrapper: classModules.input.inputWrapper,
   },
   roleCircle: classModules.role.roleCircle,
@@ -374,13 +374,13 @@ class MediaMenuItemInput extends BdApi.React.Component {
 
   render () {
     return BdApi.React.createElement('div', {
-      className: `${classes.menu.item} ${classes.menu.labelContainer}`,
+      className: `${classes.menu.item} ${classes.menu.labelContainer} ${classes.input.inputWrapper}`,
       role: 'menuitem',
       id: 'media-input',
       tabindex: '-1',
     },
     BdApi.React.createElement('input', {
-      className: classes.input.inputDefault,
+      className: classes.input.input,
       name: 'media-name',
       type: 'text',
       placeholder: plugin.instance.strings.media.placeholder[this.props.type],
@@ -754,7 +754,7 @@ class CategoryModal extends BdApi.React.Component {
       style: { padding: '1em 0', 'margin-right': '16px' },
     },
     BdApi.React.createElement('input', {
-      className: classes.input.inputDefault,
+      className: classes.input.input,
       name: 'category-name',
       type: 'text',
       placeholder: plugin.instance.strings.category.placeholder,
