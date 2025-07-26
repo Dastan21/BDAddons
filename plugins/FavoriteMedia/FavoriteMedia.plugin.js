@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.4
+ * @version 1.13.5
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -209,7 +209,7 @@ const ChannelTextArea = BdApi.Webpack.getModule((m) => m?.type?.render?.toString
 const Permissions = BdApi.Webpack.getByKeys('computePermissions')
 const PermissionsConstants = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('ADD_REACTIONS'), { searchExports: true })
 const MediaPlayerModule = BdApi.Webpack.getModule(m => m.Types?.VIDEO, { searchExports: true })
-const ImageModule = BdApi.Webpack.getAllByStrings('readyState', 'zoomable', 'minHeight', { searchExports: true })?.slice(-1)?.[0]
+const ImageModule = BdApi.Webpack.getAllByStrings('readyState', 'zoomable', 'minHeight', { searchExports: true })?.[0]
 const FileModule = BdApi.Webpack.getByStrings('fileName', 'fileSize', 'renderAdjacentContent', { defaultExport: false })
 const FileRenderedModule = BdApi.Webpack.getByStrings('getObscureReason', 'mediaLayoutType', { defaultExport: false })
 const FilesUpload = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('addFiles'))
