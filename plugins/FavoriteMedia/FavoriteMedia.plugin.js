@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.5
+ * @version 1.13.6
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -57,7 +57,8 @@ const classModules = {
   horizontal: BdApi.Webpack.getByKeys('flex', 'flexChild', 'horizontal'),
   flex: BdApi.Webpack.getByKeys('flex', 'alignStart', 'alignEnd'),
   title: BdApi.Webpack.getByKeys('title', 'h1', 'h5'),
-  container: BdApi.Webpack.getByKeys('container', 'inner', 'pointer'),
+  container: BdApi.Webpack.getByKeys('wrapper', 'md', 'text-md/normal'),
+  iconLayout: BdApi.Webpack.getByKeys('iconLayout', 'iconContainer', 'clear'),
   scroller: BdApi.Webpack.getByKeys('disableScrollAnchor', 'thin', 'fade'),
   look: BdApi.Webpack.getByKeys('button', 'lookBlank', 'colorBrand'),
   audio: BdApi.Webpack.getByKeys('wrapperAudio', 'wrapperPaused', 'wrapperPlaying'),
@@ -144,14 +145,18 @@ const classes = {
   h5: classModules.title.h5,
   container: {
     container: classModules.container.container,
-    medium: classModules.container.medium,
+    wrapper: classModules.container.wrapper,
+    medium: classModules.container.md,
     inner: classModules.container.inner,
     input: classModules.container.input,
-    iconLayout: classModules.container.iconLayout,
-    iconContainer: classModules.container.iconContainer,
-    pointer: classModules.container.pointer,
-    clear: classModules.container.clear,
-    visible: classModules.container.visible,
+  },
+  iconLayout: {
+    iconLayout: classModules.iconLayout.iconLayout,
+    iconContainer: classModules.iconLayout.iconContainer,
+    icon: classModules.iconLayout.icon,
+    pointer: classModules.iconLayout.pointer,
+    clear: classModules.iconLayout.clear,
+    visible: classModules.iconLayout.visible,
   },
   scroller: {
     thin: classModules.scroller.thin,
@@ -2476,7 +2481,7 @@ class MediaPicker extends BdApi.React.Component {
       : null,
     !this.state.category
       ? BdApi.React.createElement('div', {
-        className: `${classes.gutter.searchBar} ${classes.container.container} ${classes.container.medium}`,
+        className: `${classes.gutter.searchBar} ${classes.container.container} ${classes.container.wrapper} ${classes.container.medium}`,
       },
       BdApi.React.createElement('div', {
         className: classes.container.inner,
@@ -2492,16 +2497,16 @@ class MediaPicker extends BdApi.React.Component {
         },
       }),
       BdApi.React.createElement('div', {
-        className: `${classes.container.iconLayout} ${classes.container.medium} ${this.state.textFilter ? classes.container.pointer : ''}`,
+        className: `${classes.iconLayout.iconLayout} ${this.state.textFilter ? classes.iconLayout.pointer : ''}`,
         tabindex: '-1',
         role: 'button',
         onClick: this.clearSearch,
       },
       BdApi.React.createElement('div', {
-        className: classes.container.iconContainer,
+        className: classes.iconLayout.iconContainer,
       },
       BdApi.React.createElement('svg', {
-        className: `${classes.container.clear} ${this.state.textFilter ? '' : ` ${classes.container.visible}`}`,
+        className: `${classes.iconLayout.icon} ${classes.iconLayout.clear} ${this.state.textFilter ? '' : ` ${classes.iconLayout.visible}`}`,
         'aria-hidden': false,
         width: '24',
         height: '24',
@@ -2513,7 +2518,7 @@ class MediaPicker extends BdApi.React.Component {
       })
       ),
       BdApi.React.createElement('svg', {
-        className: `${classes.container.clear} ${this.state.textFilter ? ` ${classes.container.visible}` : ''}`,
+        className: `${classes.iconLayout.icon} ${classes.iconLayout.clear} ${this.state.textFilter ? ` ${classes.iconLayout.visible}` : ''}`,
         'aria-hidden': false,
         width: '24',
         height: '24',
@@ -3775,7 +3780,7 @@ module.exports = class FavoriteMedia {
       .fm-pageControl > div {
         width: auto;
         margin-top: 0;
-        background-color: var(--background-secondary);
+        background-color: var(--background-base-lowest);
         border-top-left-radius: 8px;
         border-top-right-radius: 8px;
         pointer-events: all;
