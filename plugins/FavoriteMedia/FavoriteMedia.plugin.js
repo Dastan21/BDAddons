@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.6
+ * @version 1.13.7
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -210,7 +210,7 @@ const GIFUtils = (() => {
     unfavorite: modules[0],
   }
 })()
-const ChannelTextArea = BdApi.Webpack.getModule((m) => m?.type?.render?.toString?.()?.includes?.('CHANNEL_TEXT_AREA'))
+const ChannelTextArea = BdApi.Webpack.getModules((m) => m?.type?.render?.toString?.()?.includes?.('CHANNEL_TEXT_AREA'))?.pop()
 const Permissions = BdApi.Webpack.getByKeys('computePermissions')
 const PermissionsConstants = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('ADD_REACTIONS'), { searchExports: true })
 const MediaPlayerModule = BdApi.Webpack.getModule(m => m.Types?.VIDEO, { searchExports: true })
@@ -3274,6 +3274,11 @@ module.exports = class FavoriteMedia {
 
   // https://github.com/Strencher/BetterDiscordStuff/blob/7333c41514bb97fe509e2258abc628a2080b5cf8/InvisibleTyping/InvisibleTyping.plugin.js#L418-L437
   patchChannelTextArea () {
+    if (ChannelTextArea?.type?.render == null) {
+      BdApi.Logger.error(this.meta.name, 'ChannelTextArea module not found')
+      return
+    }
+
     BdApi.Patcher.after(this.meta.name, ChannelTextArea.type, 'render', (_, [props], returnValue) => {
       const isProfilePopout = BdApi.Utils.findInTree(returnValue, (e) => Array.isArray(e?.value) && e.value.some((v) => v === 'bite size profile popout'), { walkable: ['children', 'props'] })
       if (isProfilePopout) return
