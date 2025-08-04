@@ -210,7 +210,7 @@ const GIFUtils = (() => {
     unfavorite: modules[0],
   }
 })()
-const ChannelTextArea = BdApi.Webpack.getModules((m) => m?.type?.render?.toString?.()?.includes?.('CHANNEL_TEXT_AREA'))?.pop()
+const ChannelTextArea = BdApi.Webpack.getModule((m) => m?.type?.render?.toString?.()?.includes?.('channelTextAreaDisabled'))
 const Permissions = BdApi.Webpack.getByKeys('computePermissions')
 const PermissionsConstants = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('ADD_REACTIONS'), { searchExports: true })
 const MediaPlayerModule = BdApi.Webpack.getModule(m => m.Types?.VIDEO, { searchExports: true })
