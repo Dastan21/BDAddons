@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.7
+ * @version 1.13.8
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -27,47 +27,56 @@ const INTL_CODE_HASH = {
 }
 const ALL_TYPES = ['image', 'video', 'audio', 'file']
 
-const StarSVG = (props) => BdApi.React.createElement('svg', { className: classes.gif.icon, 'aria-hidden': 'false', viewBox: '0 0 24 24', width: '20', height: '20' }, props.filled ? BdApi.React.createElement('path', { fill: 'currentColor', d: 'M10.81 2.86c.38-1.15 2-1.15 2.38 0l1.89 5.83h6.12c1.2 0 1.71 1.54.73 2.25l-4.95 3.6 1.9 5.82a1.25 1.25 0 0 1-1.93 1.4L12 18.16l-4.95 3.6c-.98.7-2.3-.25-1.92-1.4l1.89-5.82-4.95-3.6a1.25 1.25 0 0 1 .73-2.25h6.12l1.9-5.83Z' }) : BdApi.React.createElement('path', { fill: 'currentColor', 'fill-rule': 'evenodd', 'clip-rule': 'evenodd', d: 'M2.07 10.94a1.25 1.25 0 0 1 .73-2.25h6.12l1.9-5.83c.37-1.15 2-1.15 2.37 0l1.89 5.83h6.12c1.2 0 1.71 1.54.73 2.25l-4.95 3.6 1.9 5.82a1.25 1.25 0 0 1-1.93 1.4L12 18.16l-4.95 3.6c-.98.7-2.3-.25-1.92-1.4l1.89-5.82-4.95-3.6Zm11.55-.25h5.26l-4.25 3.09 1.62 5-4.25-3.1-4.25 3.1 1.62-5-4.25-3.1h5.26l1.62-5 1.62 5Z' }))
-const ImageSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 384 384', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M341.333,0H42.667C19.093,0,0,19.093,0,42.667v298.667C0,364.907,19.093,384,42.667,384h298.667 C364.907,384,384,364.907,384,341.333V42.667C384,19.093,364.907,0,341.333,0z M42.667,320l74.667-96l53.333,64.107L245.333,192l96,128H42.667z' }))
-const VideoSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 298 298', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M298,33c0-13.255-10.745-24-24-24H24C10.745,9,0,19.745,0,33v232c0,13.255,10.745,24,24,24h250c13.255,0,24-10.745,24-24V33zM91,39h43v34H91V39z M61,259H30v-34h31V259z M61,73H30V39h31V73z M134,259H91v-34h43V259z M123,176.708v-55.417c0-8.25,5.868-11.302,12.77-6.783l40.237,26.272c6.902,4.519,6.958,11.914,0.056,16.434l-40.321,26.277C128.84,188.011,123,184.958,123,176.708z M207,259h-43v-34h43V259z M207,73h-43V39h43V73z M268,259h-31v-34h31V259z M268,73h-31V39h31V73z' }))
-const AudioSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 115.3 115.3', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M47.9,14.306L26,30.706H6c-3.3,0-6,2.7-6,6v41.8c0,3.301,2.7,6,6,6h20l21.9,16.4c4,3,9.6,0.2,9.6-4.8v-77C57.5,14.106,51.8,11.306,47.9,14.306z' }), BdApi.React.createElement('path', { fill: 'currentColor', d: 'M77.3,24.106c-2.7-2.7-7.2-2.7-9.899,0c-2.7,2.7-2.7,7.2,0,9.9c13,13,13,34.101,0,47.101c-2.7,2.7-2.7,7.2,0,9.899c1.399,1.4,3.199,2,4.899,2s3.601-0.699,4.9-2.1C95.8,72.606,95.8,42.606,77.3,24.106z' }), BdApi.React.createElement('path', { fill: 'currentColor', d: 'M85.1,8.406c-2.699,2.7-2.699,7.2,0,9.9c10.5,10.5,16.301,24.4,16.301,39.3s-5.801,28.8-16.301,39.3c-2.699,2.7-2.699,7.2,0,9.9c1.4,1.399,3.2,2.1,4.9,2.1c1.8,0,3.6-0.7,4.9-2c13.1-13.1,20.399-30.6,20.399-49.2c0-18.6-7.2-36-20.399-49.2C92.3,5.706,87.9,5.706,85.1,8.406z' }))
-const FileSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '2 2 20 20', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M16,2l4,4H16ZM14,2H5A1,1,0,0,0,4,3V21a1,1,0,0,0,1,1H19a1,1,0,0,0,1-1V8H14Z' }))
-const ImportSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 24 24', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M6.29289 9.70711L11.2929 14.7071L12 15.4142L12.7071 14.7071L17.7071 9.70711L16.2929 8.29289L13 11.5858V4H18C19.1046 4 20 4.89543 20 6V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V6C4 4.89543 4.89543 4 6 4H11L11 11.5858L7.70711 8.29289L6.29289 9.70711Z' }))
-const DatabaseSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 -8 72 72', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M36,4.07c-11.85,0-21.46,3.21-21.46,7.19v5.89c0,4,9.61,7.19,21.46,7.19s21.45-3.21,21.45-7.19V11.26C57.46,7.28,47.85,4.07,36,4.07Z' }), BdApi.React.createElement('path', { fill: 'currentColor', d: 'M36,27.78c-11.32,0-20.64-2.93-21.46-6.66,0,.18,0,9.75,0,9.75,0,4,9.61,7.18,21.46,7.18s21.45-3.21,21.45-7.18c0,0,0-9.57,0-9.75C56.63,24.85,47.32,27.78,36,27.78Z' }), BdApi.React.createElement('path', { fill: 'currentColor', d: 'M57.44,35c-.82,3.72-10.12,6.66-21.43,6.66S15.37,38.72,14.55,35v9.75c0,4,9.61,7.18,21.46,7.18s21.45-3.21,21.45-7.18Z' }))
-const CogSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '-15 -15 30 30', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M-1.4420000314712524,-10.906000137329102 C-1.8949999809265137,-10.847000122070312 -2.1470000743865967,-10.375 -2.078000068664551,-9.92300033569336 C-1.899999976158142,-8.756999969482422 -2.265000104904175,-7.7210001945495605 -3.061000108718872,-7.390999794006348 C-3.8570001125335693,-7.060999870300293 -4.8480000495910645,-7.534999847412109 -5.546000003814697,-8.484999656677246 C-5.816999912261963,-8.852999687194824 -6.329999923706055,-9.008999824523926 -6.691999912261963,-8.730999946594238 C-7.458000183105469,-8.142999649047852 -8.142999649047852,-7.458000183105469 -8.730999946594238,-6.691999912261963 C-9.008999824523926,-6.329999923706055 -8.852999687194824,-5.816999912261963 -8.484999656677246,-5.546000003814697 C-7.534999847412109,-4.8480000495910645 -7.060999870300293,-3.8570001125335693 -7.390999794006348,-3.061000108718872 C-7.7210001945495605,-2.265000104904175 -8.756999969482422,-1.899999976158142 -9.92300033569336,-2.078000068664551 C-10.375,-2.1470000743865967 -10.847000122070312,-1.8949999809265137 -10.906000137329102,-1.4420000314712524 C-10.968000411987305,-0.9700000286102295 -11,-0.48899999260902405 -11,0 C-11,0.48899999260902405 -10.968000411987305,0.9700000286102295 -10.906000137329102,1.4420000314712524 C-10.847000122070312,1.8949999809265137 -10.375,2.1470000743865967 -9.92300033569336,2.078000068664551 C-8.756999969482422,1.899999976158142 -7.7210001945495605,2.265000104904175 -7.390999794006348,3.061000108718872 C-7.060999870300293,3.8570001125335693 -7.534999847412109,4.8470001220703125 -8.484999656677246,5.546000003814697 C-8.852999687194824,5.816999912261963 -9.008999824523926,6.328999996185303 -8.730999946594238,6.691999912261963 C-8.142999649047852,7.458000183105469 -7.458000183105469,8.142999649047852 -6.691999912261963,8.730999946594238 C-6.329999923706055,9.008999824523926 -5.816999912261963,8.852999687194824 -5.546000003814697,8.484999656677246 C-4.8480000495910645,7.534999847412109 -3.8570001125335693,7.060999870300293 -3.061000108718872,7.390999794006348 C-2.265000104904175,7.7210001945495605 -1.899999976158142,8.756999969482422 -2.078000068664551,9.92300033569336 C-2.1470000743865967,10.375 -1.8949999809265137,10.847000122070312 -1.4420000314712524,10.906000137329102 C-0.9700000286102295,10.968000411987305 -0.48899999260902405,11 0,11 C0.48899999260902405,11 0.9700000286102295,10.968000411987305 1.4420000314712524,10.906000137329102 C1.8949999809265137,10.847000122070312 2.1470000743865967,10.375 2.078000068664551,9.92300033569336 C1.899999976158142,8.756999969482422 2.2660000324249268,7.7210001945495605 3.062000036239624,7.390999794006348 C3.8580000400543213,7.060999870300293 4.8480000495910645,7.534999847412109 5.546000003814697,8.484999656677246 C5.816999912261963,8.852999687194824 6.328999996185303,9.008999824523926 6.691999912261963,8.730999946594238 C7.458000183105469,8.142999649047852 8.142999649047852,7.458000183105469 8.730999946594238,6.691999912261963 C9.008999824523926,6.328999996185303 8.852999687194824,5.816999912261963 8.484999656677246,5.546000003814697 C7.534999847412109,4.8480000495910645 7.060999870300293,3.8570001125335693 7.390999794006348,3.061000108718872 C7.7210001945495605,2.265000104904175 8.756999969482422,1.899999976158142 9.92300033569336,2.078000068664551 C10.375,2.1470000743865967 10.847000122070312,1.8949999809265137 10.906000137329102,1.4420000314712524 C10.968000411987305,0.9700000286102295 11,0.48899999260902405 11,0 C11,-0.48899999260902405 10.968000411987305,-0.9700000286102295 10.906000137329102,-1.4420000314712524 C10.847000122070312,-1.8949999809265137 10.375,-2.1470000743865967 9.92300033569336,-2.078000068664551 C8.756999969482422,-1.899999976158142 7.7210001945495605,-2.265000104904175 7.390999794006348,-3.061000108718872 C7.060999870300293,-3.8570001125335693 7.534999847412109,-4.8480000495910645 8.484999656677246,-5.546000003814697 C8.852999687194824,-5.816999912261963 9.008999824523926,-6.329999923706055 8.730999946594238,-6.691999912261963 C8.142999649047852,-7.458000183105469 7.458000183105469,-8.142999649047852 6.691999912261963,-8.730999946594238 C6.328999996185303,-9.008999824523926 5.817999839782715,-8.852999687194824 5.546999931335449,-8.484999656677246 C4.848999977111816,-7.534999847412109 3.8580000400543213,-7.060999870300293 3.062000036239624,-7.390999794006348 C2.2660000324249268,-7.7210001945495605 1.9010000228881836,-8.756999969482422 2.0789999961853027,-9.92300033569336 C2.1480000019073486,-10.375 1.8949999809265137,-10.847000122070312 1.4420000314712524,-10.906000137329102 C0.9700000286102295,-10.968000411987305 0.48899999260902405,-11 0,-11 C-0.48899999260902405,-11 -0.9700000286102295,-10.968000411987305 -1.4420000314712524,-10.906000137329102z M4,0 C4,2.2090001106262207 2.2090001106262207,4 0,4 C-2.2090001106262207,4 -4,2.2090001106262207 -4,0 C-4,-2.2090001106262207 -2.2090001106262207,-4 0,-4 C2.2090001106262207,-4 4,-2.2090001106262207 4,0z' }))
-const MusicNoteSVG = (props) => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': false, viewBox: '0 0 500 500', width: '16', height: '16', ...props }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M328.712,264.539c12.928-21.632,21.504-48.992,23.168-76.064c1.056-17.376-2.816-35.616-11.2-52.768c-13.152-26.944-35.744-42.08-57.568-56.704c-16.288-10.912-31.68-21.216-42.56-35.936l-1.952-2.624c-6.432-8.64-13.696-18.432-14.848-26.656c-1.152-8.32-8.704-14.24-16.96-13.76c-8.384,0.576-14.88,7.52-14.88,15.936v285.12c-13.408-8.128-29.92-13.12-48-13.12c-44.096,0-80,28.704-80,64s35.904,64,80,64s80-28.704,80-64V165.467c24.032,9.184,63.36,32.576,74.176,87.2c-2.016,2.976-3.936,6.176-6.176,8.736c-5.856,6.624-5.216,16.736,1.44,22.56c6.592,5.888,16.704,5.184,22.56-1.44c4.288-4.864,8.096-10.56,11.744-16.512C328.04,265.563,328.393,265.083,328.712,264.539z' }))
-const MiniFileSVG = (props) => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': false, viewBox: '-32 0 512 512', width: '16', height: '16', ...props }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M96 448Q81 448 73 440 64 431 64 416L64 96Q64 81 73 73 81 64 96 64L217 64Q240 64 256 80L368 192Q384 208 384 231L384 416Q384 431 376 440 367 448 352 448L96 448ZM336 400L336 240 208 240 208 112 112 112 112 400 336 400Z' }))
-const RefreshSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, 'aria-hidden': 'false', viewBox: '0 0 24 24', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', d: 'M3 12C3 16.9706 7.02944 21 12 21C14.3051 21 16.4077 20.1334 18 18.7083L21 16M21 12C21 7.02944 16.9706 3 12 3C9.69494 3 7.59227 3.86656 6 5.29168L3 8M21 21V16M21 16H16M3 3V8M3 8H8' }))
+const StarSVG = (props) => BdApi.React.createElement('svg', { className: classes.gif.icon, ariaHidden: 'false', viewBox: '0 0 24 24', width: '20', height: '20' }, props.filled ? BdApi.React.createElement('path', { fill: 'currentColor', d: 'M10.81 2.86c.38-1.15 2-1.15 2.38 0l1.89 5.83h6.12c1.2 0 1.71 1.54.73 2.25l-4.95 3.6 1.9 5.82a1.25 1.25 0 0 1-1.93 1.4L12 18.16l-4.95 3.6c-.98.7-2.3-.25-1.92-1.4l1.89-5.82-4.95-3.6a1.25 1.25 0 0 1 .73-2.25h6.12l1.9-5.83Z' }) : BdApi.React.createElement('path', { fill: 'currentColor', 'fill-rule': 'evenodd', 'clip-rule': 'evenodd', d: 'M2.07 10.94a1.25 1.25 0 0 1 .73-2.25h6.12l1.9-5.83c.37-1.15 2-1.15 2.37 0l1.89 5.83h6.12c1.2 0 1.71 1.54.73 2.25l-4.95 3.6 1.9 5.82a1.25 1.25 0 0 1-1.93 1.4L12 18.16l-4.95 3.6c-.98.7-2.3-.25-1.92-1.4l1.89-5.82-4.95-3.6Zm11.55-.25h5.26l-4.25 3.09 1.62 5-4.25-3.1-4.25 3.1 1.62-5-4.25-3.1h5.26l1.62-5 1.62 5Z' }))
+const ImageSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, ariaHidden: 'false', viewBox: '0 0 384 384', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M341.333,0H42.667C19.093,0,0,19.093,0,42.667v298.667C0,364.907,19.093,384,42.667,384h298.667 C364.907,384,384,364.907,384,341.333V42.667C384,19.093,364.907,0,341.333,0z M42.667,320l74.667-96l53.333,64.107L245.333,192l96,128H42.667z' }))
+const VideoSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, ariaHidden: 'false', viewBox: '0 0 298 298', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M298,33c0-13.255-10.745-24-24-24H24C10.745,9,0,19.745,0,33v232c0,13.255,10.745,24,24,24h250c13.255,0,24-10.745,24-24V33zM91,39h43v34H91V39z M61,259H30v-34h31V259z M61,73H30V39h31V73z M134,259H91v-34h43V259z M123,176.708v-55.417c0-8.25,5.868-11.302,12.77-6.783l40.237,26.272c6.902,4.519,6.958,11.914,0.056,16.434l-40.321,26.277C128.84,188.011,123,184.958,123,176.708z M207,259h-43v-34h43V259z M207,73h-43V39h43V73z M268,259h-31v-34h31V259z M268,73h-31V39h31V73z' }))
+const AudioSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, ariaHidden: 'false', viewBox: '0 0 115.3 115.3', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M47.9,14.306L26,30.706H6c-3.3,0-6,2.7-6,6v41.8c0,3.301,2.7,6,6,6h20l21.9,16.4c4,3,9.6,0.2,9.6-4.8v-77C57.5,14.106,51.8,11.306,47.9,14.306z' }), BdApi.React.createElement('path', { fill: 'currentColor', d: 'M77.3,24.106c-2.7-2.7-7.2-2.7-9.899,0c-2.7,2.7-2.7,7.2,0,9.9c13,13,13,34.101,0,47.101c-2.7,2.7-2.7,7.2,0,9.899c1.399,1.4,3.199,2,4.899,2s3.601-0.699,4.9-2.1C95.8,72.606,95.8,42.606,77.3,24.106z' }), BdApi.React.createElement('path', { fill: 'currentColor', d: 'M85.1,8.406c-2.699,2.7-2.699,7.2,0,9.9c10.5,10.5,16.301,24.4,16.301,39.3s-5.801,28.8-16.301,39.3c-2.699,2.7-2.699,7.2,0,9.9c1.4,1.399,3.2,2.1,4.9,2.1c1.8,0,3.6-0.7,4.9-2c13.1-13.1,20.399-30.6,20.399-49.2c0-18.6-7.2-36-20.399-49.2C92.3,5.706,87.9,5.706,85.1,8.406z' }))
+const FileSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, ariaHidden: 'false', viewBox: '2 2 20 20', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M16,2l4,4H16ZM14,2H5A1,1,0,0,0,4,3V21a1,1,0,0,0,1,1H19a1,1,0,0,0,1-1V8H14Z' }))
+const ImportSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, ariaHidden: 'false', viewBox: '0 0 24 24', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M6.29289 9.70711L11.2929 14.7071L12 15.4142L12.7071 14.7071L17.7071 9.70711L16.2929 8.29289L13 11.5858V4H18C19.1046 4 20 4.89543 20 6V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V6C4 4.89543 4.89543 4 6 4H11L11 11.5858L7.70711 8.29289L6.29289 9.70711Z' }))
+const DatabaseSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, ariaHidden: 'false', viewBox: '0 -8 72 72', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M36,4.07c-11.85,0-21.46,3.21-21.46,7.19v5.89c0,4,9.61,7.19,21.46,7.19s21.45-3.21,21.45-7.19V11.26C57.46,7.28,47.85,4.07,36,4.07Z' }), BdApi.React.createElement('path', { fill: 'currentColor', d: 'M36,27.78c-11.32,0-20.64-2.93-21.46-6.66,0,.18,0,9.75,0,9.75,0,4,9.61,7.18,21.46,7.18s21.45-3.21,21.45-7.18c0,0,0-9.57,0-9.75C56.63,24.85,47.32,27.78,36,27.78Z' }), BdApi.React.createElement('path', { fill: 'currentColor', d: 'M57.44,35c-.82,3.72-10.12,6.66-21.43,6.66S15.37,38.72,14.55,35v9.75c0,4,9.61,7.18,21.46,7.18s21.45-3.21,21.45-7.18Z' }))
+const CogSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, ariaHidden: 'false', viewBox: '-15 -15 30 30', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M-1.4420000314712524,-10.906000137329102 C-1.8949999809265137,-10.847000122070312 -2.1470000743865967,-10.375 -2.078000068664551,-9.92300033569336 C-1.899999976158142,-8.756999969482422 -2.265000104904175,-7.7210001945495605 -3.061000108718872,-7.390999794006348 C-3.8570001125335693,-7.060999870300293 -4.8480000495910645,-7.534999847412109 -5.546000003814697,-8.484999656677246 C-5.816999912261963,-8.852999687194824 -6.329999923706055,-9.008999824523926 -6.691999912261963,-8.730999946594238 C-7.458000183105469,-8.142999649047852 -8.142999649047852,-7.458000183105469 -8.730999946594238,-6.691999912261963 C-9.008999824523926,-6.329999923706055 -8.852999687194824,-5.816999912261963 -8.484999656677246,-5.546000003814697 C-7.534999847412109,-4.8480000495910645 -7.060999870300293,-3.8570001125335693 -7.390999794006348,-3.061000108718872 C-7.7210001945495605,-2.265000104904175 -8.756999969482422,-1.899999976158142 -9.92300033569336,-2.078000068664551 C-10.375,-2.1470000743865967 -10.847000122070312,-1.8949999809265137 -10.906000137329102,-1.4420000314712524 C-10.968000411987305,-0.9700000286102295 -11,-0.48899999260902405 -11,0 C-11,0.48899999260902405 -10.968000411987305,0.9700000286102295 -10.906000137329102,1.4420000314712524 C-10.847000122070312,1.8949999809265137 -10.375,2.1470000743865967 -9.92300033569336,2.078000068664551 C-8.756999969482422,1.899999976158142 -7.7210001945495605,2.265000104904175 -7.390999794006348,3.061000108718872 C-7.060999870300293,3.8570001125335693 -7.534999847412109,4.8470001220703125 -8.484999656677246,5.546000003814697 C-8.852999687194824,5.816999912261963 -9.008999824523926,6.328999996185303 -8.730999946594238,6.691999912261963 C-8.142999649047852,7.458000183105469 -7.458000183105469,8.142999649047852 -6.691999912261963,8.730999946594238 C-6.329999923706055,9.008999824523926 -5.816999912261963,8.852999687194824 -5.546000003814697,8.484999656677246 C-4.8480000495910645,7.534999847412109 -3.8570001125335693,7.060999870300293 -3.061000108718872,7.390999794006348 C-2.265000104904175,7.7210001945495605 -1.899999976158142,8.756999969482422 -2.078000068664551,9.92300033569336 C-2.1470000743865967,10.375 -1.8949999809265137,10.847000122070312 -1.4420000314712524,10.906000137329102 C-0.9700000286102295,10.968000411987305 -0.48899999260902405,11 0,11 C0.48899999260902405,11 0.9700000286102295,10.968000411987305 1.4420000314712524,10.906000137329102 C1.8949999809265137,10.847000122070312 2.1470000743865967,10.375 2.078000068664551,9.92300033569336 C1.899999976158142,8.756999969482422 2.2660000324249268,7.7210001945495605 3.062000036239624,7.390999794006348 C3.8580000400543213,7.060999870300293 4.8480000495910645,7.534999847412109 5.546000003814697,8.484999656677246 C5.816999912261963,8.852999687194824 6.328999996185303,9.008999824523926 6.691999912261963,8.730999946594238 C7.458000183105469,8.142999649047852 8.142999649047852,7.458000183105469 8.730999946594238,6.691999912261963 C9.008999824523926,6.328999996185303 8.852999687194824,5.816999912261963 8.484999656677246,5.546000003814697 C7.534999847412109,4.8480000495910645 7.060999870300293,3.8570001125335693 7.390999794006348,3.061000108718872 C7.7210001945495605,2.265000104904175 8.756999969482422,1.899999976158142 9.92300033569336,2.078000068664551 C10.375,2.1470000743865967 10.847000122070312,1.8949999809265137 10.906000137329102,1.4420000314712524 C10.968000411987305,0.9700000286102295 11,0.48899999260902405 11,0 C11,-0.48899999260902405 10.968000411987305,-0.9700000286102295 10.906000137329102,-1.4420000314712524 C10.847000122070312,-1.8949999809265137 10.375,-2.1470000743865967 9.92300033569336,-2.078000068664551 C8.756999969482422,-1.899999976158142 7.7210001945495605,-2.265000104904175 7.390999794006348,-3.061000108718872 C7.060999870300293,-3.8570001125335693 7.534999847412109,-4.8480000495910645 8.484999656677246,-5.546000003814697 C8.852999687194824,-5.816999912261963 9.008999824523926,-6.329999923706055 8.730999946594238,-6.691999912261963 C8.142999649047852,-7.458000183105469 7.458000183105469,-8.142999649047852 6.691999912261963,-8.730999946594238 C6.328999996185303,-9.008999824523926 5.817999839782715,-8.852999687194824 5.546999931335449,-8.484999656677246 C4.848999977111816,-7.534999847412109 3.8580000400543213,-7.060999870300293 3.062000036239624,-7.390999794006348 C2.2660000324249268,-7.7210001945495605 1.9010000228881836,-8.756999969482422 2.0789999961853027,-9.92300033569336 C2.1480000019073486,-10.375 1.8949999809265137,-10.847000122070312 1.4420000314712524,-10.906000137329102 C0.9700000286102295,-10.968000411987305 0.48899999260902405,-11 0,-11 C-0.48899999260902405,-11 -0.9700000286102295,-10.968000411987305 -1.4420000314712524,-10.906000137329102z M4,0 C4,2.2090001106262207 2.2090001106262207,4 0,4 C-2.2090001106262207,4 -4,2.2090001106262207 -4,0 C-4,-2.2090001106262207 -2.2090001106262207,-4 0,-4 C2.2090001106262207,-4 4,-2.2090001106262207 4,0z' }))
+const MusicNoteSVG = (props) => BdApi.React.createElement('svg', { className: classes.icon.icon, ariaHidden: false, viewBox: '0 0 500 500', width: '16', height: '16', ...props }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M328.712,264.539c12.928-21.632,21.504-48.992,23.168-76.064c1.056-17.376-2.816-35.616-11.2-52.768c-13.152-26.944-35.744-42.08-57.568-56.704c-16.288-10.912-31.68-21.216-42.56-35.936l-1.952-2.624c-6.432-8.64-13.696-18.432-14.848-26.656c-1.152-8.32-8.704-14.24-16.96-13.76c-8.384,0.576-14.88,7.52-14.88,15.936v285.12c-13.408-8.128-29.92-13.12-48-13.12c-44.096,0-80,28.704-80,64s35.904,64,80,64s80-28.704,80-64V165.467c24.032,9.184,63.36,32.576,74.176,87.2c-2.016,2.976-3.936,6.176-6.176,8.736c-5.856,6.624-5.216,16.736,1.44,22.56c6.592,5.888,16.704,5.184,22.56-1.44c4.288-4.864,8.096-10.56,11.744-16.512C328.04,265.563,328.393,265.083,328.712,264.539z' }))
+const MiniFileSVG = (props) => BdApi.React.createElement('svg', { className: classes.icon.icon, ariaHidden: false, viewBox: '-32 0 512 512', width: '16', height: '16', ...props }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M96 448Q81 448 73 440 64 431 64 416L64 96Q64 81 73 73 81 64 96 64L217 64Q240 64 256 80L368 192Q384 208 384 231L384 416Q384 431 376 440 367 448 352 448L96 448ZM336 400L336 240 208 240 208 112 112 112 112 400 336 400Z' }))
+const RefreshSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, ariaHidden: 'false', viewBox: '0 0 24 24', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', d: 'M3 12C3 16.9706 7.02944 21 12 21C14.3051 21 16.4077 20.1334 18 18.7083L21 16M21 12C21 7.02944 16.9706 3 12 3C9.69494 3 7.59227 3.86656 6 5.29168L3 8M21 21V16M21 16H16M3 3V8M3 8H8' }))
 
 const classModules = {
-  icon: BdApi.Webpack.getByKeys('icon', 'active', 'buttonWrapper'),
-  menu: BdApi.Webpack.getByKeys('menu', 'labelContainer', 'colorDefault'),
-  result: BdApi.Webpack.getByKeys('result', 'emptyHints', 'emptyHintText'),
-  input: BdApi.Webpack.getByKeys('input', 'inputWrapper', 'disabled'),
-  role: BdApi.Webpack.getByKeys('roleCircle', 'dot'),
-  gif: BdApi.Webpack.getByKeys('icon', 'gifFavoriteButton', 'selected'),
-  gif2: BdApi.Webpack.getByKeys('container', 'gifFavoriteButton', 'referralContainer'),
-  embed: BdApi.Webpack.getByKeys('embed', 'embedMedia', 'embedImage'),
-  file: BdApi.Webpack.getByKeys('size', 'file', 'fileInner'),
-  image: BdApi.Webpack.getByKeys('clickable', 'imageWrapper', 'imageAccessory'),
-  control: BdApi.Webpack.getByKeys('container', 'labelRow', 'control'),
-  category: BdApi.Webpack.getByKeys('container', 'categoryFade', 'categoryName'),
-  textarea: BdApi.Webpack.getByKeys('channelTextArea', 'buttonContainer', 'button'),
-  gutter: BdApi.Webpack.getByKeys('header', 'backButton', 'searchHeader'),
-  horizontal: BdApi.Webpack.getByKeys('flex', 'flexChild', 'horizontal'),
-  flex: BdApi.Webpack.getByKeys('flex', 'alignStart', 'alignEnd'),
-  title: BdApi.Webpack.getByKeys('title', 'h1', 'h5'),
-  container: BdApi.Webpack.getByKeys('wrapper', 'md', 'text-md/normal'),
-  iconLayout: BdApi.Webpack.getByKeys('iconLayout', 'iconContainer', 'clear'),
-  scroller: BdApi.Webpack.getByKeys('disableScrollAnchor', 'thin', 'fade'),
-  look: BdApi.Webpack.getByKeys('button', 'lookBlank', 'colorBrand'),
-  audio: BdApi.Webpack.getByKeys('wrapperAudio', 'wrapperPaused', 'wrapperPlaying'),
-  contentWrapper: BdApi.Webpack.getByKeys('contentWrapper', 'nav', 'positionLayer'),
-  buttons: BdApi.Webpack.getByKeys('profileBioInput', 'buttons', 'attachButton'),
-  upload: BdApi.Webpack.getByKeys('actionBarContainer', 'actionBar', 'upload'),
-  button: BdApi.Webpack.getByKeys('button', 'separator', 'dangerous'),
-  visual: BdApi.Webpack.getByKeys('nonVisualMediaItemContainer', 'nonVisualMediaItem', 'visualMediaItemContainer'),
-  code: BdApi.Webpack.getByKeys('newMosaicStyle', 'attachmentName', 'codeView'),
+  icon: ['icon', 'active', 'buttonWrapper'],
+  menu: ['menu', 'labelContainer', 'colorDefault'],
+  result: ['result', 'emptyHints', 'emptyHintText'],
+  input: ['input', 'inputWrapper', 'disabled'],
+  role: ['roleCircle', 'dot'],
+  gif: ['icon', 'gifFavoriteButton', 'selected'],
+  gif2: ['container', 'gifFavoriteButton', 'referralContainer'],
+  embed: ['embed', 'embedMedia', 'embedImage'],
+  file: ['size', 'file', 'fileInner'],
+  image: ['clickable', 'imageWrapper', 'imageAccessory'],
+  control: ['container', 'labelRow', 'control'],
+  control2: ['control', 'description', 'label'],
+  category: ['container', 'categoryFade', 'categoryName'],
+  textarea: ['channelTextArea', 'buttonContainer', 'button'],
+  gutter: ['header', 'backButton', 'searchHeader'],
+  horizontal: ['flex', 'flexChild', 'horizontal'],
+  flex: ['flex', 'alignStart', 'alignEnd'],
+  title: ['title', 'h1', 'h5'],
+  container: () => BdApi.Webpack.getAllByKeys('wrapper', 'container').find(m => Object.keys(m).length === 2),
+  medium: ['md', 'text-md/normal', 'hasLeading'],
+  scroller: ['disableScrollAnchor', 'thin', 'fade'],
+  look: ['button', 'lookBlank', 'colorBrand'],
+  audio: ['wrapperAudio', 'wrapperPaused', 'wrapperPlaying'],
+  contentWrapper: ['contentWrapper', 'nav', 'positionLayer'],
+  buttons: ['profileBioInput', 'buttons', 'attachButton'],
+  upload: ['actionBarContainer', 'actionBar', 'upload'],
+  button: ['button', 'separator', 'dangerous'],
+  visual: ['nonVisualMediaItemContainer', 'nonVisualMediaItem', 'visualMediaItemContainer'],
+  code: ['newMosaicStyle', 'attachmentName', 'codeView'],
+}
+
+for (const key in classModules) {
+  if (typeof classModules[key] === 'function') {
+    classModules[key] = classModules[key]()
+  } else {
+    classModules[key] = BdApi.Webpack.getByKeys(...classModules[key])
+  }
 }
 
 const classes = {
@@ -115,6 +124,7 @@ const classes = {
     imageWrapper: classModules.image.imageWrapper,
   },
   control: classModules.control.control,
+  control2: classModules.control2.control,
   category: {
     categoryFade: classModules.category.categoryFade,
     categoryText: classModules.category.categoryText,
@@ -131,7 +141,6 @@ const classes = {
     header: classModules.gutter.header,
     backButton: classModules.gutter.backButton,
     searchHeader: classModules.gutter.searchHeader,
-    searchBar: classModules.gutter.searchBar,
     content: classModules.gutter.content,
     container: classModules.gutter.container,
   },
@@ -146,17 +155,14 @@ const classes = {
   container: {
     container: classModules.container.container,
     wrapper: classModules.container.wrapper,
-    medium: classModules.container.md,
-    inner: classModules.container.inner,
-    input: classModules.container.input,
   },
-  iconLayout: {
-    iconLayout: classModules.iconLayout.iconLayout,
-    iconContainer: classModules.iconLayout.iconContainer,
-    icon: classModules.iconLayout.icon,
-    pointer: classModules.iconLayout.pointer,
-    clear: classModules.iconLayout.clear,
-    visible: classModules.iconLayout.visible,
+  medium: {
+    container: classModules.medium.container,
+    medium: classModules.medium.md,
+    hasLeading: classModules.medium.hasLeading,
+    icon: classModules.medium.icon,
+    input: classModules.medium.input,
+    clearButton: classModules.medium.clearButton,
   },
   scroller: {
     thin: classModules.scroller.thin,
@@ -193,13 +199,14 @@ const classes = {
 
 const plugin = BdApi.Plugins.get('FavoriteMedia')
 
-const Dispatcher = BdApi.Webpack.getByKeys('dispatch', 'subscribe')
+const MessageStore = BdApi.Webpack.getStore('SearchMessageStore')
+const ChannelStore = BdApi.Webpack.getStore('ChannelStore')
+const SelectedChannelStore = BdApi.Webpack.getStore('SelectedChannelStore')
+const LocaleStore = BdApi.Webpack.getStore('LocaleStore')
+
 const ElectronModule = BdApi.Webpack.getByKeys('setBadge')
-const MessageStore = BdApi.Webpack.getByKeys('getMessage', 'getMessages')
-const ChannelStore = BdApi.Webpack.getByKeys('getChannel', 'getDMFromUserId')
-const SelectedChannelStore = BdApi.Webpack.getByKeys('getLastSelectedChannelId')
+const Dispatcher = BdApi.Webpack.getByKeys('dispatch', 'subscribe')
 const ComponentDispatch = BdApi.Webpack.getAllByKeys('safeDispatch', 'dispatchToLastSubscribed', { searchExports: true })?.slice(-1)?.[0]
-const LocaleStore = BdApi.Webpack.getByKeys('locale', 'initialize')
 const EPS = {}
 const EPSModules = BdApi.Webpack.getModule(m => Object.keys(m).some(key => m[key]?.toString?.().includes('isSearchSuggestion')))
 const EPSConstants = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('FORUM_CHANNEL_GUIDELINES', 'CREATE_FORUM_POST'), { searchExports: true })
@@ -685,7 +692,7 @@ class EmptyFavorites extends BdApi.React.Component {
     },
     BdApi.React.createElement('svg', {
       className: classes.result.emptyHintFavorite,
-      'aria-hidden': 'false',
+      ariaHidden: 'false',
       viewBox: '0 0 24 24',
       width: '16',
       height: '16',
@@ -1590,7 +1597,7 @@ class MediaCard extends BdApi.React.Component {
       },
       BdApi.React.createElement('svg', {
         className: classes.gif.icon,
-        'aria-hidden': 'false',
+        ariaHidden: 'false',
         viewBox: '0 0 780 780',
         width: '16',
         height: '16',
@@ -2149,6 +2156,11 @@ class MediaPicker extends BdApi.React.Component {
   }
 
   backCategory () {
+    if (this.state.textFilter && !this.state.category) {
+      this.clearSearch()
+      return
+    }
+
     const prevCategory = this.state.categories.find((c) => c.id === this.state.category.category_id)
     this.setState({
       category: prevCategory,
@@ -2432,108 +2444,108 @@ class MediaPicker extends BdApi.React.Component {
       className: `${classes.flex.flex} ${classes.flex.horizontal} ${classes.flex.justifyStart} ${classes.flex.alignCenter} ${classes.flex.noWrap}`,
       style: { flex: '1 1 auto' },
     },
-    this.state.category
+    this.state.category || (this.state.textFilter && !this.state.category)
       ? BdApi.React.createElement('div', {
         className: classes.gutter.backButton,
         role: 'button',
         tabindex: '0',
-        onClick: () => this.backCategory(),
+        onClick: this.backCategory,
       },
       BdApi.React.createElement('svg', {
-        'aria-hidden': false,
+        ariaHidden: true,
         width: '24',
         height: '24',
         viewBox: '0 0 24 24',
         fill: 'none',
+        role: 'img'
       },
       BdApi.React.createElement('path', {
         fill: 'currentColor',
-        d: 'M20 10.9378H14.2199H8.06628L10.502 8.50202L9 7L4 12L9 17L10.502 15.498L8.06628 13.0622H20V10.9378Z',
+        d: 'M3.3 11.3a1 1 0 0 0 0 1.4l5 5a1 1 0 0 0 1.4-1.4L6.42 13H20a1 1 0 1 0 0-2H6.41l3.3-3.3a1 1 0 0 0-1.42-1.4l-5 5Z',
       })
       )
       )
       : null,
+    BdApi.React.createElement('div', {
+      className: `${classes.control2}`,
+    },
+    BdApi.React.createElement('div', {
+      className: `${classes.container.container}`,
+    },
     this.state.category
       ? BdApi.React.createElement('h5', {
         className: `${classes.h5} ${classes.gutter.searchHeader}`,
       }, this.state.category.name)
       : null,
-    this.state.textFilter && !this.state.category
+    !this.state.category
       ? BdApi.React.createElement('div', {
-        className: classes.gutter.backButton,
-        role: 'button',
-        tabindex: '0',
+        className: `${classes.container.wrapper} ${classes.medium.container} ${classes.medium.medium} ${classes.medium.hasLeading}`,
+      },
+      BdApi.React.createElement('div', {
+        className: classes.medium.icon,
         onClick: this.clearSearch,
       },
       BdApi.React.createElement('svg', {
-        'aria-hidden': false,
-        width: '24',
-        height: '24',
+        ariaHidden: true,
+        width: '16',
+        height: '16',
         viewBox: '0 0 24 24',
         fill: 'none',
+        role: 'img',
       },
       BdApi.React.createElement('path', {
-        fill: 'currentColor',
-        d: 'M20 10.9378H14.2199H8.06628L10.502 8.50202L9 7L4 12L9 17L10.502 15.498L8.06628 13.0622H20V10.9378Z',
+        fill: 'var(--icon-primary)',
+        d: 'M15.62 17.03a9 9 0 1 1 1.41-1.41l4.68 4.67a1 1 0 0 1-1.42 1.42l-4.67-4.68ZM17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z',
+        fillRule: 'evenodd',
+        clipRule: 'evenodd',
       })
-      )
-      )
-      : null,
-    !this.state.category
-      ? BdApi.React.createElement('div', {
-        className: `${classes.gutter.searchBar} ${classes.container.container} ${classes.container.wrapper} ${classes.container.medium}`,
-      },
-      BdApi.React.createElement('div', {
-        className: classes.container.inner,
-      },
+      ),
+      ),
       BdApi.React.createElement('input', {
-        className: classes.container.input,
+        className: classes.medium.input,
         placeholder: plugin.instance.strings.searchItem[this.props.type],
         autofocus: true,
+        type: 'text',
         ref: this.inputRef,
         onChange: e => {
           this.setState({ textFilter: e.target.value })
           this.resetScroll()
         },
       }),
-      BdApi.React.createElement('div', {
-        className: `${classes.iconLayout.iconLayout} ${this.state.textFilter ? classes.iconLayout.pointer : ''}`,
-        tabindex: '-1',
+      this.state.textFilter && !this.state.category
+      ? BdApi.React.createElement('div', {
+        className: classes.medium.clearButton,
         role: 'button',
+        tabindex: '0',
         onClick: this.clearSearch,
       },
-      BdApi.React.createElement('div', {
-        className: classes.iconLayout.iconContainer,
-      },
       BdApi.React.createElement('svg', {
-        className: `${classes.iconLayout.icon} ${classes.iconLayout.clear} ${this.state.textFilter ? '' : ` ${classes.iconLayout.visible}`}`,
-        'aria-hidden': false,
-        width: '24',
-        height: '24',
+        ariaHidden: true,
+        width: '16',
+        height: '16',
         viewBox: '0 0 24 24',
+        fill: 'none',
+        role: 'img'
       },
+      BdApi.React.createElement('circle', {
+        cx: '12',
+        cy: '12',
+        r: '10',
+        fill: 'transparent'
+      }),
       BdApi.React.createElement('path', {
         fill: 'currentColor',
-        d: 'M21.707 20.293L16.314 14.9C17.403 13.504 18 11.799 18 10C18 7.863 17.167 5.854 15.656 4.344C14.146 2.832 12.137 2 10 2C7.863 2 5.854 2.832 4.344 4.344C2.833 5.854 2 7.863 2 10C2 12.137 2.833 14.146 4.344 15.656C5.854 17.168 7.863 18 10 18C11.799 18 13.504 17.404 14.9 16.314L20.293 21.706L21.707 20.293ZM10 16C8.397 16 6.891 15.376 5.758 14.243C4.624 13.11 4 11.603 4 10C4 8.398 4.624 6.891 5.758 5.758C6.891 4.624 8.397 4 10 4C11.603 4 13.109 4.624 14.242 5.758C15.376 6.891 16 8.398 16 10C16 11.603 15.376 13.11 14.242 14.243C13.109 15.376 11.603 16 10 16Z',
-      })
-      ),
-      BdApi.React.createElement('svg', {
-        className: `${classes.iconLayout.icon} ${classes.iconLayout.clear} ${this.state.textFilter ? ` ${classes.iconLayout.visible}` : ''}`,
-        'aria-hidden': false,
-        width: '24',
-        height: '24',
-        viewBox: '0 0 24 24',
-      },
-      BdApi.React.createElement('path', {
-        fill: 'currentColor',
-        d: 'M18.4 4L12 10.4L5.6 4L4 5.6L10.4 12L4 18.4L5.6 20L12 13.6L18.4 20L20 18.4L13.6 12L20 5.6L18.4 4Z',
+        d: 'M12 23a11 11 0 1 0 0-22 11 11 0 0 0 0 22Zm4.7-15.7a1 1 0 0 0-1.4 0L12 10.58l-3.3-3.3a1 1 0 0 0-1.4 1.42L10.58 12l-3.3 3.3a1 1 0 1 0 1.42 1.4L12 13.42l3.3 3.3a1 1 0 0 0 1.4-1.42L13.42 12l3.3-3.3a1 1 0 0 0 0-1.4Z',
+        fillRule: 'evenodd',
+        clipRule: 'evenodd',
       })
       )
       )
-      )
-      )
+      : null,
       )
       : null
+    )
+    )
     )
     ),
     BdApi.React.createElement('div', {
