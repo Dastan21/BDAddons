@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.8
+ * @version 1.13.9
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -124,7 +124,10 @@ const classes = {
     imageWrapper: classModules.image.imageWrapper,
   },
   control: classModules.control.control,
-  control2: classModules.control2.control,
+  control2: {
+    container: classModules.control2.container,
+    control: classModules.control2.control,
+  },
   category: {
     categoryFade: classModules.category.categoryFade,
     categoryText: classModules.category.categoryText,
@@ -206,7 +209,7 @@ const LocaleStore = BdApi.Webpack.getStore('LocaleStore')
 
 const ElectronModule = BdApi.Webpack.getByKeys('setBadge')
 const Dispatcher = BdApi.Webpack.getByKeys('dispatch', 'subscribe')
-const ComponentDispatch = BdApi.Webpack.getAllByKeys('safeDispatch', 'dispatchToLastSubscribed', { searchExports: true })?.slice(-1)?.[0]
+const ComponentDispatch = BdApi.Webpack.getAllByKeys('safeDispatch', 'dispatchToLastSubscribed', { searchExports: true }).filter(m => m.emitter?._events?.INSERT_TEXT != null)?.[0]
 const EPS = {}
 const EPSModules = BdApi.Webpack.getModule(m => Object.keys(m).some(key => m[key]?.toString?.().includes('isSearchSuggestion')))
 const EPSConstants = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('FORUM_CHANNEL_GUIDELINES', 'CREATE_FORUM_POST'), { searchExports: true })
@@ -2467,7 +2470,10 @@ class MediaPicker extends BdApi.React.Component {
       )
       : null,
     BdApi.React.createElement('div', {
-      className: `${classes.control2}`,
+      className: `${classes.control2.container}`,
+    },
+    BdApi.React.createElement('div', {
+      className: `${classes.control2.control}`,
     },
     BdApi.React.createElement('div', {
       className: `${classes.container.container}`,
@@ -2544,6 +2550,7 @@ class MediaPicker extends BdApi.React.Component {
       : null,
       )
       : null
+    )
     )
     )
     )
