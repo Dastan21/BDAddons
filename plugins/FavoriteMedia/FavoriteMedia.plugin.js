@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.9
+ * @version 1.13.10
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -209,7 +209,7 @@ const LocaleStore = BdApi.Webpack.getStore('LocaleStore')
 
 const ElectronModule = BdApi.Webpack.getByKeys('setBadge')
 const Dispatcher = BdApi.Webpack.getByKeys('dispatch', 'subscribe')
-const ComponentDispatch = BdApi.Webpack.getAllByKeys('safeDispatch', 'dispatchToLastSubscribed', { searchExports: true }).filter(m => m.emitter?._events?.INSERT_TEXT != null)?.[0]
+const ComponentDispatch = BdApi.Webpack.getAllByKeys('safeDispatch', 'dispatchToLastSubscribed', { searchExports: true })?.[0]
 const EPS = {}
 const EPSModules = BdApi.Webpack.getModule(m => Object.keys(m).some(key => m[key]?.toString?.().includes('isSearchSuggestion')))
 const EPSConstants = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('FORUM_CHANNEL_GUIDELINES', 'CREATE_FORUM_POST'), { searchExports: true })
