@@ -50,7 +50,7 @@ const classModules = {
   embed: ['embed', 'embedMedia', 'embedImage'],
   file: ['size', 'file', 'fileInner'],
   image: ['clickable', 'imageWrapper', 'imageAccessory'],
-  control: ['container', 'labelRow', 'control'],
+  control: ['container', 'label', 'control'],
   control2: ['control', 'description', 'label'],
   category: ['container', 'categoryFade', 'categoryName'],
   textarea: ['channelTextArea', 'buttonContainer', 'button'],
