@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.11
+ * @version 1.13.12
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -46,7 +46,7 @@ const classModules = {
   input: ['input', 'inputWrapper', 'disabled'],
   role: ['roleCircle', 'dot'],
   gif: ['icon', 'gifFavoriteButton', 'selected'],
-  gif2: ['container', 'gifFavoriteButton', 'referralContainer'],
+  gif2: ['container', 'gifFavoriteButton', 'giftCodeContainer'],
   embed: ['embed', 'embedMedia', 'embedImage'],
   file: ['size', 'file', 'fileInner'],
   image: ['clickable', 'imageWrapper', 'imageAccessory'],
