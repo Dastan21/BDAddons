@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.12
+ * @version 1.13.13
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -210,6 +210,7 @@ const LocaleStore = BdApi.Webpack.getStore('LocaleStore')
 const ElectronModule = BdApi.Webpack.getByKeys('setBadge')
 const Dispatcher = BdApi.Webpack.getByKeys('dispatch', 'subscribe')
 const ComponentDispatch = BdApi.Webpack.getAllByKeys('safeDispatch', 'dispatchToLastSubscribed', { searchExports: true })?.[0]
+const ExpressionPicker = BdApi.Webpack.getModule(m => m.type?.toString?.().includes("onSelectGIF"), { searchExports: true })
 const EPS = {}
 const EPSModules = BdApi.Webpack.getModule(m => Object.keys(m).some(key => m[key]?.toString?.().includes('isSearchSuggestion')))
 const EPSConstants = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('FORUM_CHANNEL_GUIDELINES', 'CREATE_FORUM_POST'), { searchExports: true })
@@ -3230,43 +3231,23 @@ module.exports = class FavoriteMedia {
     }, plugin.instance.strings.tabName[mediaType])
   }
 
-  async waitExpressionPicker () {
-    return new Promise((resolve, reject) => {
-      const unpatch = () => { reject(new Error('Plugin stopped')) }
-      Dispatcher.subscribe('FM_UNPATCH_ALL', unpatch)
-      observe(`.${classes.contentWrapper.contentWrapper}`, ($el) => {
-        if ($el == null) return
-        Dispatcher.unsubscribe('FM_UNPATCH_ALL', unpatch)
-        resolve(getOwnerInstance($el))
-      })
-    })
-  }
-
   async patchExpressionPicker () {
-    let ExpressionPicker = null
-    try {
-      ExpressionPicker = await this.waitExpressionPicker()
-    } catch {
-      return
-    }
-
     if (ExpressionPicker == null) {
       BdApi.Logger.error(this.meta.name, 'ExpressionPicker module not found')
       return
     }
 
-    ExpressionPicker.forceUpdate()
+    // https://github.com/TheLazySquid/BetterDiscordPlugins/blob/8b7c749c0eb6bea4af66894ead609939c800a5ce/plugins/ImageFolder/ImageFolder.plugin.js#L1252
+    BdApi.Patcher.after(this.meta.name, ExpressionPicker, 'type', (_, __, returnValue) => {
+      if (returnValue.props?.children?.props?.children == null) return returnValue
 
-    // https://github.com/BetterDiscord/BetterDiscord/blob/3b9ad9b75b6ac64e6740e9c2f1d19fd4615010c7/renderer/src/builtins/emotes/emotemenu.js
-    BdApi.Patcher.after(this.meta.name, ExpressionPicker.constructor.prototype, 'render', (_, __, returnValue) => {
-      const originalChildren = returnValue.props?.children?.props?.children
-      if (originalChildren == null) return
+      const unpatch = BdApi.Patcher.after(this.meta.name, returnValue.props.children.props, "children", (_, __, returnValue) => {
+        unpatch();
+        if (returnValue == null) return returnValue;
 
-      returnValue.props.children.props.children = (...args) => {
-        const childrenReturn = originalChildren(...args)
-        const head = BdApi.Utils.findInTree(childrenReturn, (e) => e?.role === 'tablist', { walkable: ['props', 'children', 'return', 'stateNode'] })?.children
-        const body = BdApi.Utils.findInTree(childrenReturn, (e) => e?.[0]?.type === 'nav', { walkable: ['props', 'children', 'return', 'stateNode'] })
-        if (head == null || body == null) return childrenReturn
+        const body = BdApi.Utils.findInTree(returnValue, (el) => el?.[0]?.type === "nav", { walkable: ["props", "children"] })
+        const head = BdApi.Utils.findInTree(body, (el) => el?.[0]?.props?.["aria-selected"] !== void 0, { walkable: ["props", "children"] })
+        if (head == null || body == null) return returnValue
 
         try {
           const elementType = head[0].type.type
@@ -3285,9 +3266,7 @@ module.exports = class FavoriteMedia {
         } catch (err) {
           BdApi.Logger.error(this.meta.name, 'Error in ExpressionPicker patch:', err.message ?? err)
         }
-
-        return childrenReturn
-      }
+      })
     })
   }
 
