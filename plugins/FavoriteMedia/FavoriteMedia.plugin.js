@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.13
+ * @version 1.13.14
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -3299,7 +3299,7 @@ module.exports = class FavoriteMedia {
       if (this.settings.file.enabled && this.settings.file.showBtn) fmButtons.push(BdApi.React.createElement(MediaButton, { type: 'file', pickerType: props.type, channelId: props.channel.id }))
 
       chatBar.children.push(...fmButtons)
-      chatBar.children.forEach((b) => { if (ALL_TYPES.includes(b.props?.type)) b.key = b.props.type })
+      chatBar.children.forEach((b) => { if (b?.props != null && ALL_TYPES.includes(b.props?.type)) b.key = b.props.type })
 
       setTimeout(() => {
         currentTextareaInput = findTextareaInput()
