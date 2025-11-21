@@ -1,7 +1,7 @@
 /**
  * @name HideEmbedLink
  * @description Hides embed messages link.
- * @version 2.2.4
+ * @version 2.2.5
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink
@@ -151,14 +151,14 @@ module.exports = class HideEmbedLink {
   }
 
   patchMessageContent () {
-    const MessageContentModule = BdApi.Webpack.getModule(m => ['isEdited', 'onUpdate', 'contentRef'].every((s) => m?.type?.toString().includes(s)))
+    const MessageContentModule = BdApi.Webpack.getModule(m => Object.keys(m).some(key => m[key]?.toString?.().includes('MessageContent') && m[key]?.toString?.().includes('contentRef')))
     if (MessageContentModule?.type == null) {
       BdApi.Logger.error(this.meta.name, 'Cannot find MessageContent module')
       return
     }
 
     BdApi.Patcher.after(this.meta.name, MessageContentModule, 'type', (_, [props], ret) => {
-      if (!props.message.embeds.length || !props.content.length) return
+      if (!props?.message?.embeds.length) return
 
       let hasEmbeds = false
       ret.props.children[0].forEach(m => {
