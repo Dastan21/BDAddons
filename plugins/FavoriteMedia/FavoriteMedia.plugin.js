@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.14
+ * @version 1.13.15
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -14,17 +14,6 @@ const { mkdir, lstat, readFileSync, writeFileSync } = require('fs')
 const path = require('path')
 
 const DEFAULT_BACKGROUND_COLOR = '#202225'
-const INTL_CODE_HASH = {
-  GIF_TOOLTIP_ADD_TO_FAVORITES: '4wcdEx',
-  GIF_TOOLTIP_REMOVE_FROM_FAVORITES: '4VpUw8',
-  NO_GIF_FAVORITES_HOW_TO_FAVORITE: '3gyw4e',
-  EDIT: 'bt75u7',
-  GIF: 'I5gL2N',
-  DOWNLOAD: '1WjMbG',
-  USER_POPOUT_MESSAGE: 'GuUH7+',
-  COPY_MEDIA_LINK: '92CPQ0',
-  COPY_MESSAGE_LINK: 'Xrt5Pj',
-}
 const ALL_TYPES = ['image', 'video', 'audio', 'file']
 
 const StarSVG = (props) => BdApi.React.createElement('svg', { className: classes.gif.icon, ariaHidden: 'false', viewBox: '0 0 24 24', width: '20', height: '20' }, props.filled ? BdApi.React.createElement('path', { fill: 'currentColor', d: 'M10.81 2.86c.38-1.15 2-1.15 2.38 0l1.89 5.83h6.12c1.2 0 1.71 1.54.73 2.25l-4.95 3.6 1.9 5.82a1.25 1.25 0 0 1-1.93 1.4L12 18.16l-4.95 3.6c-.98.7-2.3-.25-1.92-1.4l1.89-5.82-4.95-3.6a1.25 1.25 0 0 1 .73-2.25h6.12l1.9-5.83Z' }) : BdApi.React.createElement('path', { fill: 'currentColor', 'fill-rule': 'evenodd', 'clip-rule': 'evenodd', d: 'M2.07 10.94a1.25 1.25 0 0 1 .73-2.25h6.12l1.9-5.83c.37-1.15 2-1.15 2.37 0l1.89 5.83h6.12c1.2 0 1.71 1.54.73 2.25l-4.95 3.6 1.9 5.82a1.25 1.25 0 0 1-1.93 1.4L12 18.16l-4.95 3.6c-.98.7-2.3-.25-1.92-1.4l1.89-5.82-4.95-3.6Zm11.55-.25h5.26l-4.25 3.09 1.62 5-4.25-3.1-4.25 3.1 1.62-5-4.25-3.1h5.26l1.62-5 1.62 5Z' }))
@@ -137,7 +126,7 @@ const classes = {
   },
   textarea: {
     channelTextArea: classModules.textarea.channelTextArea,
-    buttonContainer: classModules.textarea.buttonContainer,
+    buttons: classModules.textarea.buttons,
     button: classModules.textarea.button,
   },
   gutter: {
@@ -231,7 +220,6 @@ const FileRenderedModule = BdApi.Webpack.getByStrings('getObscureReason', 'media
 const FilesUpload = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('addFiles'))
 const MessagesManager = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('sendMessage'))
 const PageControl = BdApi.Webpack.getModule(m => typeof m === 'function' && m.toString()?.includes('totalCount'), { searchExports: true })
-const DiscordIntl = BdApi.Webpack.getByKeys('intl')
 const RestAPI = BdApi.Webpack.getModule(m => typeof m === 'object' && m.del && m.put, { searchExports: true })
 
 const canClosePicker = { context: '', value: true }
@@ -448,7 +436,7 @@ class MediaFavButton extends BdApi.React.Component {
   }
 
   componentDidMount () {
-    this.tooltipFav = BdApi.UI.createTooltip(this.tooltipFavRef.current, this.isFavorited ? getDiscordIntl('GIF_TOOLTIP_REMOVE_FROM_FAVORITES') : getDiscordIntl('GIF_TOOLTIP_ADD_TO_FAVORITES'), { style: 'primary' })
+    this.tooltipFav = BdApi.UI.createTooltip(this.tooltipFavRef.current, this.isFavorited ? plugin.instance.strings.media.removeFromFavorites : plugin.instance.strings.media.addToFavorites, { style: 'primary' })
     Dispatcher.subscribe('FM_FAVORITE_MEDIA', this.updateFavorite)
   }
 
@@ -487,7 +475,7 @@ class MediaFavButton extends BdApi.React.Component {
     if (!MediaFavButton.checkSameUrl(data.url, this.props.url)) return
     const fav = this.isFavorited
     this.setState({ favorited: fav })
-    this.tooltipFav.label = fav ? getDiscordIntl('GIF_TOOLTIP_REMOVE_FROM_FAVORITES') : getDiscordIntl('GIF_TOOLTIP_ADD_TO_FAVORITES')
+    this.tooltipFav.labelElement.textContent = fav ? plugin.instance.strings.media.removeFromFavorites : plugin.instance.strings.media.addToFavorites
   }
 
   async changeFavorite () {
@@ -496,9 +484,7 @@ class MediaFavButton extends BdApi.React.Component {
       if (!props.fromPicker) this.setState({ favorited: this.isFavorited })
       Dispatcher.dispatch({ type: 'FM_FAVORITE_MEDIA', url: props.url })
       if (props.fromPicker) return
-      this.tooltipFav.label = this.state.favorited ? getDiscordIntl('GIF_TOOLTIP_ADD_TO_FAVORITES') : getDiscordIntl('GIF_TOOLTIP_REMOVE_FROM_FAVORITES')
-      this.tooltipFav.hide()
-      this.tooltipFav.show()
+      this.tooltipFav.labelElement.textContent = this.state.favorited ? plugin.instance.strings.media.addToFavorites : plugin.instance.strings.media.removeFromFavorites
       this.setState({ pulse: true })
       setTimeout(() => {
         this.setState({ pulse: false })
@@ -712,7 +698,7 @@ class EmptyFavorites extends BdApi.React.Component {
     ),
     BdApi.React.createElement('div', {
       className: classes.result.emptyHintText,
-    }, this.props.type === 'gif' ? getDiscordIntl('NO_GIF_FAVORITES_HOW_TO_FAVORITE') : plugin.instance.strings.media.emptyHint[this.props.type])
+    }, this.props.type === 'gif' ? plugin.instance.strings.media.favoriteHint : plugin.instance.strings.media.emptyHint[this.props.type])
     )
     ),
     BdApi.React.createElement('div', {
@@ -1491,9 +1477,7 @@ class MediaCard extends BdApi.React.Component {
       const newControls = force !== undefined ? force : !previousState.showControls
 
       if (this.tooltipControls) {
-        this.tooltipControls.label = newControls ? plugin.instance.strings.media.controls.hide : plugin.instance.strings.media.controls.show
-        this.tooltipControls.hide()
-        this.tooltipControls.show()
+        this.tooltipControls.labelElement.textContent = newControls ? plugin.instance.strings.media.controls.hide : plugin.instance.strings.media.controls.show
         if (force !== undefined) this.tooltipControls.hide()
       }
 
@@ -1920,7 +1904,7 @@ class MediaPicker extends BdApi.React.Component {
         modalRef: ref => { modal = ref },
       }),
       {
-        confirmText: op === 'create' ? plugin.instance.strings.create : getDiscordIntl('EDIT'),
+        confirmText: op === 'create' ? plugin.instance.strings.create : plugin.instance.strings.edit,
         onConfirm: () => {
           let res = false
           if (op === 'create') res = createCategory(type, modal.getValues(), categoryId)
@@ -2201,13 +2185,13 @@ class MediaPicker extends BdApi.React.Component {
       render: () => BdApi.React.createElement(MediaMenuItemInput, { id: mediaId, type: this.props.type, loadMedias: this.loadMedias }),
     }, {
       id: 'media-copy-url',
-      label: getDiscordIntl('COPY_MEDIA_LINK'),
+      label: plugin.instance.strings.media.copyMediaLink,
       action: () => ElectronModule.copy(media.url),
     }]
     if (media.message != null) {
       items.push({
         id: 'media-copy-message',
-        label: getDiscordIntl('COPY_MESSAGE_LINK'),
+        label: plugin.instance.strings.media.copyMessageLink,
         action: () => ElectronModule.copy(media.message ?? ''),
       })
     }
@@ -2220,7 +2204,7 @@ class MediaPicker extends BdApi.React.Component {
     }
     items.push({
       id: 'media-send-title',
-      label: getDiscordIntl('USER_POPOUT_MESSAGE'),
+      label: plugin.instance.strings.media.send,
       action: (e) => this.sendMedia(e, mediaId),
     }, {
       id: 'media-upload-title',
@@ -2237,7 +2221,7 @@ class MediaPicker extends BdApi.React.Component {
       }],
     }, {
       id: 'media-download',
-      label: getDiscordIntl('DOWNLOAD'),
+      label: plugin.instance.strings.media.download,
       action: () => MediaPicker.downloadMedia(media, this.props.type),
     })
     const itemsCategories = this.categoriesItems(media)
@@ -2688,7 +2672,7 @@ class MediaButton extends BdApi.React.Component {
 
   render () {
     return BdApi.React.createElement('div', {
-      className: `${classes.textarea.buttonContainer} fm-buttonContainer fm-${this.props.type}`,
+      className: `${classes.textarea.buttons} fm-buttonContainer fm-${this.props.type}`,
       ref: this.buttonRef,
     },
     BdApi.React.createElement('button', {
@@ -2827,7 +2811,7 @@ async function fetchMedia (media) {
   return new Uint8Array(mediaBuffer)
 }
 
-function findTextareaInput ($button = document.getElementsByClassName(classes.textarea.buttonContainer).item(0)) {
+function findTextareaInput ($button = document.getElementsByClassName(classes.textarea.buttons).item(0)) {
   return $button?.closest(`.${classes.textarea.channelTextArea}`)?.querySelector('[role="textbox"]')
 }
 
@@ -2901,10 +2885,6 @@ async function getMediaDimensions (props) {
       $img.src = src
     }
   })
-}
-
-function getDiscordIntl (key) {
-  return DiscordIntl?.intl?.string(DiscordIntl.t[INTL_CODE_HASH[key]]) ?? key
 }
 
 function loadEPS () {
@@ -3500,7 +3480,7 @@ module.exports = class FavoriteMedia {
         data.favorited = this.isFavorited(data.type, data.url)
         const menuItems = [{
           id: `media-${data.favorited ? 'un' : ''}favorite`,
-          label: data.favorited ? getDiscordIntl('GIF_TOOLTIP_REMOVE_FROM_FAVORITES') : getDiscordIntl('GIF_TOOLTIP_ADD_TO_FAVORITES'),
+          label: data.favorited ? plugin.instance.strings.media.removeFromFavorites : plugin.instance.strings.media.addToFavorites,
           icon: () => BdApi.React.createElement(StarSVG, { filled: !data.favorited }),
           action: async () => {
             const switchFavorite = data.favorited ? MediaFavButton.unfavoriteMedia : MediaFavButton.favoriteMedia
@@ -3513,13 +3493,13 @@ module.exports = class FavoriteMedia {
         }]
         menuItems.push({
           id: 'media-copy-url',
-          label: getDiscordIntl('COPY_MEDIA_LINK'),
+          label: plugin.instance.strings.media.copyMediaLink,
           action: () => ElectronModule.copy(data.url),
         })
         if (data.message != null) {
           menuItems.push({
             id: 'media-copy-message',
-            label: getDiscordIntl('COPY_MESSAGE_LINK'),
+            label: plugin.instance.strings.media.copyMessageLink,
             action: () => ElectronModule.copy(data.message ?? ''),
           })
         }
@@ -3532,7 +3512,7 @@ module.exports = class FavoriteMedia {
         }
         menuItems.push({
           id: 'media-download',
-          label: getDiscordIntl('DOWNLOAD'),
+          label: plugin.instance.strings.media.download,
           action: () => {
             const media = { url: data.url, name: getUrlName(data.url) }
             MediaPicker.downloadMedia(media, data.type)
@@ -3608,7 +3588,7 @@ module.exports = class FavoriteMedia {
             type: 'submenu',
             items: mediaTypes.map((type) => ({
               id: `category-create-${type}`,
-              label: type === 'gif' ? getDiscordIntl('GIF') : plugin.instance.strings.tabName[type],
+              label: type === plugin.instance.strings.tabName[type],
               type: 'submenu',
               items: (() => {
                 const items = [{
@@ -4153,12 +4133,14 @@ module.exports = class FavoriteMedia {
     return {
       bg: { // Bulgarian
         tabName: {
+          git: 'GIF',
           image: 'Изображения',
           video: 'Видео',
           audio: 'Аудио',
           file: 'Файл',
         },
         create: 'Създайте',
+        edit: 'Редактиране',
         category: {
           list: 'Категории',
           unsorted: 'Не са сортирани',
@@ -4203,10 +4185,17 @@ module.exports = class FavoriteMedia {
             audio: 'Кликнете върху звездата в ъгъла на звука, за да го поставите в любимите си',
             file: "Кликнете върху ' звезда в ъгъла ' файл, за да го поставите в любимите си",
           },
+          favoriteHint: 'Премини с мишката върху GIF и щракни върху звездата, за да го добавиш към любимите си.',
+          addToFavorites: 'Добави в любими',
+          removeFromFavorites: 'Премахни от любими',
           addTo: 'Добавяне',
           moveTo: 'Ход',
           removeFrom: 'Премахване от категорията',
+          copyMessageLink: 'Копирай връзката на съобщението',
+          copyMediaLink: 'Копирай връзката на медията',
           copySource: 'Копиране на медийния източник',
+          send: 'Изпрати',
+          download: 'Изтегляне',
           upload: {
             title: 'Качване',
             normal: 'Нормално',
@@ -4422,12 +4411,14 @@ module.exports = class FavoriteMedia {
       },
       cs: { // Czech
         tabName: {
+          git: 'GIF',
           image: 'Obrázek',
           video: 'Video',
           audio: 'Zvuk',
           file: 'Soubor',
         },
         create: 'Vytvořit',
+        edit: 'Upravit',
         category: {
           list: 'Kategorie',
           unsorted: 'Neřazeno',
@@ -4472,10 +4463,17 @@ module.exports = class FavoriteMedia {
             audio: 'Kliknutím na hvězdičku v rohu zvukové nahrávky ji přidáte mezi oblíbené',
             file: 'Kliknutím na hvězdičku v rohu souboru jej přidáte mezi oblíbené',
           },
+          favoriteHint: 'Najetím myší na GIF klikni na hvězdu, aby sis ho přidal(a) do oblíbených.',
+          addToFavorites: 'Přidat k oblíbeným',
+          removeFromFavorites: 'Odebrat z oblíbených',
           addTo: 'Přidat',
           moveTo: 'Hýbat se',
           removeFrom: 'Odebrat z kategorie',
+          copyMessageLink: 'Zkopírovat odkaz na zprávu',
+          copyMediaLink: 'Zkopírovat odkaz na médium',
           copySource: 'Kopírovat zdroj médií',
+          send: 'Odeslat',
+          download: 'Stáhnout',
           upload: {
             title: 'nahrát',
             normal: 'Normální',
@@ -4691,12 +4689,14 @@ module.exports = class FavoriteMedia {
       },
       da: { // Danish
         tabName: {
+          git: 'GIF',
           image: 'Billede',
           video: 'Video',
           audio: 'Lyd',
           file: 'Fil',
         },
         create: 'skab',
+        edit: 'Rediger',
         category: {
           list: 'Kategorier',
           unsorted: 'Ikke sorteret',
@@ -4741,10 +4741,17 @@ module.exports = class FavoriteMedia {
             audio: 'Klik på stjernen i hjørnet af en lyd for at placere den i dine favoritter',
             file: 'Klik på stjernen i hjørnet af en fil for at tilføje den til dine favoritter',
           },
+          favoriteHint: 'Hold musen over en GIF og klik på stjernen for at føje den til dine favoritter.',
+          addToFavorites: 'Tilføj til favoritter',
+          removeFromFavorites: 'Fjern fra favoritter',
           addTo: 'Tilføje',
           moveTo: 'Bevæge sig',
           removeFrom: 'Fjern fra kategori',
+          copyMessageLink: 'Kopiér beskedens link',
+          copyMediaLink: 'Kopiér medielinket',
           copySource: 'Kopier mediekilde',
+          send: 'Send',
+          download: 'Hent',
           upload: {
             title: 'Upload',
             normal: 'Normal',
@@ -4960,12 +4967,14 @@ module.exports = class FavoriteMedia {
       },
       de: { // German
         tabName: {
+          git: 'GIF',
           image: 'Bild',
           video: 'Video',
           audio: 'Audio',
           file: 'Datei',
         },
         create: 'Erstellen',
+        edit: 'Bearbeiten',
         category: {
           list: 'Kategorien',
           unsorted: 'Nicht sortiert',
@@ -5010,10 +5019,17 @@ module.exports = class FavoriteMedia {
             audio: 'Klicken Sie auf den Stern in der Ecke eines Audios, um es in Ihre Favoriten aufzunehmen',
             file: 'Klicken Sie auf den Stern in der Ecke einer Datei, um sie zu Ihren Favoriten hinzuzufügen',
           },
+          favoriteHint: 'Fahre mit der Maus über ein GIF und klicke auf den Stern, um es zu deinen Favoriten hinzuzufügen.',
+          addToFavorites: 'Zu den Favoriten hinzufügen',
+          removeFromFavorites: 'Aus den Favoriten entfernen',
           addTo: 'Hinzufügen',
           moveTo: 'Bewegung',
           removeFrom: 'Aus Kategorie entfernen',
+          copyMessageLink: 'Link der Nachricht kopieren',
+          copyMediaLink: 'Medienlink kopieren',
           copySource: 'Medienquelle kopieren',
+          send: 'Senden',
+          download: 'Herunterladen',
           upload: {
             title: 'Hochladen',
             normal: 'Normal',
@@ -5229,12 +5245,14 @@ module.exports = class FavoriteMedia {
       },
       el: { // Greek
         tabName: {
+          git: 'GIF',
           image: 'Εικόνα',
           video: 'βίντεο',
           audio: 'Ήχος',
           file: 'Αρχείο',
         },
         create: 'Δημιουργώ',
+        edit: 'Επεξεργασία',
         category: {
           list: 'Κατηγορίες',
           unsorted: 'Χωρίς ταξινόμηση',
@@ -5279,10 +5297,17 @@ module.exports = class FavoriteMedia {
             audio: 'Κάντε κλικ στο αστέρι στη γωνία ενός ήχου για να το βάλετε στα αγαπημένα σας',
             file: 'Κάντε κλικ στο αστέρι στη γωνία ενός αρχείου για να το προσθέσετε στα αγαπημένα σας',
           },
+          favoriteHint: 'Τοποθέτησε τον δείκτη πάνω σε ένα GIF και κάνε κλικ στο αστέρι για να το προσθέσεις στα αγαπημένα σου.',
+          addToFavorites: 'Προσθήκη στα αγαπημένα',
+          removeFromFavorites: 'Αφαίρεση από τα αγαπημένα',
           addTo: 'Προσθήκη',
           moveTo: 'Κίνηση',
           removeFrom: 'Κατάργηση από την κατηγορία',
+          copyMessageLink: 'Αντιγραφή συνδέσμου του μηνύματος',
+          copyMediaLink: 'Αντιγραφή συνδέσμου του μέσου',
           copySource: 'Αντιγραφή πηγής πολυμέσων',
+          send: 'Αποστολή',
+          download: 'Λήψη',
           upload: {
             title: 'Μεταφόρτωση',
             normal: 'Κανονικός',
@@ -5498,12 +5523,14 @@ module.exports = class FavoriteMedia {
       },
       en: { // English
         tabName: {
+          git: 'GIF',
           image: 'Image',
           video: 'Video',
           audio: 'Audio',
           file: 'File',
         },
         create: 'Create',
+        edit: 'Edit',
         category: {
           list: 'Categories',
           unsorted: 'Unsorted',
@@ -5548,10 +5575,17 @@ module.exports = class FavoriteMedia {
             audio: 'Click on the star in the corner of an audio to bookmark it',
             file: 'Click on the star in the corner of a file to bookmark it',
           },
+          favoriteHint: 'Hover over a GIF and click the star to add it to your favorites.',
+          addToFavorites: 'Add to favorites',
+          removeFromFavorites: 'Remove from favorites',
           addTo: 'Add',
           moveTo: 'Move',
           removeFrom: 'Remove From Category',
+          copyMessageLink: 'Copy the message link',
+          copyMediaLink: 'Copy the media link',
           copySource: 'Copy Source Link',
+          send: 'Send',
+          download: 'Download',
           upload: {
             title: 'Upload',
             normal: 'Normal',
@@ -5649,12 +5683,14 @@ module.exports = class FavoriteMedia {
       },
       es: { // Spanish
         tabName: {
+          git: 'GIF',
           image: 'Imagen',
           video: 'Video',
           audio: 'Audio',
           file: 'Archivo',
         },
         create: 'Crear',
+        edit: 'Editar',
         category: {
           list: 'Categorías',
           unsorted: 'No ordenado',
@@ -5699,10 +5735,17 @@ module.exports = class FavoriteMedia {
             audio: 'Haga clic en la estrella en la esquina de un audio para ponerlo en sus favoritos',
             file: 'Haga clic en la estrella en la esquina de un archivo para agregarlo a sus favoritos',
           },
+          favoriteHint: 'Pasa el cursor sobre un GIF y haz clic en la estrella para añadirlo a tus favoritos.',
+          addToFavorites: 'Añadir a favoritos',
+          removeFromFavorites: 'Quitar de favoritos',
           addTo: 'Agregar',
           moveTo: 'Moverse',
           removeFrom: 'Quitar de la categoría',
+          copyMessageLink: 'Copiar el enlace del mensaje',
+          copyMediaLink: 'Copiar el enlace del medio',
           copySource: 'Copiar fuente multimedia',
+          send: 'Enviar',
+          download: 'Descargar',
           upload: {
             title: 'Subir',
             normal: 'normal',
@@ -5918,12 +5961,14 @@ module.exports = class FavoriteMedia {
       },
       fi: { // Finnish
         tabName: {
+          git: 'GIF',
           image: 'Kuva',
           video: 'Video',
           audio: 'Audio',
           file: 'Tiedosto',
         },
         create: 'Luoda',
+        edit: 'Muokkaa',
         category: {
           list: 'Luokat',
           unsorted: 'Ei lajiteltu',
@@ -5968,10 +6013,17 @@ module.exports = class FavoriteMedia {
             audio: 'Napsauta äänen kulmassa olevaa tähteä lisätäksesi sen suosikkeihisi',
             file: 'Napsauta tähteä tiedoston kulmassa lisätäksesi sen suosikkeihisi',
           },
+          favoriteHint: 'Vie hiiri GIF-kuvan päälle ja napsauta tähteä lisätäksesi sen suosikkeihisi.',
+          addToFavorites: 'Lisää suosikkeihin',
+          removeFromFavorites: 'Poista suosikeista',
           addTo: 'Lisätä',
           moveTo: 'Liikkua',
           removeFrom: 'Poista luokasta',
+          copyMessageLink: 'Kopioi viestin linkki',
+          copyMediaLink: 'Kopioi median linkki',
           copySource: 'Kopioi medialähde',
+          send: 'Lähetä',
+          download: 'Ladata',
           upload: {
             title: 'Lähetä',
             normal: 'Normaali',
@@ -6187,12 +6239,14 @@ module.exports = class FavoriteMedia {
       },
       fr: { // French
         tabName: {
+          git: 'GIF',
           image: 'Image',
           video: 'Vidéo',
           audio: 'Audio',
           file: 'Fichier',
         },
         create: 'Créer',
+        edit: 'Modifier',
         category: {
           list: 'Catégories',
           unsorted: 'Non trié',
@@ -6237,10 +6291,17 @@ module.exports = class FavoriteMedia {
             audio: 'Clique sur l\'étoile dans le coin d\'un audio pour le mettre dans tes favoris',
             file: 'Clique sur l\'étoile dans le coin d\'un fichier pour le mettre dans tes favoris',
           },
+          favoriteHint: 'Survole un GIF et clique sur l\'étoile pour l\'ajouter à tes favoris.',
+          addToFavorites: 'Ajouter aux favoris',
+          removeFromFavorites: 'Retirer des favoris',
           addTo: 'Ajouter',
           moveTo: 'Déplacer',
           removeFrom: 'Retirer de la catégorie',
+          copyMessageLink: 'Copier le lien du message',
+          copyMediaLink: 'Copier le lien du média',
           copySource: 'Copier la source du média',
+          send: 'Envoyer',
+          download: 'Télécharger',
           upload: {
             title: 'Uploader',
             normal: 'Normal',
@@ -6456,12 +6517,14 @@ module.exports = class FavoriteMedia {
       },
       hi: { // Hindi
         tabName: {
+          git: 'GIF',
           image: 'चित्र',
           video: 'वीडियो',
           audio: 'ऑडियो',
           file: 'फ़ाइल',
         },
         create: 'बनाएं',
+        edit: 'संपादित करें',
         category: {
           list: 'श्रेणियाँ',
           unsorted: 'अवर्गीकृत',
@@ -6506,10 +6569,17 @@ module.exports = class FavoriteMedia {
             audio: 'किसी ऑडियो को अपने पसंदीदा में जोड़ने के लिए उसके कोने में स्थित तारे पर क्लिक करें',
             file: 'किसी फ़ाइल को अपने पसंदीदा में जोड़ने के लिए उसके कोने में स्थित तारे पर क्लिक करें',
           },
+          favoriteHint: 'किसी GIF पर कर्सर ले जाएँ और उसे पसंदीदा में जोड़ने के लिए सितारे पर क्लिक करें।',
+          addToFavorites: 'पसंदीदा में जोड़ें',
+          removeFromFavorites: 'पसंदीदा से हटाएँ',
           addTo: 'जोड़ना',
           moveTo: 'कदम',
           removeFrom: 'श्रेणी से हटाएँ',
+          copyMessageLink: 'संदेश के लिंक को कॉपी करें',
+          copyMediaLink: 'मीडिया के लिंक को कॉपी करें',
           copySource: 'मीडिया स्रोत की प्रतिलिपि बनाएँ',
+          send: 'भेजें',
+          download: 'डाउनलोड करना',
           upload: {
             title: 'डालना',
             normal: 'सामान्य',
@@ -6725,12 +6795,14 @@ module.exports = class FavoriteMedia {
       },
       hr: { // Croatian
         tabName: {
+          git: 'GIF',
           image: 'Slika',
           video: 'Video',
           audio: 'Audio',
           file: 'Datoteka',
         },
         create: 'Stvoriti',
+        edit: 'Uredi',
         category: {
           list: 'Kategorije',
           unsorted: 'Nije sortirano',
@@ -6775,10 +6847,17 @@ module.exports = class FavoriteMedia {
             audio: 'Kliknite zvjezdicu u kutu zvuka da biste je stavili među svoje favorite',
             file: 'Pritisnite zvjezdicu u kutu datoteke kako biste je dodali u svoje favorite',
           },
+          favoriteHint: 'Prijeđi mišem preko GIF-a i klikni na zvjezdicu kako bi ga dodao u favorite.',
+          addToFavorites: 'Dodaj u favorite',
+          removeFromFavorites: 'Ukloni iz favorita',
           addTo: 'Dodati',
           moveTo: 'Potez',
           removeFrom: 'Ukloni iz kategorije',
+          copyMessageLink: 'Kopiraj poveznicu poruke',
+          copyMediaLink: 'Kopiraj poveznicu medija',
           copySource: 'Kopiraj izvor medija',
+          send: 'Pošalji',
+          download: 'Preuzeti',
           upload: {
             title: 'Učitaj',
             normal: 'Normalan',
@@ -6994,12 +7073,14 @@ module.exports = class FavoriteMedia {
       },
       hu: { // Hungarian
         tabName: {
+          git: 'GIF',
           image: 'Kép',
           video: 'Videó',
           audio: 'Hang',
           file: 'Fájl',
         },
         create: 'Teremt',
+        edit: 'Szerkesztés',
         category: {
           list: 'Kategóriák',
           unsorted: 'Nincs rendezve',
@@ -7044,10 +7125,17 @@ module.exports = class FavoriteMedia {
             audio: 'Kattintson a csillagra egy hang sarkában, hogy a kedvencek közé helyezze',
             file: 'Kattintson a csillagra a fájl sarkában, hogy hozzáadja a kedvenceihez',
           },
+          favoriteHint: 'Vidd az egeret a GIF fölé, majd kattints a csillagra, hogy hozzáadd a kedvencekhez.',
+          addToFavorites: 'Hozzáadás a kedvencekhez',
+          removeFromFavorites: 'Eltávolítás a kedvencekből',
           addTo: 'Hozzáadás',
           moveTo: 'Mozog',
           removeFrom: 'Törlés a kategóriából',
+          copyMessageLink: 'Üzenet linkjének másolása',
+          copyMediaLink: 'Médiumnak a linkjének másolása',
           copySource: 'Médiaforrás másolása',
+          send: 'Küldés',
+          download: 'Letöltés',
           upload: {
             title: 'Feltöltés',
             normal: 'Normál',
@@ -7263,12 +7351,14 @@ module.exports = class FavoriteMedia {
       },
       it: { // Italian
         tabName: {
+          git: 'GIF',
           image: 'Immagine',
           video: 'video',
           audio: 'Audio',
           file: 'File',
         },
         create: 'Creare',
+        edit: 'Modifica',
         category: {
           list: 'Categorie',
           unsorted: 'Non ordinato',
@@ -7313,10 +7403,17 @@ module.exports = class FavoriteMedia {
             audio: 'Fai clic sulla stella nell\'angolo di un audio per inserirlo nei preferiti',
             file: "Fai clic sulla stella nell'angolo di un file per aggiungerlo ai tuoi preferiti",
           },
+          favoriteHint: 'Passa il mouse su una GIF e clicca sulla stella per aggiungerla ai preferiti.',
+          addToFavorites: 'Aggiungi ai preferiti',
+          removeFromFavorites: 'Rimuovi dai preferiti',
           addTo: 'Inserisci',
           moveTo: 'Spostare',
           removeFrom: 'Rimuovi dalla categoria',
+          copyMessageLink: 'Copia il link del messaggio',
+          copyMediaLink: 'Copia il link del media',
           copySource: 'Copia la fonte multimediale',
+          send: 'Invia',
+          download: 'Scaricare',
           upload: {
             title: 'Caricare',
             normal: 'Normale',
@@ -7532,12 +7629,14 @@ module.exports = class FavoriteMedia {
       },
       ja: { // Japanese
         tabName: {
+          git: 'GIF',
           image: '画像',
           video: 'ビデオ',
           audio: 'オーディオ',
           file: 'ファイル',
         },
         create: '作成する',
+        edit: '編集',
         category: {
           list: 'カテゴリー',
           unsorted: 'ソートされていません',
@@ -7582,10 +7681,17 @@ module.exports = class FavoriteMedia {
             audio: 'オーディオの隅にある星をクリックして、お気に入りに入れます',
             file: 'ファイルの隅にある星をクリックしてお気に入りに追加します',
           },
+          favoriteHint: 'GIF にカーソルを合わせ、星をクリックしてお気に入りに追加します。',
+          addToFavorites: 'お気に入りに追加',
+          removeFromFavorites: 'お気に入りから削除',
           addTo: '追加',
           moveTo: '移動',
           removeFrom: 'カテゴリから削除',
+          copyMessageLink: 'メッセージのリンクをコピー',
+          copyMediaLink: 'メディアのリンクをコピー',
           copySource: 'メディア ソースのコピー',
+          send: '送信',
+          download: 'ダウンロード',
           upload: {
             title: 'アップロード',
             normal: '正常',
@@ -7801,12 +7907,14 @@ module.exports = class FavoriteMedia {
       },
       ko: { // Korean
         tabName: {
+          git: 'GIF',
           image: '그림',
           video: '비디오',
           audio: '오디오',
           file: '파일',
         },
         create: '창조하다',
+        edit: '수정',
         category: {
           list: '카테고리',
           unsorted: '정렬되지 않음',
@@ -7851,10 +7959,17 @@ module.exports = class FavoriteMedia {
             audio: '오디오 모서리에있는 별표를 클릭하여 즐겨 찾기에 넣습니다.',
             file: '즐겨찾기에 추가하려면 파일 모서리에 있는 별표를 클릭하세요.',
           },
+          favoriteHint: 'GIF 위에 마우스를 올리고 별을 클릭하여 즐겨찾기에 추가하세요.',
+          addToFavorites: '즐겨찾기에 추가',
+          removeFromFavorites: '즐겨찾기에서 제거',
           addTo: '더하다',
           moveTo: '움직임',
           removeFrom: '카테고리에서 제거',
+          copyMessageLink: '메시지 링크 복사',
+          copyMediaLink: '미디어 링크 복사',
           copySource: '미디어 소스 복사',
+          send: '보내기',
+          download: '다운로드',
           upload: {
             title: '업로드',
             normal: '표준',
@@ -8070,12 +8185,14 @@ module.exports = class FavoriteMedia {
       },
       lt: { // Lithuanian
         tabName: {
+          git: 'GIF',
           image: 'Paveikslėlis',
           video: 'Vaizdo įrašas',
           audio: 'Garso įrašas',
           file: 'Failas',
         },
         create: 'Kurti',
+        edit: 'Redaguoti',
         category: {
           list: 'Kategorijos',
           unsorted: 'Nerūšiuota',
@@ -8120,10 +8237,17 @@ module.exports = class FavoriteMedia {
             audio: 'Spustelėkite žvaigždutę garso kampe, kad įtrauktumėte ją į mėgstamiausius',
             file: 'Spustelėkite žvaigždutę failo kampe, kad pridėtumėte jį prie mėgstamiausių',
           },
+          favoriteHint: 'Užvesk žymeklį ant GIF ir spustelėk žvaigždutę, kad pridėtum jį prie mėgstamiausių.',
+          addToFavorites: 'Pridėti prie mėgstamiausių',
+          removeFromFavorites: 'Pašalinti iš mėgstamiausių',
           addTo: 'Papildyti',
           moveTo: 'Perkelti',
           removeFrom: 'Pašalinti iš kategorijos',
+          copyMessageLink: 'Kopijuoti žinutės nuorodą',
+          copyMediaLink: 'Kopijuoti medijos nuorodą',
           copySource: 'Nukopijuokite medijos šaltinį',
+          send: 'Siųsti',
+          download: 'Atsisiųsti',
           upload: {
             title: 'Įkelti',
             normal: 'Normalus',
@@ -8339,12 +8463,14 @@ module.exports = class FavoriteMedia {
       },
       nl: { // Dutch
         tabName: {
+          git: 'GIF',
           image: 'Afbeelding',
           video: 'Video',
           audio: 'Audio',
           file: 'Bestand',
         },
         create: 'scheppen',
+        edit: 'Bewerken',
         category: {
           list: 'Kategorier',
           unsorted: 'Niet gesorteerd',
@@ -8389,10 +8515,17 @@ module.exports = class FavoriteMedia {
             audio: 'Klik op de ster in de hoek van een audio om deze in je favorieten te plaatsen',
             file: 'Klik op de ster in de hoek van een bestand om het aan uw favorieten toe te voegen',
           },
+          favoriteHint: 'Beweeg de muis over een GIF en klik op de ster om het aan je favorieten toe te voegen.',
+          addToFavorites: 'Toevoegen aan favorieten',
+          removeFromFavorites: 'Verwijderen uit favorieten',
           addTo: 'Toevoegen',
           moveTo: 'Verplaatsen, verschuiven',
           removeFrom: 'Verwijderen uit categorie',
+          copyMessageLink: 'De link van het bericht kopiëren',
+          copyMediaLink: 'De medialink kopiëren',
           copySource: 'Mediabron kopiëren',
+          send: 'Verzenden',
+          download: 'Downloaden',
           upload: {
             title: 'Uploaden',
             normal: 'normaal',
@@ -8608,12 +8741,14 @@ module.exports = class FavoriteMedia {
       },
       no: { // Norwegian
         tabName: {
+          git: 'GIF',
           image: 'Bilde',
           video: 'Video',
           audio: 'Lyd',
           file: 'Fil',
         },
         create: 'Skape',
+        edit: 'Rediger',
         category: {
           list: 'Kategorier',
           unsorted: 'Ikke sortert',
@@ -8658,10 +8793,17 @@ module.exports = class FavoriteMedia {
             audio: 'Klikk på stjernen i hjørnet av en lyd for å sette den i favorittene dine',
             file: 'Klikk på stjernen i hjørnet av en fil for å legge den til i favorittene dine',
           },
+          favoriteHint: 'Hold markøren over en GIF og klikk på stjernen for å legge den til i favorittene dine.',
+          addToFavorites: 'Legg til i favoritter',
+          removeFromFavorites: 'Fjern fra favoritter',
           addTo: 'Legge til',
           moveTo: 'Bevege seg',
           removeFrom: 'Fjern fra kategori',
+          copyMessageLink: 'Kopier meldingslenken',
+          copyMediaLink: 'Kopier medielenken',
           copySource: 'Kopier mediekilde',
+          send: 'Send',
+          download: 'Last ned',
           upload: {
             title: 'Laste opp',
             normal: 'Vanlig',
@@ -8877,12 +9019,14 @@ module.exports = class FavoriteMedia {
       },
       pl: { // Polish
         tabName: {
+          git: 'GIF',
           image: 'Obrazek',
           video: 'Wideo',
           audio: 'Audio',
           file: 'Plik',
         },
         create: 'Stwórz',
+        edit: 'Edytuj',
         category: {
           list: 'Kategorie',
           unsorted: 'Nie posortowane',
@@ -8927,10 +9071,17 @@ module.exports = class FavoriteMedia {
             audio: 'Kliknij gwiazdkę w rogu nagrania, aby umieścić go w ulubionych your',
             file: 'Kliknij gwiazdkę w rogu pliku, aby dodać go do ulubionych',
           },
+          favoriteHint: 'Najedź kursorem na GIF i kliknij gwiazdkę, aby dodać go do ulubionych.',
+          addToFavorites: 'Dodaj do ulubionych',
+          removeFromFavorites: 'Usuń z ulubionych',
           addTo: 'Dodaj',
           moveTo: 'Ruszaj się',
           removeFrom: 'Usuń z kategorii',
+          copyMessageLink: 'Skopiuj link do wiadomości',
+          copyMediaLink: 'Skopiuj link do medium',
           copySource: 'Kopiuj źródło multimediów',
+          send: 'Wyślij',
+          download: 'Pobierać / Pobrać',
           upload: {
             title: 'Przekazać plik',
             normal: 'Normalna',
@@ -9146,12 +9297,14 @@ module.exports = class FavoriteMedia {
       },
       pt: { // Portuguese (Brazil)
         tabName: {
+          git: 'GIF',
           image: 'Foto',
           video: 'Vídeo',
           audio: 'Áudio',
           file: 'Arquivo',
         },
         create: 'Crio',
+        edit: 'Editar',
         category: {
           list: 'Categorias',
           unsorted: 'Não classificado',
@@ -9196,10 +9349,17 @@ module.exports = class FavoriteMedia {
             audio: 'Clique na estrela no canto de um áudio para colocá-lo em seus favoritos',
             file: 'Clique na estrela no canto de um arquivo para adicioná-lo aos seus favoritos',
           },
+          favoriteHint: 'Passe o cursor sobre um GIF e clique na estrela para adicioná-lo aos seus favoritos.',
+          addToFavorites: 'Adicionar aos favoritos',
+          removeFromFavorites: 'Remover dos favoritos',
           addTo: 'Adicionar',
           moveTo: 'Mover',
           removeFrom: 'Remover da categoria',
+          copyMessageLink: 'Copiar o link da mensagem',
+          copyMediaLink: 'Copiar o link da mídia',
           copySource: 'Copiar fonte de mídia',
+          send: 'Enviar',
+          download: 'Baixar',
           upload: {
             title: 'Envio',
             normal: 'Normal',
@@ -9415,12 +9575,14 @@ module.exports = class FavoriteMedia {
       },
       ro: { // Romanian
         tabName: {
+          git: 'GIF',
           image: 'Imagine',
           video: 'Video',
           audio: 'Audio',
           file: 'Fişier',
         },
         create: 'Crea',
+        edit: 'Modifică',
         category: {
           list: 'Categorii',
           unsorted: 'Nu sunt sortate',
@@ -9465,10 +9627,17 @@ module.exports = class FavoriteMedia {
             audio: 'Faceți clic pe steaua din colțul unui sunet pentru ao pune în preferatele dvs.',
             file: 'Faceți clic pe steaua din colțul unui fișier pentru a-l adăuga la favorite',
           },
+          favoriteHint: 'Treci cu cursorul peste un GIF și dă clic pe stea pentru a-l adăuga la favorite.',
+          addToFavorites: 'Adaugă la favorite',
+          removeFromFavorites: 'Elimină din favorite',
           addTo: 'Adăuga',
           moveTo: 'Mișcare',
           removeFrom: 'Eliminați din categorie',
+          copyMessageLink: 'Copiază linkul mesajului',
+          copyMediaLink: 'Copiază linkul media',
           copySource: 'Copiați sursa media',
+          send: 'Trimite',
+          download: 'Descărca',
           upload: {
             title: 'Încărcare',
             normal: 'Normal',
@@ -9684,12 +9853,14 @@ module.exports = class FavoriteMedia {
       },
       ru: { // Russian
         tabName: {
+          git: 'ГИФ',
           image: 'Картина',
           video: 'Видео',
           audio: 'Аудио',
           file: 'Файл',
         },
         create: 'Создавать',
+        edit: 'Изменить',
         category: {
           list: 'Категории',
           unsorted: 'Не отсортировано',
@@ -9734,10 +9905,17 @@ module.exports = class FavoriteMedia {
             audio: 'Нажмите на звездочку в углу аудио, чтобы добавить его в избранное.',
             file: 'Нажмите на звездочку в углу файла, чтобы добавить его в избранное.',
           },
+          favoriteHint: 'Наведи курсор на GIF и нажми на звёздочку, чтобы добавить его в избранное.',
+          addToFavorites: 'Добавить в избранное',
+          removeFromFavorites: 'Удалить из избранного',
           addTo: 'Добавлять',
           moveTo: 'Двигаться',
           removeFrom: 'Удалить из категории',
+          copyMessageLink: 'Скопировать ссылку на сообщение',
+          copyMediaLink: 'Скопировать ссылку на медиа',
           copySource: 'Копировать медиа-источник',
+          send: 'Отправить',
+          download: 'Скачать',
           upload: {
             title: 'Загрузить',
             normal: 'Обычный',
@@ -9953,12 +10131,14 @@ module.exports = class FavoriteMedia {
       },
       sk: { // Slovak
         tabName: {
+          git: 'GIF',
           image: 'Slika',
           video: 'Video',
           audio: 'Avdio',
           file: 'mapa',
         },
         create: 'Ustvari',
+        edit: 'Upraviť',
         category: {
           list: 'kategorije',
           unsorted: 'Nerazvrščeno',
@@ -10003,10 +10183,17 @@ module.exports = class FavoriteMedia {
             audio: 'Kliknite zvezdico v kotu zvoka, da ga dodate med priljubljene',
             file: 'Kliknite zvezdico v kotu datoteke, da jo dodate med priljubljene',
           },
+          favoriteHint: 'Prejdi kurzorom cez GIF a klikni na hviezdičku, aby si ho pridal do obľúbených.',
+          addToFavorites: 'Pridať do obľúbených',
+          removeFromFavorites: 'Odstrániť z obľúbených',
           addTo: 'Dodaj',
           moveTo: 'Premakni se',
           removeFrom: 'Odstrani iz kategorije',
+          copyMessageLink: 'Skopírovať odkaz správy',
+          copyMediaLink: 'Skopírovať odkaz média',
           copySource: 'Kopiraj vir predstavnosti',
+          send: 'Odoslať',
+          download: 'Stiahnuť',
           upload: {
             title: 'Naloži',
             normal: 'normalno',
@@ -10222,12 +10409,14 @@ module.exports = class FavoriteMedia {
       },
       sv: { // Swedish
         tabName: {
+          git: 'GIF',
           image: 'Bild',
           video: 'Video',
           audio: 'Audio',
           file: 'Fil',
         },
         create: 'Skapa',
+        edit: 'Redigera',
         category: {
           list: 'Kategorier',
           unsorted: 'Inte sorterat',
@@ -10272,10 +10461,17 @@ module.exports = class FavoriteMedia {
             audio: 'Klicka på stjärnan i hörnet av ett ljud för att placera den i dina favoriter',
             file: 'Klicka på stjärnan i hörnet av en fil för att lägga till den i dina favoriter',
           },
+          favoriteHint: 'Håll muspekaren över en GIF och klicka på stjärnan för att lägga till den i dina favoriter.',
+          addToFavorites: 'Lägg till i favoriter',
+          removeFromFavorites: 'Ta bort från favoriter',
           addTo: 'Lägg till',
           moveTo: 'Flytta',
           removeFrom: 'Ta bort från kategori',
+          copyMessageLink: 'Kopiera meddelandelänken',
+          copyMediaLink: 'Kopiera medialänken',
           copySource: 'Kopiera mediakälla',
+          send: 'Skicka',
+          download: 'Ladda ner',
           upload: {
             title: 'Ladda upp',
             normal: 'Vanligt',
@@ -10491,12 +10687,14 @@ module.exports = class FavoriteMedia {
       },
       th: { // Thai
         tabName: {
+          git: 'GIF',
           image: 'ภาพ',
           video: 'วีดีโอ',
           audio: 'เครื่องเสียง',
           file: 'ไฟล์',
         },
         create: 'สร้าง',
+        edit: 'แก้ไข',
         category: {
           list: 'หมวดหมู่',
           unsorted: 'ไม่เรียง',
@@ -10541,10 +10739,17 @@ module.exports = class FavoriteMedia {
             audio: 'คลิกที่ดาวตรงมุมของเสียงเพื่อใส่ในรายการโปรดของคุณ',
             file: 'คลิกที่ดาวตรงมุมของไฟล์เพื่อเพิ่มลงในรายการโปรดของคุณ',
           },
+          favoriteHint: 'เลื่อนเคอร์เซอร์ไปที่ GIF แล้วคลิกที่ดาวเพื่อเพิ่มลงในรายการโปรดของคุณ',
+          addToFavorites: 'เพิ่มในรายการโปรด',
+          removeFromFavorites: 'นำออกจากรายการโปรด',
           addTo: 'เพิ่ม',
           moveTo: 'ย้าย',
           removeFrom: 'ลบออกจากหมวดหมู่',
+          copyMessageLink: 'คัดลอกลิงก์ของข้อความ',
+          copyMediaLink: 'คัดลอกลิงก์ของสื่อ',
           copySource: 'คัดลอกแหล่งที่มาของสื่อ',
+          send: 'ส่ง',
+          download: 'ดาวน์โหลด',
           upload: {
             title: 'ที่อัพโหลด',
             normal: 'ปกติ',
@@ -10760,12 +10965,14 @@ module.exports = class FavoriteMedia {
       },
       tr: { // Turkish
         tabName: {
+          git: 'GIF',
           image: 'Resim',
           video: 'Video',
           audio: 'Ses',
           file: 'Dosya',
         },
         create: 'Oluşturmak',
+        edit: 'Düzenle',
         category: {
           list: 'Kategoriler',
           unsorted: 'Sıralanmamış',
@@ -10810,10 +11017,17 @@ module.exports = class FavoriteMedia {
             audio: 'Favorilerinize eklemek için bir sesin köşesindeki yıldıza tıklayın',
             file: 'Favorilerinize eklemek için bir dosyanın köşesindeki yıldıza tıklayın',
           },
+          favoriteHint: 'Bir GIF’in üzerine gel ve yıldız simgesine tıkla, böylece favorilerine ekleyebilirsin.',
+          addToFavorites: 'Favorilere ekle',
+          removeFromFavorites: 'Favorilerden kaldır',
           addTo: 'Ekle',
           moveTo: 'Hareket',
           removeFrom: 'Kategoriden kaldır',
+          copyMessageLink: 'Mesaj bağlantısını kopyala',
+          copyMediaLink: 'Medya bağlantısını kopyala',
           copySource: 'Medya kaynağını kopyala',
+          send: 'Gönder',
+          download: 'İndirmek',
           upload: {
             title: 'Yükle',
             normal: 'Normal',
@@ -11029,12 +11243,14 @@ module.exports = class FavoriteMedia {
       },
       uk: { // Ukrainian
         tabName: {
+          git: 'GIF',
           image: 'Картина',
           video: 'Відео',
           audio: 'Аудіо',
           file: 'Файл',
         },
         create: 'Створити',
+        edit: 'Редагувати',
         category: {
           list: 'Категорії',
           unsorted: 'Не сортується',
@@ -11079,10 +11295,17 @@ module.exports = class FavoriteMedia {
             audio: 'Клацніть на зірочку в кутку звукового супроводу, щоб помістити його у вибране',
             file: 'Натисніть зірочку в кутку файлу, щоб додати його до вибраного',
           },
+          favoriteHint: 'Наведи курсор на GIF і натисни на зірочку, щоб додати його до обраного.',
+          addToFavorites: 'Додати в обране',
+          removeFromFavorites: 'Видалити з обраного',
           addTo: 'Додати',
           moveTo: 'Рухайся',
           removeFrom: 'Вилучити з категорії',
+          copyMessageLink: 'Скопіювати посилання на повідомлення',
+          copyMediaLink: 'Скопіювати посилання на медіа',
           copySource: 'Копіювати медіа-джерело',
+          send: 'Надіслати',
+          download: 'Завантажити',
           upload: {
             title: 'Завантажити',
             normal: 'Звичайний',
@@ -11298,12 +11521,14 @@ module.exports = class FavoriteMedia {
       },
       vi: { // Vietnamese
         tabName: {
+          git: 'GIF',
           image: 'Hình ảnh',
           video: 'Video',
           audio: 'Âm thanh',
           file: 'Tài liệu',
         },
         create: 'Tạo nên',
+        edit: 'Chỉnh sửa',
         category: {
           list: 'Thể loại',
           unsorted: 'Không được sắp xếp',
@@ -11348,10 +11573,17 @@ module.exports = class FavoriteMedia {
             audio: 'Nhấp vào ngôi sao ở góc của âm thanh để đưa nó vào mục yêu thích của bạn',
             file: 'Nhấp vào ngôi sao ở góc của tệp để thêm nó vào mục yêu thích của bạn',
           },
+          favoriteHint: 'Di chuột lên một GIF và nhấp vào ngôi sao để thêm nó vào mục yêu thích của bạn.',
+          addToFavorites: 'Thêm vào mục yêu thích',
+          removeFromFavorites: 'Xóa khỏi mục yêu thích',
           addTo: 'Thêm vào',
           moveTo: 'Di chuyển',
           removeFrom: 'Xóa khỏi danh mục',
+          copyMessageLink: 'Sao chép liên kết của tin nhắn',
+          copyMediaLink: 'Sao chép liên kết của nội dung media',
           copySource: 'Sao chép nguồn phương tiện',
+          send: 'Gửi',
+          download: 'Tải xuống',
           upload: {
             title: 'Tải lên',
             normal: 'Bình thường',
@@ -11567,12 +11799,14 @@ module.exports = class FavoriteMedia {
       },
       zh: { // Chinese (China)
         tabName: {
+          git: 'GIF',
           image: '图片',
           video: '视频',
           audio: '声音的',
           file: '文件',
         },
         create: '创造',
+        edit: '编辑',
         category: {
           list: '类别',
           unsorted: '未排序',
@@ -11617,10 +11851,17 @@ module.exports = class FavoriteMedia {
             audio: '单击音频一角的星星将其放入您的收藏夹',
             file: '单击文件一角的星号将其添加到您的收藏夹',
           },
+          favoriteHint: '将鼠标悬停在 GIF 上并点击星标即可将其添加到收藏夹。',
+          addToFavorites: '添加到收藏夹',
+          removeFromFavorites: '从收藏夹中移除',
           addTo: '添加',
           moveTo: '移动',
           removeFrom: '从类别中删除',
+          copyMessageLink: '复制消息链接',
+          copyMediaLink: '复制媒体链接',
           copySource: '复制媒体源',
+          send: '发送',
+          download: '下载',
           upload: {
             title: '上传',
             normal: '普通的',
