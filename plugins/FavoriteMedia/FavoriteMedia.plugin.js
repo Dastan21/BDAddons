@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.16
+ * @version 1.13.17
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -262,6 +262,7 @@ class FMDB {
   }
 
   async getAll () {
+    BdApi.Logger.info(plugin.name, 'Fetching all cached medias...')
     const db = await this.open()
     let data
     return await new Promise((resolve) => {
@@ -272,6 +273,7 @@ class FMDB {
       request.onsuccess = () => { data = request.result }
       transaction.onabort = () => { throw new Error(transaction.error?.message) }
       transaction.oncomplete = () => {
+        BdApi.Logger.info(plugin.name, `Fetched ${data.length} cached medias`)
         db.close()
         resolve(data)
       }
@@ -279,6 +281,7 @@ class FMDB {
   }
 
   async getKeys () {
+    BdApi.Logger.info(plugin.name, 'Fetching all cached medias keys...')
     const db = await this.open()
     let data
     return await new Promise((resolve) => {
@@ -289,6 +292,7 @@ class FMDB {
       request.onsuccess = () => { data = request.result }
       transaction.onabort = () => { throw new Error(transaction.error?.message) }
       transaction.oncomplete = () => {
+        BdApi.Logger.info(plugin.name, `Fetched ${data.length} cached medias keys`)
         db.close()
         resolve(data)
       }
@@ -1045,18 +1049,18 @@ class DatabasePanel extends BdApi.React.Component {
   }
 
   async loadStats () {
-    try {
-      this.setState({ loadingStats: true })
-      const values = await fmdb.getAll()
-      const totalSize = values.reduce((t, v) => { t += v.byteLength; return t }, 0)
-      this.setState({
-        count: values.length,
-        size: FMDB.sizeOf(totalSize),
-        loadingStats: false,
-      })
-    } catch (err) {
-      BdApi.Logger.error(plugin.name, err.message ?? err)
-    }
+    this.setState({ loadingStats: true })
+    const values = await fmdb.getAll().catch((err) => {
+      BdApi.Logger.error(plugin.name, err)
+      BdApi.UI.showToast(plugin.instance.strings.cache.error, { type: 'error' })
+      return []
+    })
+    const totalSize = values.reduce((t, v) => { t += v.byteLength; return t }, 0)
+    this.setState({
+      count: values.length,
+      size: FMDB.sizeOf(totalSize),
+      loadingStats: false,
+    })
   }
 
   getSettingsPanel () {
@@ -4267,6 +4271,7 @@ module.exports = class FavoriteMedia {
           panel: 'Локална база данни',
           total: 'Обща сума :',
           size: 'размер:',
+          error: 'Неуспех при зареждането на базата данни',
           clear: {
             confirm: 'Наистина ли искате да изпразните базата данни?',
             button: 'Празна база данни',
@@ -4545,6 +4550,7 @@ module.exports = class FavoriteMedia {
           panel: 'Lokální databáze',
           total: 'Celkem:',
           size: 'Velikost:',
+          error: 'Chyba při načítání databáze',
           clear: {
             confirm: 'Opravdu chcete vyprázdnit databázi?',
             button: 'Prázdná databáze',
@@ -4823,6 +4829,7 @@ module.exports = class FavoriteMedia {
           panel: 'Lokal database',
           total: 'I alt :',
           size: 'Størrelse:',
+          error: 'Fejl ved indlæsning af databasen',
           clear: {
             confirm: 'Vil du virkelig tømme databasen?',
             button: 'Tom database',
@@ -5101,6 +5108,7 @@ module.exports = class FavoriteMedia {
           panel: 'Lokale Datenbank',
           total: 'Gesamt:',
           size: 'Größe :',
+          error: 'Fehler beim Laden der Datenbank',
           clear: {
             confirm: 'Möchten Sie die Datenbank wirklich leeren?',
             button: 'Leere Datenbank',
@@ -5379,6 +5387,7 @@ module.exports = class FavoriteMedia {
           panel: 'Τοπική βάση δεδομένων',
           total: 'Σύνολο :',
           size: 'Μέγεθος :',
+          error: 'Αποτυχία κατά τη φόρτωση της βάσης δεδομένων',
           clear: {
             confirm: 'Θέλετε πραγματικά να αδειάσετε τη βάση δεδομένων;',
             button: 'Κενή βάση δεδομένων',
@@ -5657,6 +5666,7 @@ module.exports = class FavoriteMedia {
           panel: 'Local database',
           total: 'Total:',
           size: 'Size:',
+          error: 'Failed to load the database',
           clear: {
             confirm: 'Are you sure you want to clear the database?',
             button: 'Clear the database',
@@ -5817,6 +5827,7 @@ module.exports = class FavoriteMedia {
           panel: 'Base de datos local',
           total: 'Total :',
           size: 'Tamaño :',
+          error: 'Error al cargar la base de datos',
           clear: {
             confirm: '¿Realmente quieres vaciar la base de datos?',
             button: 'Base de datos vacía',
@@ -6095,6 +6106,7 @@ module.exports = class FavoriteMedia {
           panel: 'Paikallinen tietokanta',
           total: 'Kaikki yhteensä :',
           size: 'Koko :',
+          error: 'Tietokannan lataus epäonnistui',
           clear: {
             confirm: 'Haluatko todella tyhjentää tietokannan?',
             button: 'Tyhjä tietokanta',
@@ -6373,6 +6385,7 @@ module.exports = class FavoriteMedia {
           panel: 'Base de données locale',
           total: 'Total :',
           size: 'Taille :',
+          error: 'Échec lors du chargement de la base de données',
           clear: {
             confirm: 'Voulez-vous vraiment vider la base de donnée ?',
             button: 'Vider la base de données',
@@ -6651,6 +6664,7 @@ module.exports = class FavoriteMedia {
           panel: 'स्थानीय डेटाबेस',
           total: 'कुल :',
           size: 'आकार :',
+          error: 'डेटाबेस लोड करने में विफल',
           clear: {
             confirm: 'क्या आप सचमुच डेटाबेस खाली करना चाहते हैं?',
             button: 'खाली डेटाबेस',
@@ -6929,6 +6943,7 @@ module.exports = class FavoriteMedia {
           panel: 'Lokalna baza podataka',
           total: 'Ukupno:',
           size: 'Veličina:',
+          error: 'Neuspjeh pri učitavanju baze podataka',
           clear: {
             confirm: 'Želite li stvarno isprazniti bazu podataka?',
             button: 'Prazna baza podataka',
@@ -7207,6 +7222,7 @@ module.exports = class FavoriteMedia {
           panel: 'Helyi adatbázis',
           total: 'Teljes :',
           size: 'Méret:',
+          error: 'Hiba az adatbázis betöltésekor',
           clear: {
             confirm: 'Valóban ki akarja üríteni az adatbázist?',
             button: 'Üres adatbázis',
@@ -7485,6 +7501,7 @@ module.exports = class FavoriteMedia {
           panel: 'Banca dati locale',
           total: 'Totale :',
           size: 'Formato :',
+          error: 'Errore durante il caricamento del database',
           clear: {
             confirm: 'Vuoi davvero svuotare il database?',
             button: 'Banca dati vuota',
@@ -7763,6 +7780,7 @@ module.exports = class FavoriteMedia {
           panel: 'ローカルデータベース',
           total: '合計 ：',
           size: 'サイズ ：',
+          error: 'データベースの読み込みに失敗しました',
           clear: {
             confirm: '本当にデータベースを空にしますか?',
             button: '空のデータベース',
@@ -8041,6 +8059,7 @@ module.exports = class FavoriteMedia {
           panel: '로컬 데이터베이스',
           total: '총 :',
           size: '크기:',
+          error: '데이터베이스 로드 실패',
           clear: {
             confirm: '정말로 데이터베이스를 비우시겠습니까?',
             button: '빈 데이터베이스',
@@ -8319,6 +8338,7 @@ module.exports = class FavoriteMedia {
           panel: 'Vietinė duomenų bazė',
           total: 'Iš viso:',
           size: 'Dydis:',
+          error: 'Duomenų bazės įkrovimo klaida',
           clear: {
             confirm: 'Ar tikrai norite ištuštinti duomenų bazę?',
             button: 'Tuščia duomenų bazė',
@@ -8597,6 +8617,7 @@ module.exports = class FavoriteMedia {
           panel: 'Lokale database',
           total: 'Totaal :',
           size: 'Maat :',
+          error: 'Fout bij het laden van de database',
           clear: {
             confirm: 'Wilt u de database echt leegmaken?',
             button: 'Lege database',
@@ -8875,6 +8896,7 @@ module.exports = class FavoriteMedia {
           panel: 'Lokal database',
           total: 'Total :',
           size: 'Størrelse:',
+          error: 'Feil ved lasting av databasen',
           clear: {
             confirm: 'Vil du virkelig tømme databasen?',
             button: 'Tom database',
@@ -9153,6 +9175,7 @@ module.exports = class FavoriteMedia {
           panel: 'Lokalna baza danych',
           total: 'Całkowity :',
           size: 'Rozmiar:',
+          error: 'Błąd podczas ładowania bazy danych',
           clear: {
             confirm: 'Czy na pewno chcesz opróżnić bazę danych?',
             button: 'Pusta baza danych',
@@ -9431,6 +9454,7 @@ module.exports = class FavoriteMedia {
           panel: 'Banco de dados local',
           total: 'Total:',
           size: 'Tamanho :',
+          error: 'Falha ao carregar o banco de dados',
           clear: {
             confirm: 'Você realmente deseja esvaziar o banco de dados?',
             button: 'Banco de dados vazio',
@@ -9709,6 +9733,7 @@ module.exports = class FavoriteMedia {
           panel: 'Baza de date locală',
           total: 'Total:',
           size: 'Mărimea :',
+          error: 'Eșec la încărcarea bazei de date',
           clear: {
             confirm: 'Chiar doriți să goliți baza de date?',
             button: 'Baza de date goală',
@@ -9987,6 +10012,7 @@ module.exports = class FavoriteMedia {
           panel: 'Локальная база данных',
           total: 'Общий :',
           size: 'Размер :',
+          error: 'Ошибка при загрузке базы данных',
           clear: {
             confirm: 'Вы действительно хотите очистить базу данных?',
             button: 'Пустая база данных',
@@ -10265,6 +10291,7 @@ module.exports = class FavoriteMedia {
           panel: 'Lokalna zbirka podatkov',
           total: 'Skupaj:',
           size: 'Velikost:',
+          error: 'Chyba pri načítaní databázy',
           clear: {
             confirm: 'Ali res želite izprazniti bazo podatkov?',
             button: 'Prazna zbirka podatkov',
@@ -10543,6 +10570,7 @@ module.exports = class FavoriteMedia {
           panel: 'Lokal databas',
           total: 'Totalt:',
           size: 'Storlek:',
+          error: 'Fel vid inläsning av databasen',
           clear: {
             confirm: 'Vill du verkligen tömma databasen?',
             button: 'Tom databas',
@@ -10821,6 +10849,7 @@ module.exports = class FavoriteMedia {
           panel: 'ฐานข้อมูลท้องถิ่น',
           total: 'ทั้งหมด :',
           size: 'ขนาด :',
+          error: 'ล้มเหลวในการโหลดฐานข้อมูล',
           clear: {
             confirm: 'คุณต้องการล้างฐานข้อมูลจริง ๆ หรือไม่?',
             button: 'ฐานข้อมูลว่างเปล่า',
@@ -11099,6 +11128,7 @@ module.exports = class FavoriteMedia {
           panel: 'Yerel veritabanı',
           total: 'Toplam :',
           size: 'Boyut :',
+          error: 'Veritabanı yüklenemedi',
           clear: {
             confirm: 'Veritabanını gerçekten boşaltmak istiyor musunuz?',
             button: 'Veritabanını boşalt',
@@ -11377,6 +11407,7 @@ module.exports = class FavoriteMedia {
           panel: 'Локальна база даних',
           total: 'Всього:',
           size: 'Розмір:',
+          error: 'Помилка при завантаженні бази даних',
           clear: {
             confirm: 'Ви дійсно хочете очистити базу даних?',
             button: 'Порожня база даних',
@@ -11655,6 +11686,7 @@ module.exports = class FavoriteMedia {
           panel: 'Cơ sở dữ liệu cục bộ',
           total: 'Tổng cộng :',
           size: 'Kích cỡ :',
+          error: 'Lỗi khi tải cơ sở dữ liệu',
           clear: {
             confirm: 'Bạn có thực sự muốn làm trống cơ sở dữ liệu?',
             button: 'Cơ sở dữ liệu trống',
@@ -11933,6 +11965,7 @@ module.exports = class FavoriteMedia {
           panel: '本地数据库',
           total: '全部的 ：',
           size: '尺寸 ：',
+          error: '加载数据库失败',
           clear: {
             confirm: '您真的要清空数据库吗？',
             button: '空数据库',
