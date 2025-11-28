@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.15
+ * @version 1.13.16
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -3588,7 +3588,7 @@ module.exports = class FavoriteMedia {
             type: 'submenu',
             items: mediaTypes.map((type) => ({
               id: `category-create-${type}`,
-              label: type === plugin.instance.strings.tabName[type],
+              label: plugin.instance.strings.tabName[type],
               type: 'submenu',
               items: (() => {
                 const items = [{
@@ -4133,7 +4133,7 @@ module.exports = class FavoriteMedia {
     return {
       bg: { // Bulgarian
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Изображения',
           video: 'Видео',
           audio: 'Аудио',
@@ -4411,7 +4411,7 @@ module.exports = class FavoriteMedia {
       },
       cs: { // Czech
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Obrázek',
           video: 'Video',
           audio: 'Zvuk',
@@ -4689,7 +4689,7 @@ module.exports = class FavoriteMedia {
       },
       da: { // Danish
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Billede',
           video: 'Video',
           audio: 'Lyd',
@@ -4967,7 +4967,7 @@ module.exports = class FavoriteMedia {
       },
       de: { // German
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Bild',
           video: 'Video',
           audio: 'Audio',
@@ -5245,7 +5245,7 @@ module.exports = class FavoriteMedia {
       },
       el: { // Greek
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Εικόνα',
           video: 'βίντεο',
           audio: 'Ήχος',
@@ -5523,7 +5523,7 @@ module.exports = class FavoriteMedia {
       },
       en: { // English
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Image',
           video: 'Video',
           audio: 'Audio',
@@ -5683,7 +5683,7 @@ module.exports = class FavoriteMedia {
       },
       es: { // Spanish
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Imagen',
           video: 'Video',
           audio: 'Audio',
@@ -5961,7 +5961,7 @@ module.exports = class FavoriteMedia {
       },
       fi: { // Finnish
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Kuva',
           video: 'Video',
           audio: 'Audio',
@@ -6239,7 +6239,7 @@ module.exports = class FavoriteMedia {
       },
       fr: { // French
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Image',
           video: 'Vidéo',
           audio: 'Audio',
@@ -6517,7 +6517,7 @@ module.exports = class FavoriteMedia {
       },
       hi: { // Hindi
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'चित्र',
           video: 'वीडियो',
           audio: 'ऑडियो',
@@ -6795,7 +6795,7 @@ module.exports = class FavoriteMedia {
       },
       hr: { // Croatian
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Slika',
           video: 'Video',
           audio: 'Audio',
@@ -7073,7 +7073,7 @@ module.exports = class FavoriteMedia {
       },
       hu: { // Hungarian
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Kép',
           video: 'Videó',
           audio: 'Hang',
@@ -7351,7 +7351,7 @@ module.exports = class FavoriteMedia {
       },
       it: { // Italian
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Immagine',
           video: 'video',
           audio: 'Audio',
@@ -7629,7 +7629,7 @@ module.exports = class FavoriteMedia {
       },
       ja: { // Japanese
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: '画像',
           video: 'ビデオ',
           audio: 'オーディオ',
@@ -7907,7 +7907,7 @@ module.exports = class FavoriteMedia {
       },
       ko: { // Korean
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: '그림',
           video: '비디오',
           audio: '오디오',
@@ -8185,7 +8185,7 @@ module.exports = class FavoriteMedia {
       },
       lt: { // Lithuanian
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Paveikslėlis',
           video: 'Vaizdo įrašas',
           audio: 'Garso įrašas',
@@ -8463,7 +8463,7 @@ module.exports = class FavoriteMedia {
       },
       nl: { // Dutch
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Afbeelding',
           video: 'Video',
           audio: 'Audio',
@@ -8741,7 +8741,7 @@ module.exports = class FavoriteMedia {
       },
       no: { // Norwegian
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Bilde',
           video: 'Video',
           audio: 'Lyd',
@@ -9019,7 +9019,7 @@ module.exports = class FavoriteMedia {
       },
       pl: { // Polish
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Obrazek',
           video: 'Wideo',
           audio: 'Audio',
@@ -9297,7 +9297,7 @@ module.exports = class FavoriteMedia {
       },
       pt: { // Portuguese (Brazil)
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Foto',
           video: 'Vídeo',
           audio: 'Áudio',
@@ -9575,7 +9575,7 @@ module.exports = class FavoriteMedia {
       },
       ro: { // Romanian
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Imagine',
           video: 'Video',
           audio: 'Audio',
@@ -9853,7 +9853,7 @@ module.exports = class FavoriteMedia {
       },
       ru: { // Russian
         tabName: {
-          git: 'ГИФ',
+          gif: 'ГИФ',
           image: 'Картина',
           video: 'Видео',
           audio: 'Аудио',
@@ -10131,7 +10131,7 @@ module.exports = class FavoriteMedia {
       },
       sk: { // Slovak
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Slika',
           video: 'Video',
           audio: 'Avdio',
@@ -10409,7 +10409,7 @@ module.exports = class FavoriteMedia {
       },
       sv: { // Swedish
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Bild',
           video: 'Video',
           audio: 'Audio',
@@ -10687,7 +10687,7 @@ module.exports = class FavoriteMedia {
       },
       th: { // Thai
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'ภาพ',
           video: 'วีดีโอ',
           audio: 'เครื่องเสียง',
@@ -10965,7 +10965,7 @@ module.exports = class FavoriteMedia {
       },
       tr: { // Turkish
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Resim',
           video: 'Video',
           audio: 'Ses',
@@ -11243,7 +11243,7 @@ module.exports = class FavoriteMedia {
       },
       uk: { // Ukrainian
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Картина',
           video: 'Відео',
           audio: 'Аудіо',
@@ -11521,7 +11521,7 @@ module.exports = class FavoriteMedia {
       },
       vi: { // Vietnamese
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: 'Hình ảnh',
           video: 'Video',
           audio: 'Âm thanh',
@@ -11799,7 +11799,7 @@ module.exports = class FavoriteMedia {
       },
       zh: { // Chinese (China)
         tabName: {
-          git: 'GIF',
+          gif: 'GIF',
           image: '图片',
           video: '视频',
           audio: '声音的',
