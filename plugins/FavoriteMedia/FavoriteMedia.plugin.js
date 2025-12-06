@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.17
+ * @version 1.13.18
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -382,13 +382,14 @@ class MediaMenuItemInput extends BdApi.React.Component {
 
   render () {
     return BdApi.React.createElement('div', {
-      className: `${classes.menu.item} ${classes.menu.labelContainer} ${classes.input.inputWrapper}`,
+      className: `${classes.container.wrapper} ${classes.medium.container} ${classes.medium.medium}`,
       role: 'menuitem',
       id: 'media-input',
       tabindex: '-1',
+      style: { marginBottom: 4 },
     },
     BdApi.React.createElement('input', {
-      className: classes.input.input,
+      className: classes.medium.input,
       name: 'media-name',
       type: 'text',
       placeholder: plugin.instance.strings.media.placeholder[this.props.type],
@@ -660,7 +661,7 @@ class ColorPicker extends BdApi.React.Component {
   render () {
     return BdApi.React.createElement('div', {
       className: 'category-input-color',
-      style: { width: '48px', height: '48px', 'margin-top': '8px', 'border-radius': '100%' },
+      style: { width: '48px', height: '48px', 'border-radius': '100%' },
     },
     BdApi.React.createElement('input', {
       type: 'color',
@@ -753,14 +754,17 @@ class CategoryModal extends BdApi.React.Component {
   render () {
     return BdApi.React.createElement('div', {
       className: classes.control,
-      style: { display: 'grid', 'grid-template-columns': 'auto 70px', 'margin-right': '-16px' },
     },
     BdApi.React.createElement('div', {
-      className: classes.input.inputWrapper,
-      style: { padding: '1em 0', 'margin-right': '16px' },
+      className: classes.container.container,
+      style: { flexDirection: 'row', gap: 16 },
+    },
+    BdApi.React.createElement('div', {
+      className: `${classes.container.wrapper} ${classes.medium.container} ${classes.medium.medium}`,
+      style: { width: '100%' },
     },
     BdApi.React.createElement('input', {
-      className: classes.input.input,
+      className: classes.medium.input,
       name: 'category-name',
       type: 'text',
       placeholder: plugin.instance.strings.category.placeholder,
@@ -772,6 +776,7 @@ class CategoryModal extends BdApi.React.Component {
       color: this.props.color,
       setRef: this.setRef,
     })
+    )
     )
   }
 }
@@ -1753,7 +1758,7 @@ class MediaPicker extends BdApi.React.Component {
 
   get heights () {
     const cols = this.numberOfColumns
-    const heights = new Array(cols).fill(0)
+    const heights = Array.from({ length: cols }).fill(0)
     const categoriesLen = this.currentPageCategories.length
     const rows = Math.ceil(categoriesLen / cols)
     const max = (categoriesLen % cols) || 999
@@ -1836,7 +1841,7 @@ class MediaPicker extends BdApi.React.Component {
     const width = this.state.contentWidth || 200
     const n = Math.floor(width / 200)
     const offset = this.currentPageCategories.length
-    const placed = new Array(n)
+    const placed = Array.from({ length: n})
     placed.fill(false)
     placed.fill(true, 0, offset % n)
     const itemWidth = (width - (12 * (n - 1))) / n
@@ -2688,9 +2693,9 @@ class MediaButton extends BdApi.React.Component {
         const EPSState = EPS.useExpressionPickerStore.getState()
         const typeId = `fm-${this.props.type}`
         if (EPSState.activeView === typeId && EPSState.activeViewType?.analyticsName !== this.props.pickerType?.analyticsName) {
-          EPS.toggleExpressionPicker(typeId, this.props.pickerType ?? EPSState.activeViewType)
+          EPS.toggleExpressionPicker(typeId, this.props.pickerType ?? EPSState.activeViewType, this.props.channelId)
         }
-        EPS.toggleExpressionPicker(typeId, this.props.pickerType ?? EPSConstants.NORMAL)
+        EPS.toggleExpressionPicker(typeId, this.props.pickerType ?? EPSConstants.NORMAL, this.props.channelId)
       },
     },
     BdApi.React.createElement('div', {
@@ -3080,6 +3085,7 @@ module.exports = class FavoriteMedia {
   }
 
   start () {
+    console.log(classes);
     loadEPS()
 
     this.patchExpressionPicker()
