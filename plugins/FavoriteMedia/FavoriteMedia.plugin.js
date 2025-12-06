@@ -3085,7 +3085,6 @@ module.exports = class FavoriteMedia {
   }
 
   start () {
-    console.log(classes);
     loadEPS()
 
     this.patchExpressionPicker()
