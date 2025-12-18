@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.18
+ * @version 1.13.19
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -3267,10 +3267,10 @@ module.exports = class FavoriteMedia {
     }
 
     BdApi.Patcher.after(this.meta.name, ChannelTextArea.type, 'render', (_, [props], returnValue) => {
-      const isProfilePopout = BdApi.Utils.findInTree(returnValue, (e) => Array.isArray(e?.value) && e.value.some((v) => v === 'bite size profile popout'), { walkable: ['children', 'props'] })
+      const isProfilePopout = BdApi.Utils.findInTree(returnValue, (e) => Array.isArray(e?.value) && e.value.some((v) => v === 'user profile popout'), { walkable: ['children', 'props'] })
       if (isProfilePopout) return
 
-      const chatBar = BdApi.Utils.findInTree(returnValue, (e) => Array.isArray(e?.children) && e.children.some((c) => c?.props?.className?.startsWith('attachButton')), { walkable: ['children', 'props'] })
+      const chatBar = BdApi.Utils.findInTree(returnValue, (e) => e?.className?.includes('sansAttachButton'), { walkable: ['children', 'props'] })
       if (!chatBar) return
 
       const textAreaState = BdApi.Utils.findInTree(chatBar, (e) => e?.props?.channel, { walkable: ['children'] })
