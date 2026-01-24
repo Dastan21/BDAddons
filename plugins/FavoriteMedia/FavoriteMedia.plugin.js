@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.20
+ * @version 1.13.21
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -197,11 +197,11 @@ const SelectedChannelStore = BdApi.Webpack.getStore('SelectedChannelStore')
 const LocaleStore = BdApi.Webpack.getStore('LocaleStore')
 
 const ElectronModule = BdApi.Webpack.getByKeys('setBadge')
-const Dispatcher = BdApi.Webpack.getByKeys('dispatch', 'subscribe')
+const Dispatcher = BdApi.Webpack.getByKeys('dispatch', 'subscribe', { searchExports: true })
 const ComponentDispatch = BdApi.Webpack.getAllByKeys('safeDispatch', 'dispatchToLastSubscribed', { searchExports: true })?.[0]
 const ExpressionPicker = BdApi.Webpack.getModule(m => m.type?.toString?.().includes("onSelectGIF"), { searchExports: true })
 const EPS = {}
-const EPSModules = BdApi.Webpack.getModule(m => Object.keys(m).some(key => m[key]?.toString?.().includes('isSearchSuggestion')))
+const EPSModules = BdApi.Webpack.getModule(BdApi.Webpack.Filters.bySource("lastActiveView", "isSearchSuggestion"))
 const EPSConstants = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('FORUM_CHANNEL_GUIDELINES', 'CREATE_FORUM_POST'), { searchExports: true })
 const GIFUtils = (() => {
   const modules = BdApi.Webpack.getModules(m => m.toString?.()?.includes('updateAsync("favoriteGifs'), { searchExports: true })
@@ -210,16 +210,21 @@ const GIFUtils = (() => {
     unfavorite: modules[0],
   }
 })()
-const ChannelTextArea = BdApi.Webpack.getModule((m) => m?.type?.render?.toString?.()?.includes?.('channelTextAreaDisabled'))
+// https://github.com/TheLazySquid/BetterDiscordPlugins/blob/02f5e1c6c9ae2d47a6289d5868cc7ed5e4607e2d/plugins/ImageFolder/ImageFolder.plugin.js#L150
+const ChannelTextArea = Object.values(BdApi.Webpack.getModule((m) => Object.values(m).some((e) => {
+  let str = e?.type?.render?.toString?.();
+  if (!str) return false;
+  return str.includes("pendingScheduledMessage") && str.includes(".CHANNEL_TEXT_AREA");
+})))?.find((e) => e.type)
 const Permissions = BdApi.Webpack.getByKeys('computePermissions')
 const PermissionsConstants = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('ADD_REACTIONS'), { searchExports: true })
 const MediaPlayerModule = BdApi.Webpack.getModule(m => m.Types?.VIDEO, { searchExports: true })
 const ImageModule = BdApi.Webpack.getAllByStrings('readyState', 'zoomable', 'minHeight', { searchExports: true })?.[0]
-const FileModule = BdApi.Webpack.getByStrings('fileName', 'fileSize', 'renderAdjacentContent', { defaultExport: false })
+const FileModule = BdApi.Webpack.getByStrings('fileName', 'fileSize', 'renderAdjacentContent', 'onContextMenu', { defaultExport: false })
 const FileRenderedModule = BdApi.Webpack.getByStrings('getObscureReason', 'mediaLayoutType', { defaultExport: false })
 const FilesUpload = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('addFiles'))
 const MessagesManager = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('sendMessage'))
-const PageControl = BdApi.Webpack.getModule(m => typeof m === 'function' && m.toString()?.includes('totalCount'), { searchExports: true })
+const PageControl = BdApi.Webpack.getModule(m => typeof m === 'function' && m.toString()?.includes('maxVisiblePages') && m.toString()?.includes('disablePaginationGap'), { searchExports: true })
 const RestAPI = BdApi.Webpack.getModule(m => typeof m === 'object' && m.del && m.put, { searchExports: true })
 
 const canClosePicker = { context: '', value: true }
@@ -1624,6 +1629,7 @@ class MediaCard extends BdApi.React.Component {
         height: this.props.positions.height,
         ref: this.mediaRef,
         controls: this.state.showControls,
+        controlsList: "nofullscreen",
         style: !MediaFavButton.hasPreview(this.props.type) ? { position: 'absolute', bottom: '0', left: '0', 'z-index': '2' } : null,
         draggable: false,
         onError: this.onError,
@@ -3354,7 +3360,7 @@ module.exports = class FavoriteMedia {
     if (FileModule == null) {
       BdApi.Logger.error(this.meta.name, 'File module not found')
     } else {
-      BdApi.Patcher.after(this.meta.name, FileModule, 'Z', (_, [props], returnValue) => {
+      BdApi.Patcher.after(this.meta.name, FileModule, 'A', (_, [props], returnValue) => {
         returnValue.props.children.push(BdApi.React.createElement(MediaFavButton, {
           type: 'file',
           name: getUrlName(props.fileName),
@@ -3368,7 +3374,7 @@ module.exports = class FavoriteMedia {
     if (FileRenderedModule == null) {
       BdApi.Logger.error(this.meta.name, 'FileRendered module not found')
     } else {
-      BdApi.Patcher.after(this.meta.name, FileRenderedModule, 'ZP', (_, [props], returnValue) => {
+      BdApi.Patcher.after(this.meta.name, FileRenderedModule, 'Ay', (_, [props], returnValue) => {
         if (props.item.type !== 'PLAINTEXT_PREVIEW') return
 
         returnValue.props.children.push(BdApi.React.createElement(MediaFavButton, {
@@ -3401,7 +3407,6 @@ module.exports = class FavoriteMedia {
   }
 
   async patchGIFTab () {
-    let GIFPicker = null
     try {
       GIFPicker = await this.waitGIFPicker()
     } catch {
@@ -3660,7 +3665,7 @@ module.exports = class FavoriteMedia {
         type: 'submenu',
         items: menuItems,
       })
-      const fmIndex = returnValue.props.children.props.children.findIndex((i) => i?.props?.children?.find?.((j) => j?.props?.id === 'tts'))
+      const fmIndex = returnValue.props.children.props.children.findIndex((i) => i?.props?.children?.find?.((j) => ['tts', 'copy-link'].includes(j?.props?.id)))
       if (fmIndex > -1) returnValue.props.children.props.children.splice(Math.min(fmIndex + 1, returnValue.props.children.props.children.length), 0, separator, fmContextMenu)
       else returnValue.props.children.props.children.push(separator, fmContextMenu)
     })
@@ -3703,13 +3708,13 @@ module.exports = class FavoriteMedia {
         transition: transform .2s ease,opacity .1s ease,-webkit-transform .2s ease;
         width: 26px;
         height: 26px;
-        color: var(--interactive-normal);
+        color: var(--interactive-text-default);
       }
       .show-controls:hover,
       .show-controls.active {
         -webkit-transform: none;
         transform: none;
-        color: var(--interactive-active);
+        color: var(--interactive-text-hover);
       }
       div:hover > .show-controls {
         opacity: 1;
