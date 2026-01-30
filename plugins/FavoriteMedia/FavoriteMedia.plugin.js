@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.21
+ * @version 1.13.22
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -32,7 +32,6 @@ const classModules = {
   icon: ['icon', 'active', 'buttonWrapper'],
   menu: ['menu', 'labelContainer', 'colorDefault'],
   result: ['result', 'emptyHints', 'emptyHintText'],
-  input: ['input', 'inputWrapper', 'disabled'],
   role: ['roleCircle', 'dot'],
   gif: ['icon', 'gifFavoriteButton', 'selected'],
   gif2: ['container', 'gifFavoriteButton', 'giftCodeContainer'],
@@ -46,18 +45,13 @@ const classModules = {
   gutter: ['header', 'backButton', 'searchHeader'],
   horizontal: ['flex', 'flexChild', 'horizontal'],
   flex: ['flex', 'alignStart', 'alignEnd'],
-  title: ['title', 'h1', 'h5'],
   container: () => BdApi.Webpack.getAllByKeys('wrapper', 'container').find(m => Object.keys(m).length === 2),
   medium: ['md', 'text-md/normal', 'hasLeading'],
   scroller: ['disableScrollAnchor', 'thin', 'fade'],
   look: ['button', 'lookBlank', 'colorBrand'],
-  audio: ['wrapperAudio', 'wrapperPaused', 'wrapperPlaying'],
-  contentWrapper: ['contentWrapper', 'nav', 'positionLayer'],
-  buttons: ['profileBioInput', 'buttons', 'attachButton'],
   upload: ['actionBarContainer', 'actionBar', 'upload'],
   button: ['button', 'separator', 'dangerous'],
   visual: ['nonVisualMediaItemContainer', 'nonVisualMediaItem', 'visualMediaItemContainer'],
-  code: ['newMosaicStyle', 'attachmentName', 'codeView'],
 }
 
 for (const key in classModules) {
@@ -92,10 +86,6 @@ const classes = {
     emptyHintText: classModules.result.emptyHintText,
     gif: classModules.result.gif,
     endContainer: classModules.result.endContainer,
-  },
-  input: {
-    input: classModules.input.input,
-    inputWrapper: classModules.input.inputWrapper,
   },
   roleCircle: classModules.role.roleCircle,
   gif: {
@@ -143,7 +133,6 @@ const classes = {
     alignCenter: classModules.flex.alignCenter,
     noWrap: classModules.flex.noWrap,
   },
-  h5: classModules.title.h5,
   container: {
     container: classModules.container.container,
     wrapper: classModules.container.wrapper,
@@ -168,14 +157,7 @@ const classes = {
     grow: classModules.look.grow,
     contents: classModules.look.contents,
   },
-  audio: {
-    wrapperAudio: classModules.audio.wrapperAudio,
-  },
-  contentWrapper: {
-    contentWrapper: classModules.contentWrapper.contentWrapper,
-  },
   buttons: {
-    buttons: classModules.buttons.buttons,
     button: classModules.button.button,
   },
   upload: {
@@ -183,9 +165,6 @@ const classes = {
   },
   visual: {
     nonVisualMediaItemContainer: classModules.visual.nonVisualMediaItemContainer,
-  },
-  code: {
-    newMosaicStyle: classModules.code.newMosaicStyle,
   },
 }
 
