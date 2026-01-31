@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.22
+ * @version 1.13.23
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -45,6 +45,7 @@ const classModules = {
   gutter: ['header', 'backButton', 'searchHeader'],
   horizontal: ['flex', 'flexChild', 'horizontal'],
   flex: ['flex', 'alignStart', 'alignEnd'],
+  title: ['title', 'h1', 'h5'],
   container: () => BdApi.Webpack.getAllByKeys('wrapper', 'container').find(m => Object.keys(m).length === 2),
   medium: ['md', 'text-md/normal', 'hasLeading'],
   scroller: ['disableScrollAnchor', 'thin', 'fade'],
@@ -133,6 +134,7 @@ const classes = {
     alignCenter: classModules.flex.alignCenter,
     noWrap: classModules.flex.noWrap,
   },
+  h5: classModules.title.h5,
   container: {
     container: classModules.container.container,
     wrapper: classModules.container.wrapper,
@@ -3386,9 +3388,11 @@ module.exports = class FavoriteMedia {
   }
 
   async patchGIFTab () {
+    let GIFPicker = null
     try {
       GIFPicker = await this.waitGIFPicker()
-    } catch {
+    } catch(err) {
+      BdApi.Logger.error(this.meta.name, 'GIFPicker module not found')
       return
     }
 
