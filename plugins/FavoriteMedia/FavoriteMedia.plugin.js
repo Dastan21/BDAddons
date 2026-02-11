@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
- * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.23
+ * @description Allows to favorite GIFs, images, videos, audios, messages and files.
+ * @version 1.14.00
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -14,10 +14,12 @@ const { mkdir, lstat, readFileSync, writeFileSync } = require('fs')
 const path = require('path')
 
 const DEFAULT_BACKGROUND_COLOR = '#202225'
-const ALL_TYPES = ['image', 'video', 'audio', 'file']
+const ALL_TYPES = ['image', 'video', 'audio', 'file', 'message']
 
 const StarSVG = (props) => BdApi.React.createElement('svg', { className: classes.gif.icon, ariaHidden: 'false', viewBox: '0 0 24 24', width: '20', height: '20' }, props.filled ? BdApi.React.createElement('path', { fill: 'currentColor', d: 'M10.81 2.86c.38-1.15 2-1.15 2.38 0l1.89 5.83h6.12c1.2 0 1.71 1.54.73 2.25l-4.95 3.6 1.9 5.82a1.25 1.25 0 0 1-1.93 1.4L12 18.16l-4.95 3.6c-.98.7-2.3-.25-1.92-1.4l1.89-5.82-4.95-3.6a1.25 1.25 0 0 1 .73-2.25h6.12l1.9-5.83Z' }) : BdApi.React.createElement('path', { fill: 'currentColor', 'fill-rule': 'evenodd', 'clip-rule': 'evenodd', d: 'M2.07 10.94a1.25 1.25 0 0 1 .73-2.25h6.12l1.9-5.83c.37-1.15 2-1.15 2.37 0l1.89 5.83h6.12c1.2 0 1.71 1.54.73 2.25l-4.95 3.6 1.9 5.82a1.25 1.25 0 0 1-1.93 1.4L12 18.16l-4.95 3.6c-.98.7-2.3-.25-1.92-1.4l1.89-5.82-4.95-3.6Zm11.55-.25h5.26l-4.25 3.09 1.62 5-4.25-3.1-4.25 3.1 1.62-5-4.25-3.1h5.26l1.62-5 1.62 5Z' }))
 const ImageSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, ariaHidden: 'false', viewBox: '0 0 384 384', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M341.333,0H42.667C19.093,0,0,19.093,0,42.667v298.667C0,364.907,19.093,384,42.667,384h298.667 C364.907,384,384,364.907,384,341.333V42.667C384,19.093,364.907,0,341.333,0z M42.667,320l74.667-96l53.333,64.107L245.333,192l96,128H42.667z' }))
+const MessageSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, ariaHidden: 'false', viewBox: '0 0 24 24', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', transform: 'translate(0,2)', d: 'M20 2H4c-1.1 0-2 .9-2 2v14l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z' })
+)
 const VideoSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, ariaHidden: 'false', viewBox: '0 0 298 298', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M298,33c0-13.255-10.745-24-24-24H24C10.745,9,0,19.745,0,33v232c0,13.255,10.745,24,24,24h250c13.255,0,24-10.745,24-24V33zM91,39h43v34H91V39z M61,259H30v-34h31V259z M61,73H30V39h31V73z M134,259H91v-34h43V259z M123,176.708v-55.417c0-8.25,5.868-11.302,12.77-6.783l40.237,26.272c6.902,4.519,6.958,11.914,0.056,16.434l-40.321,26.277C128.84,188.011,123,184.958,123,176.708z M207,259h-43v-34h43V259z M207,73h-43V39h43V73z M268,259h-31v-34h31V259z M268,73h-31V39h31V73z' }))
 const AudioSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, ariaHidden: 'false', viewBox: '0 0 115.3 115.3', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M47.9,14.306L26,30.706H6c-3.3,0-6,2.7-6,6v41.8c0,3.301,2.7,6,6,6h20l21.9,16.4c4,3,9.6,0.2,9.6-4.8v-77C57.5,14.106,51.8,11.306,47.9,14.306z' }), BdApi.React.createElement('path', { fill: 'currentColor', d: 'M77.3,24.106c-2.7-2.7-7.2-2.7-9.899,0c-2.7,2.7-2.7,7.2,0,9.9c13,13,13,34.101,0,47.101c-2.7,2.7-2.7,7.2,0,9.899c1.399,1.4,3.199,2,4.899,2s3.601-0.699,4.9-2.1C95.8,72.606,95.8,42.606,77.3,24.106z' }), BdApi.React.createElement('path', { fill: 'currentColor', d: 'M85.1,8.406c-2.699,2.7-2.699,7.2,0,9.9c10.5,10.5,16.301,24.4,16.301,39.3s-5.801,28.8-16.301,39.3c-2.699,2.7-2.699,7.2,0,9.9c1.4,1.399,3.2,2.1,4.9,2.1c1.8,0,3.6-0.7,4.9-2c13.1-13.1,20.399-30.6,20.399-49.2c0-18.6-7.2-36-20.399-49.2C92.3,5.706,87.9,5.706,85.1,8.406z' }))
 const FileSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, ariaHidden: 'false', viewBox: '2 2 20 20', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M16,2l4,4H16ZM14,2H5A1,1,0,0,0,4,3V21a1,1,0,0,0,1,1H19a1,1,0,0,0,1-1V8H14Z' }))
@@ -454,7 +456,7 @@ class MediaFavButton extends BdApi.React.Component {
   }
 
   static hasPreview (type) {
-    return !['audio', 'file'].includes(type)
+    return !['audio', 'file', 'message'].includes(type)
   }
 
   static isPlayable (type) {
@@ -488,7 +490,7 @@ class MediaFavButton extends BdApi.React.Component {
   static async getMediaDataFromProps (props) {
     const dimensions = await getMediaDimensions(props)
 
-    if (!['audio', 'file'].includes(props.type) && (dimensions.width === 0 || dimensions.height === 0)) {
+    if (!['audio', 'file', 'message'].includes(props.type) && (dimensions.width === 0 || dimensions.height === 0)) {
       throw new Error('Could not fetch media dimensions')
     }
 
@@ -532,6 +534,14 @@ class MediaFavButton extends BdApi.React.Component {
           source: props.source,
         }
 
+      case 'message':
+        return {
+          url: props.url,
+          name: props.url.substring(0, 50),
+          message: props.url,
+          source: props.source,
+        }
+
       default: // image
         return {
           url: props.url,
@@ -545,6 +555,9 @@ class MediaFavButton extends BdApi.React.Component {
   }
 
   static async favoriteMedia (props) {
+    // Skip saving messages with no content
+    if (props.type === 'message' && (!props.url || !props.url.trim())) return
+
     // get message and source links
     const $target = props.target?.current
     if ($target != null) {
@@ -557,7 +570,7 @@ class MediaFavButton extends BdApi.React.Component {
     if (props.type === 'gif') await MediaFavButton.favoriteGIF(data)
     typeData.medias.push(data)
     saveData(props.type, typeData)
-    if (plugin.instance.settings.allowCaching) MediaFavButton.cacheMedia(data.url)
+    if (plugin.instance.settings.allowCaching && props.type !== 'message') MediaFavButton.cacheMedia(data.url)
     return props
   }
 
@@ -1416,6 +1429,7 @@ class MediaCard extends BdApi.React.Component {
 
   get tag () {
     if (this.props.type === 'file') return null
+    if (this.props.type === 'message') return null
     if (this.state.showControls) return this.props.type === 'audio' ? 'audio' : 'video'
     if (this.isGIF && !this.props.src?.split('?')[0].endsWith('.gif')) return 'video'
     if (this.props.type === 'audio') return null
@@ -1431,12 +1445,14 @@ class MediaCard extends BdApi.React.Component {
   get titleIcon () {
     if (this.props.type === 'audio') return MusicNoteSVG({ className: classes.category.categoryIcon, style: { overflow: 'visible' } })
     if (this.props.type === 'file') return MiniFileSVG({ className: classes.category.categoryIcon, style: { overflow: 'visible' } })
+    if (this.props.type === 'message') return MessageSVG({ className: classes.category.categoryIcon, style: { overflow: 'visible' } })
     return null
   }
 
   get fileName () {
     const name = this.props.name.replace(/_/gm, ' ')
     if (this.props.type === 'audio') return name
+    if (this.props.type === 'message') return name
     return name + getUrlExt(this.src, this.props.type)
   }
 
@@ -1682,6 +1698,7 @@ class MediaPicker extends BdApi.React.Component {
     this.resetScroll = this.resetScroll.bind(this)
 
     this.mediasCounterRef = BdApi.React.createRef()
+    this.createCategoryButtonRef = BdApi.React.createRef()
     this.databaseButtonRef = BdApi.React.createRef()
     this.importButtonRef = BdApi.React.createRef()
     this.settingsButtonRef = BdApi.React.createRef()
@@ -1722,6 +1739,7 @@ class MediaPicker extends BdApi.React.Component {
   }
 
   createButtonsTooltips () {
+    if (this.createCategoryButton == null && this.createCategoryButtonRef?.current != null) this.createCategoryButton = BdApi.UI.createTooltip(this.createCategoryButtonRef.current, 'Add Category', { style: 'primary' })
     if (this.databaseButton == null && this.databaseButtonRef?.current != null) this.databaseButton = BdApi.UI.createTooltip(this.databaseButtonRef.current, plugin.instance.strings.cache.panel, { style: 'primary' })
     if (this.importButton == null && this.importButtonRef?.current != null) this.importButton = BdApi.UI.createTooltip(this.importButtonRef.current, plugin.instance.strings.import.panel, { style: 'primary' })
     if (this.settingsButton == null && this.settingsButtonRef?.current != null) this.settingsButton = BdApi.UI.createTooltip(this.settingsButtonRef.current, plugin.instance.strings.settings.panel, { style: 'primary' })
@@ -2404,10 +2422,35 @@ class MediaPicker extends BdApi.React.Component {
     BdApi.React.createElement('div', {
       className: `${classes.h5} fm-headerRight`,
     },
+    BdApi.React.createElement('div', {
+      style: { display: 'flex', alignItems: 'center', gap: '8px' },
+    },
     BdApi.React.createElement('span', {
       ref: this.mediasCounterRef,
       className: 'fm-mediasCounter',
     }, this.filteredMedias.length),
+    BdApi.React.createElement('div', {
+      ref: this.createCategoryButtonRef,
+      className: `${classes.buttons.button} fm-createCategoryButton fm-buttonIcon`,
+      role: 'button',
+      tabindex: '0',
+      onClick: () => MediaPicker.openCategoryModal(this.props.type, 'create', null, this.state.category?.id),
+    },
+    BdApi.React.createElement('svg', {
+      ariaHidden: true,
+      width: '16',
+      height: '16',
+      viewBox: '0 0 24 24',
+      fill: 'none',
+      role: 'img'
+    },
+    BdApi.React.createElement('path', {
+      fill: 'currentColor',
+      d: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z',
+    })
+    )
+    )
+    ),
     BdApi.React.createElement('div', {
       ref: this.databaseButtonRef,
       className: `${classes.buttons.button} fm-databaseButton fm-buttonIcon`,
@@ -2695,7 +2738,8 @@ class MediaButton extends BdApi.React.Component {
     this.props.type === 'image' ? ImageSVG() : null,
     this.props.type === 'video' ? VideoSVG() : null,
     this.props.type === 'audio' ? AudioSVG() : null,
-    this.props.type === 'file' ? FileSVG() : null
+    this.props.type === 'file' ? FileSVG() : null,
+    this.props.type === 'message' ? MessageSVG() : null
     )
     )
     )
@@ -3231,6 +3275,7 @@ module.exports = class FavoriteMedia {
           if (this.settings.video.enabled) head.push(this.MediaTab('video', elementType))
           if (this.settings.audio.enabled) head.push(this.MediaTab('audio', elementType))
           if (this.settings.file.enabled) head.push(this.MediaTab('file', elementType))
+          if (this.settings.message.enabled) head.push(this.MediaTab('message', elementType))
 
           const activeMediaPickerType = EPS.useExpressionPickerStore.getState().activeView.replace('fm-', '')
           if (ALL_TYPES.includes(activeMediaPickerType)) {
@@ -3273,6 +3318,7 @@ module.exports = class FavoriteMedia {
       if (this.settings.video.enabled && this.settings.video.showBtn) fmButtons.push(BdApi.React.createElement(MediaButton, { type: 'video', pickerType: props.type, channelId: props.channel.id }))
       if (this.settings.audio.enabled && this.settings.audio.showBtn) fmButtons.push(BdApi.React.createElement(MediaButton, { type: 'audio', pickerType: props.type, channelId: props.channel.id }))
       if (this.settings.file.enabled && this.settings.file.showBtn) fmButtons.push(BdApi.React.createElement(MediaButton, { type: 'file', pickerType: props.type, channelId: props.channel.id }))
+      if (this.settings.message.enabled && this.settings.message.showBtn) fmButtons.push(BdApi.React.createElement(MediaButton, { type: 'message', pickerType: props.type, channelId: props.channel.id }))
 
       chatBar.children.push(...fmButtons)
       chatBar.children.forEach((b) => { if (b?.props != null && ALL_TYPES.includes(b.props?.type)) b.key = b.props.type })
@@ -3448,15 +3494,21 @@ module.exports = class FavoriteMedia {
         } else if (props.target.closest('[class*="mosaicItemContent_"]')?.querySelector('a[class*="fileNameLink_"],a[class*="downloadSection_"]')) {
           type = 'file'
           props.target = props.target.closest('[class*="mosaicItemContent_"]')
+        } else if (props.message != null) {
+          type = 'message'
         }
         if (type == null) return []
 
+        // Extract message content and skip if empty
+        let messageContent = type === 'message' ? (props.message.content ?? '') : null
+        if (type === 'message' && !messageContent.trim()) return []
+
         const data = {
           type,
-          url: props.target.getAttribute('href') ?? props.target.getAttribute('src'),
+          url: type === 'message' ? messageContent : (props.target.getAttribute('href') ?? props.target.getAttribute('src')),
           poster: null,
           favorited: undefined,
-          target: { current: props.target },
+          target: { current: type === 'message' ? null : props.target },
         }
 
         if (data.url?.split('?')[0].endsWith('.gif')) data.type = 'gif'
@@ -3473,48 +3525,73 @@ module.exports = class FavoriteMedia {
           data.url = props.target.querySelector('a[class*="fileNameLink_"],a[class*="downloadSection_"]').href
         }
 
-        data.url = cleanUrl(removeProxyUrl(data.url))
+        if (data.type !== 'message') {
+          data.url = cleanUrl(removeProxyUrl(data.url))
+        }
         data.favorited = this.isFavorited(data.type, data.url)
-        const menuItems = [{
-          id: `media-${data.favorited ? 'un' : ''}favorite`,
-          label: data.favorited ? plugin.instance.strings.media.removeFromFavorites : plugin.instance.strings.media.addToFavorites,
-          icon: () => BdApi.React.createElement(StarSVG, { filled: !data.favorited }),
-          action: async () => {
-            const switchFavorite = data.favorited ? MediaFavButton.unfavoriteMedia : MediaFavButton.favoriteMedia
-            switchFavorite(data).then(() => {
-              Dispatcher.dispatch({ type: 'FM_FAVORITE_MEDIA', url: data.url })
-            }).catch((err) => {
-              BdApi.Logger.error(this.meta.name, err.message ?? err)
-            })
-          },
-        }]
-        menuItems.push({
-          id: 'media-copy-url',
-          label: plugin.instance.strings.media.copyMediaLink,
-          action: () => ElectronModule.copy(data.url),
-        })
-        if (data.message != null) {
+        const menuItems = []
+        
+        // Only add favorite button for messages
+        if (data.type === 'message') {
+          menuItems.push({
+            id: `media-${data.favorited ? 'un' : ''}favorite`,
+            label: data.favorited ? plugin.instance.strings.media.removeFromFavorites : plugin.instance.strings.media.addToFavorites,
+            icon: () => BdApi.React.createElement(StarSVG, { filled: data.favorited }),
+            action: async () => {
+              const switchFavorite = data.favorited ? MediaFavButton.unfavoriteMedia : MediaFavButton.favoriteMedia
+              switchFavorite(data).then(() => {
+                Dispatcher.dispatch({ type: 'FM_FAVORITE_MEDIA', url: data.url })
+              }).catch((err) => {
+                BdApi.Logger.error(this.meta.name, err.message ?? err)
+              })
+            },
+          })
+        } else {
+          // For other media types, add favorite button
+          menuItems.push({
+            id: `media-${data.favorited ? 'un' : ''}favorite`,
+            label: data.favorited ? plugin.instance.strings.media.removeFromFavorites : plugin.instance.strings.media.addToFavorites,
+            icon: () => BdApi.React.createElement(StarSVG, { filled: data.favorited }),
+            action: async () => {
+              const switchFavorite = data.favorited ? MediaFavButton.unfavoriteMedia : MediaFavButton.favoriteMedia
+              switchFavorite(data).then(() => {
+                Dispatcher.dispatch({ type: 'FM_FAVORITE_MEDIA', url: data.url })
+              }).catch((err) => {
+                BdApi.Logger.error(this.meta.name, err.message ?? err)
+              })
+            },
+          })
+          
+          menuItems.push({
+            id: 'media-copy-url',
+            label: plugin.instance.strings.media.copyMediaLink,
+            action: () => ElectronModule.copy(data.url),
+          })
+        }
+        if (data.message != null && data.type !== 'message') {
           menuItems.push({
             id: 'media-copy-message',
             label: plugin.instance.strings.media.copyMessageLink,
             action: () => ElectronModule.copy(data.message ?? ''),
           })
         }
-        if (data.source != null) {
+        if (data.source != null && data.type !== 'message') {
           menuItems.push({
             id: 'media-copy-source',
             label: plugin.instance.strings.media.copySource,
             action: () => ElectronModule.copy(data.source ?? ''),
           })
         }
-        menuItems.push({
-          id: 'media-download',
-          label: plugin.instance.strings.media.download,
-          action: () => {
-            const media = { url: data.url, name: getUrlName(data.url) }
-            MediaPicker.downloadMedia(media, data.type)
-          },
-        })
+        if (data.type !== 'message') {
+          menuItems.push({
+            id: 'media-download',
+            label: plugin.instance.strings.media.download,
+            action: () => {
+              const media = { url: data.url, name: getUrlName(data.url) }
+              MediaPicker.downloadMedia(media, data.type)
+            },
+          })
+        }
         if (data.favorited) {
           const medias = loadData(data.type, { medias: [] }).medias
           const mediaId = medias.findIndex(m => MediaFavButton.checkSameUrl(m.url, data.url))
@@ -3732,8 +3809,24 @@ module.exports = class FavoriteMedia {
         -webkit-transform: translateY(0);f
         transform: translateY(0);
       }
+      [class*="drawerSizingWrapper"] {
+        min-width: 580px !important;
+      }
       .fm-pickerContainer {
-        height: 100%
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      .fm-pickerContainer > .fm-header {
+        flex: 0 0 auto;
+      }
+      .fm-pickerContent {
+        flex: 1 1 auto;
+        min-height: 0; /* allow children to scroll inside flex */
+      }
+      .fm-pickerContentContainer {
+        height: 100%;
+        display: block;
       }
       #gif-picker-tab-panel .fm-header {
         padding-top: 16px;
@@ -4123,6 +4216,29 @@ module.exports = class FavoriteMedia {
           },
         ],
       },
+      {
+        type: 'category',
+        id: 'message',
+        name: 'Messages settings',
+        collapsible: true,
+        shown: false,
+        settings: [
+          {
+            type: 'switch',
+            id: 'enabled',
+            name: 'General',
+            note: 'Enable this type of media',
+            value: true,
+          },
+          {
+            type: 'switch',
+            id: 'showBtn',
+            name: 'Button',
+            note: 'Show button on chat',
+            value: true,
+          },
+        ],
+      },
     ]
   }
 
@@ -4135,6 +4251,7 @@ module.exports = class FavoriteMedia {
           video: 'Видео',
           audio: 'Аудио',
           file: 'Файл',
+          message: 'Съобщения',
         },
         create: 'Създайте',
         edit: 'Редактиране',
@@ -4181,6 +4298,7 @@ module.exports = class FavoriteMedia {
             video: 'Кликнете върху звездата в ъгъла на видеоклипа, за да го поставите в любимите си',
             audio: 'Кликнете върху звездата в ъгъла на звука, за да го поставите в любимите си',
             file: "Кликнете върху ' звезда в ъгъла ' файл, за да го поставите в любимите си",
+            message: 'Щракнете с десния бутон върху съобщение, FavoriteMedia, Добави в любими',
           },
           favoriteHint: 'Премини с мишката върху GIF и щракни върху звездата, за да го добавиш към любимите си.',
           addToFavorites: 'Добави в любими',
@@ -4460,6 +4578,7 @@ module.exports = class FavoriteMedia {
             video: 'Kliknutím na hvězdičku v rohu videa je přidáte mezi oblíbené',
             audio: 'Kliknutím na hvězdičku v rohu zvukové nahrávky ji přidáte mezi oblíbené',
             file: 'Kliknutím na hvězdičku v rohu souboru jej přidáte mezi oblíbené',
+            message: 'Klikněte pravým tlačítkem na zprávu, FavoriteMedia, Přidat do oblíbených',
           },
           favoriteHint: 'Najetím myší na GIF klikni na hvězdu, aby sis ho přidal(a) do oblíbených.',
           addToFavorites: 'Přidat k oblíbeným',
@@ -4739,6 +4858,7 @@ module.exports = class FavoriteMedia {
             video: 'Klik på stjernen i hjørnet af en video for at placere den i dine favoritter',
             audio: 'Klik på stjernen i hjørnet af en lyd for at placere den i dine favoritter',
             file: 'Klik på stjernen i hjørnet af en fil for at tilføje den til dine favoritter',
+            message: 'Højreklik på meddelelse, FavoriteMedia, Tilføj til favoritter',
           },
           favoriteHint: 'Hold musen over en GIF og klik på stjernen for at føje den til dine favoritter.',
           addToFavorites: 'Tilføj til favoritter',
@@ -5018,6 +5138,7 @@ module.exports = class FavoriteMedia {
             video: 'Klicke auf den Stern in der Ecke eines Videos, um es zu deinen Favoriten hinzuzufügen',
             audio: 'Klicken Sie auf den Stern in der Ecke eines Audios, um es in Ihre Favoriten aufzunehmen',
             file: 'Klicken Sie auf den Stern in der Ecke einer Datei, um sie zu Ihren Favoriten hinzuzufügen',
+            message: 'Rechtsklick auf Nachricht, FavoriteMedia, Zu Favoriten hinzufügen',
           },
           favoriteHint: 'Fahre mit der Maus über ein GIF und klicke auf den Stern, um es zu deinen Favoriten hinzuzufügen.',
           addToFavorites: 'Zu den Favoriten hinzufügen',
@@ -5297,6 +5418,7 @@ module.exports = class FavoriteMedia {
             video: 'Κάντε κλικ στο αστέρι στη γωνία ενός βίντεο για να το βάλετε στα αγαπημένα σας',
             audio: 'Κάντε κλικ στο αστέρι στη γωνία ενός ήχου για να το βάλετε στα αγαπημένα σας',
             file: 'Κάντε κλικ στο αστέρι στη γωνία ενός αρχείου για να το προσθέσετε στα αγαπημένα σας',
+            message: 'Δεξί κλικ στο μήνυμα, FavoriteMedia, Προσθήκη στα αγαπημένα',
           },
           favoriteHint: 'Τοποθέτησε τον δείκτη πάνω σε ένα GIF και κάνε κλικ στο αστέρι για να το προσθέσεις στα αγαπημένα σου.',
           addToFavorites: 'Προσθήκη στα αγαπημένα',
@@ -5530,6 +5652,7 @@ module.exports = class FavoriteMedia {
           video: 'Video',
           audio: 'Audio',
           file: 'File',
+          message: 'Message',
         },
         create: 'Create',
         edit: 'Edit',
@@ -5576,6 +5699,7 @@ module.exports = class FavoriteMedia {
             video: 'Click on the star in the corner of a video to bookmark it',
             audio: 'Click on the star in the corner of an audio to bookmark it',
             file: 'Click on the star in the corner of a file to bookmark it',
+            message: 'Right-Click message, FavoriteMedia, Add to favorites',
           },
           favoriteHint: 'Hover over a GIF and click the star to add it to your favorites.',
           addToFavorites: 'Add to favorites',
@@ -5737,6 +5861,7 @@ module.exports = class FavoriteMedia {
             video: 'Haga clic en la estrella en la esquina de un video para ponerlo en sus favoritos',
             audio: 'Haga clic en la estrella en la esquina de un audio para ponerlo en sus favoritos',
             file: 'Haga clic en la estrella en la esquina de un archivo para agregarlo a sus favoritos',
+            message: 'Clic derecho en el mensaje, FavoriteMedia, Agregar a favoritos',
           },
           favoriteHint: 'Pasa el cursor sobre un GIF y haz clic en la estrella para añadirlo a tus favoritos.',
           addToFavorites: 'Añadir a favoritos',
@@ -6016,6 +6141,7 @@ module.exports = class FavoriteMedia {
             video: 'Napsauta videon kulmassa olevaa tähteä lisätäksesi sen suosikkeihisi',
             audio: 'Napsauta äänen kulmassa olevaa tähteä lisätäksesi sen suosikkeihisi',
             file: 'Napsauta tähteä tiedoston kulmassa lisätäksesi sen suosikkeihisi',
+            message: 'Napsauta hiiren oikealla painikkeella viestiä, FavoriteMedia, Lisää suosikeihin',
           },
           favoriteHint: 'Vie hiiri GIF-kuvan päälle ja napsauta tähteä lisätäksesi sen suosikkeihisi.',
           addToFavorites: 'Lisää suosikkeihin',
@@ -6295,6 +6421,7 @@ module.exports = class FavoriteMedia {
             video: 'Clique sur l\'étoile dans le coin d\'une vidéo pour la mettre dans tes favoris',
             audio: 'Clique sur l\'étoile dans le coin d\'un audio pour le mettre dans tes favoris',
             file: 'Clique sur l\'étoile dans le coin d\'un fichier pour le mettre dans tes favoris',
+            message: 'Clic droit sur le message, FavoriteMedia, Ajouter aux favoris',
           },
           favoriteHint: 'Survole un GIF et clique sur l\'étoile pour l\'ajouter à tes favoris.',
           addToFavorites: 'Ajouter aux favoris',
@@ -6574,6 +6701,7 @@ module.exports = class FavoriteMedia {
             video: 'किसी वीडियो को अपने पसंदीदा में जोड़ने के लिए उसके कोने में स्थित तारे पर क्लिक करें',
             audio: 'किसी ऑडियो को अपने पसंदीदा में जोड़ने के लिए उसके कोने में स्थित तारे पर क्लिक करें',
             file: 'किसी फ़ाइल को अपने पसंदीदा में जोड़ने के लिए उसके कोने में स्थित तारे पर क्लिक करें',
+            message: 'दाहिना क्लिक संदेश, FavoriteMedia, पसंदीदा में जोड़ें',
           },
           favoriteHint: 'किसी GIF पर कर्सर ले जाएँ और उसे पसंदीदा में जोड़ने के लिए सितारे पर क्लिक करें।',
           addToFavorites: 'पसंदीदा में जोड़ें',
@@ -6853,6 +6981,7 @@ module.exports = class FavoriteMedia {
             video: 'Kliknite zvjezdicu u kutu videozapisa da biste je stavili među svoje favorite',
             audio: 'Kliknite zvjezdicu u kutu zvuka da biste je stavili među svoje favorite',
             file: 'Pritisnite zvjezdicu u kutu datoteke kako biste je dodali u svoje favorite',
+            message: 'Desni klik na poruku, FavoriteMedia, Dodaj u favorite',
           },
           favoriteHint: 'Prijeđi mišem preko GIF-a i klikni na zvjezdicu kako bi ga dodao u favorite.',
           addToFavorites: 'Dodaj u favorite',
@@ -7132,6 +7261,7 @@ module.exports = class FavoriteMedia {
             video: 'Kattintson a videó sarkában lévő csillagra, hogy a kedvencek közé tegye',
             audio: 'Kattintson a csillagra egy hang sarkában, hogy a kedvencek közé helyezze',
             file: 'Kattintson a csillagra a fájl sarkában, hogy hozzáadja a kedvenceihez',
+            message: 'Jobb klikk az üzenetre, FavoriteMedia, Hozzáadás a kedvencekhez',
           },
           favoriteHint: 'Vidd az egeret a GIF fölé, majd kattints a csillagra, hogy hozzáadd a kedvencekhez.',
           addToFavorites: 'Hozzáadás a kedvencekhez',
@@ -7411,6 +7541,7 @@ module.exports = class FavoriteMedia {
             video: 'Fai clic sulla stella nell\'angolo di un video per inserirlo nei preferiti',
             audio: 'Fai clic sulla stella nell\'angolo di un audio per inserirlo nei preferiti',
             file: "Fai clic sulla stella nell'angolo di un file per aggiungerlo ai tuoi preferiti",
+            message: 'Clic destro su messaggio, FavoriteMedia, Aggiungi ai preferiti',
           },
           favoriteHint: 'Passa il mouse su una GIF e clicca sulla stella per aggiungerla ai preferiti.',
           addToFavorites: 'Aggiungi ai preferiti',
@@ -7690,6 +7821,7 @@ module.exports = class FavoriteMedia {
             video: '動画の隅にある星をクリックして、お気に入りに追加します',
             audio: 'オーディオの隅にある星をクリックして、お気に入りに入れます',
             file: 'ファイルの隅にある星をクリックしてお気に入りに追加します',
+            message: 'メッセージを右クリック、FavoriteMedia、お気に入りに追加',
           },
           favoriteHint: 'GIF にカーソルを合わせ、星をクリックしてお気に入りに追加します。',
           addToFavorites: 'お気に入りに追加',
@@ -7969,6 +8101,7 @@ module.exports = class FavoriteMedia {
             video: '동영상 모서리에있는 별표를 클릭하여 즐겨 찾기에 추가하세요.',
             audio: '오디오 모서리에있는 별표를 클릭하여 즐겨 찾기에 넣습니다.',
             file: '즐겨찾기에 추가하려면 파일 모서리에 있는 별표를 클릭하세요.',
+            message: '메시지 우클릭, FavoriteMedia, 즐겨찾기 추가',
           },
           favoriteHint: 'GIF 위에 마우스를 올리고 별을 클릭하여 즐겨찾기에 추가하세요.',
           addToFavorites: '즐겨찾기에 추가',
@@ -8248,6 +8381,7 @@ module.exports = class FavoriteMedia {
             video: 'Spustelėkite žvaigždutę vaizdo įrašo kampe, kad įtrauktumėte ją į mėgstamiausius',
             audio: 'Spustelėkite žvaigždutę garso kampe, kad įtrauktumėte ją į mėgstamiausius',
             file: 'Spustelėkite žvaigždutę failo kampe, kad pridėtumėte jį prie mėgstamiausių',
+            message: 'Dešinis pelės mygtuko spustelėjimas ant žinutės, FavoriteMedia, Pridėti prie mėgstamiausių',
           },
           favoriteHint: 'Užvesk žymeklį ant GIF ir spustelėk žvaigždutę, kad pridėtum jį prie mėgstamiausių.',
           addToFavorites: 'Pridėti prie mėgstamiausių',
@@ -8527,6 +8661,7 @@ module.exports = class FavoriteMedia {
             video: 'Klik op de ster in de hoek van een video om deze in je favorieten te plaatsen',
             audio: 'Klik op de ster in de hoek van een audio om deze in je favorieten te plaatsen',
             file: 'Klik op de ster in de hoek van een bestand om het aan uw favorieten toe te voegen',
+            message: 'Rechtsklik op bericht, FavoriteMedia, Toevoegen aan favorieten',
           },
           favoriteHint: 'Beweeg de muis over een GIF en klik op de ster om het aan je favorieten toe te voegen.',
           addToFavorites: 'Toevoegen aan favorieten',
@@ -8806,6 +8941,7 @@ module.exports = class FavoriteMedia {
             video: 'Klikk på stjernen i hjørnet av en video for å sette den i favorittene dine',
             audio: 'Klikk på stjernen i hjørnet av en lyd for å sette den i favorittene dine',
             file: 'Klikk på stjernen i hjørnet av en fil for å legge den til i favorittene dine',
+            message: 'Høyreklikk melding, FavoriteMedia, Legg til i favoritter',
           },
           favoriteHint: 'Hold markøren over en GIF og klikk på stjernen for å legge den til i favorittene dine.',
           addToFavorites: 'Legg til i favoritter',
@@ -9085,6 +9221,7 @@ module.exports = class FavoriteMedia {
             video: 'Kliknij gwiazdkę w rogu filmu, aby umieścić go w ulubionych',
             audio: 'Kliknij gwiazdkę w rogu nagrania, aby umieścić go w ulubionych your',
             file: 'Kliknij gwiazdkę w rogu pliku, aby dodać go do ulubionych',
+            message: 'Kliknij prawym przyciskiem myszy na wiadomość, FavoriteMedia, Dodaj do ulubionych',
           },
           favoriteHint: 'Najedź kursorem na GIF i kliknij gwiazdkę, aby dodać go do ulubionych.',
           addToFavorites: 'Dodaj do ulubionych',
@@ -9364,6 +9501,7 @@ module.exports = class FavoriteMedia {
             video: 'Clique na estrela no canto de um vídeo para colocá-lo em seus favoritos',
             audio: 'Clique na estrela no canto de um áudio para colocá-lo em seus favoritos',
             file: 'Clique na estrela no canto de um arquivo para adicioná-lo aos seus favoritos',
+            message: 'Clique com o botão direito na mensagem, FavoriteMedia, Adicionar aos favoritos',
           },
           favoriteHint: 'Passe o cursor sobre um GIF e clique na estrela para adicioná-lo aos seus favoritos.',
           addToFavorites: 'Adicionar aos favoritos',
@@ -9643,6 +9781,7 @@ module.exports = class FavoriteMedia {
             video: 'Faceți clic pe steaua din colțul unui videoclip pentru a-l introduce în preferatele dvs.',
             audio: 'Faceți clic pe steaua din colțul unui sunet pentru ao pune în preferatele dvs.',
             file: 'Faceți clic pe steaua din colțul unui fișier pentru a-l adăuga la favorite',
+            message: 'Clic dreapta pe mesaj, FavoriteMedia, Adaugă la favorite',
           },
           favoriteHint: 'Treci cu cursorul peste un GIF și dă clic pe stea pentru a-l adăuga la favorite.',
           addToFavorites: 'Adaugă la favorite',
@@ -9922,6 +10061,7 @@ module.exports = class FavoriteMedia {
             video: 'Нажмите на звездочку в углу видео, чтобы добавить его в избранное.',
             audio: 'Нажмите на звездочку в углу аудио, чтобы добавить его в избранное.',
             file: 'Нажмите на звездочку в углу файла, чтобы добавить его в избранное.',
+            message: 'Щелкните правой кнопкой мыши по сообщению, FavoriteMedia, Добавить в избранное',
           },
           favoriteHint: 'Наведи курсор на GIF и нажми на звёздочку, чтобы добавить его в избранное.',
           addToFavorites: 'Добавить в избранное',
