@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.23
+ * @version 1.13.24
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -983,6 +983,11 @@ class ImportPanel extends BdApi.React.Component {
       BdApi.React.createElement('div', {
         className: 'fm-importActions',
       },
+      BdApi.React.createElement('div', {
+        style: { color: "var(--text-feedback-critical)" }
+      },
+        plugin.instance.strings.import.alert
+      ),
       !this.isEmpty && !this.state.imported
         ? BdApi.React.createElement(BdApi.Components.Button, {
           className: 'fm-importMediasButton',
@@ -3297,7 +3302,7 @@ module.exports = class FavoriteMedia {
           url: cleanUrl(removeProxyUrl(props.src)),
           poster: props.poster,
           uploaded: props.fileSize != null,
-          target: returnValue.props.children[1]?.ref,
+          target: { current: document.querySelector(`video.${returnValue.props.children[1]?.props?.className}[src="${props.src}"]`) },
         }))
       })
     }
@@ -4251,6 +4256,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Импортиране на медии',
+          alert: 'Уверете се, че сте създали резервно копие на вашия config.json, преди да импортирате стари медии!',
           label: {
             types: 'Видове',
             medias: 'Медия',
@@ -4530,6 +4536,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Import médií',
+          alert: 'Ujistěte se, že jste vytvořili zálohu svého config.json před importem starých médií!',
           label: {
             types: 'Typy',
             medias: 'Média',
@@ -4809,6 +4816,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Medieimport',
+          alert: 'Sørg for at lave en sikkerhedskopi af din config.json, før du importerer gamle medier!',
           label: {
             types: 'Typer',
             medias: 'Medier',
@@ -5088,6 +5096,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Medienimport',
+          alert: 'Stellen Sie sicher, dass Sie eine Sicherung Ihrer config.json erstellen, bevor Sie alte Medien importieren!',
           label: {
             types: 'Typen',
             medias: 'Medien',
@@ -5367,6 +5376,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Εισαγωγή μέσων',
+          alert: 'Βεβαιωθείτε ότι έχετε δημιουργήσει αντίγραφο ασφαλείας του config.json πριν εισαγάγετε παλιά μέσα!',
           label: {
             types: 'Τύποι',
             medias: 'Μεσο ΜΑΖΙΚΗΣ ΕΝΗΜΕΡΩΣΗΣ',
@@ -5646,6 +5656,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Import medias',
+          alert: 'Make sure to create a backup of your config.json before importing old medias!',
           label: {
             types: 'Types',
             medias: 'Medias',
@@ -5807,6 +5818,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Importación de medios',
+          alert: 'Asegúrate de crear una copia de seguridad de tu config.json antes de importar medios antiguos.',
           label: {
             types: 'Tipos',
             medias: 'Medios de comunicación',
@@ -6086,6 +6098,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Median tuonti',
+          alert: 'Varmista, että luot varmuuskopion config.json-tiedostostasi ennen vanhojen medioiden tuontia!',
           label: {
             types: 'Tyypit',
             medias: 'Media',
@@ -6365,6 +6378,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Importation de médias',
+          alert: 'Assurez-vous de créer une sauvegarde de votre config.json avant d\'importer d\'anciens médias !',
           label: {
             types: 'Types',
             medias: 'Médias',
@@ -6644,6 +6658,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'मीडिया आयात',
+          alert: 'पुराने मीडिया आयात करने से पहले अपने config.json का बैकअप बनाना सुनिश्चित करें!',
           label: {
             types: 'प्रकार',
             medias: 'मिडिया',
@@ -6923,6 +6938,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Uvoz medija',
+          alert: 'Provjerite jeste li napravili sigurnosnu kopiju svog config.json prije uvoza starih medija!',
           label: {
             types: 'Vrste',
             medias: 'Mediji',
@@ -7202,6 +7218,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Média importálása',
+          alert: 'Győződj meg róla, hogy biztonsági másolatot készítesz a config.json fájlodról a régi médiák importálása előtt!',
           label: {
             types: 'Típusok',
             medias: 'Média',
@@ -7481,6 +7498,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Importazione multimediale',
+          alert: 'Assicurati di creare un backup del tuo config.json prima di importare vecchi media!',
           label: {
             types: 'Tipi',
             medias: 'Media',
@@ -7760,6 +7778,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'メディアのインポート',
+          alert: '古いメディアをインポートする前に、config.json のバックアップを必ず作成してください！',
           label: {
             types: '種類',
             medias: 'メディア',
@@ -8039,6 +8058,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: '미디어 가져오기',
+          alert: '이전 미디어를 가져오기 전에 config.json의 백업을 반드시 생성하세요!',
           label: {
             types: '유형',
             medias: '미디어',
@@ -8318,6 +8338,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Medijos importas',
+          alert: 'Prieš importuodami seną mediją, būtinai sukurkite savo config.json atsarginę kopiją!',
           label: {
             types: 'Tipai',
             medias: 'Žiniasklaida',
@@ -8597,6 +8618,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Media-import',
+          alert: 'Zorg ervoor dat je een back-up maakt van je config.json voordat je oude media importeert!',
           label: {
             types: 'Soorten',
             medias: 'Media',
@@ -8876,6 +8898,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Medieimport',
+          alert: 'Sørg for å ta en sikkerhetskopi av config.json før du importerer gamle medier!',
           label: {
             types: 'Typer',
             medias: 'Media',
@@ -9155,6 +9178,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Import multimediów',
+          alert: 'Upewnij się, że wykonałeś kopię zapasową pliku config.json przed importowaniem starych mediów!',
           label: {
             types: 'Typy',
             medias: 'Głoska bezdźwięczna',
@@ -9434,6 +9458,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Importação de mídia',
+          alert: 'Certifique-se de criar um backup do seu config.json antes de importar mídias antigas!',
           label: {
             types: 'Tipos',
             medias: 'meios de comunicação',
@@ -9713,6 +9738,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Import media',
+          alert: 'Asigură-te că faci o copie de rezervă a fișierului tău config.json înainte de a importa medii vechi!',
           label: {
             types: 'Tipuri',
             medias: 'Mass-media',
@@ -9992,6 +10018,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Импорт медиа',
+          alert: 'Убедитесь, что вы создали резервную копию вашего config.json перед импортом старых медиа!',
           label: {
             types: 'Типы',
             medias: 'СМИ',
@@ -10271,6 +10298,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Uvoz medijev',
+          alert: 'Uistite sa, že ste si vytvorili zálohu súboru config.json pred importovaním starých médií!',
           label: {
             types: 'Vrste',
             medias: 'Mediji',
@@ -10550,6 +10578,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Mediaimport',
+          alert: 'Se till att skapa en säkerhetskopia av din config.json innan du importerar gamla medier!',
           label: {
             types: 'Typer',
             medias: 'Media',
@@ -10829,6 +10858,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'การนำเข้าสื่อ',
+          alert: 'โปรดตรวจสอบให้แน่ใจว่าคุณได้สร้างข้อมูลสำรองของ config.json ก่อนนำเข้าสื่อเก่า!',
           label: {
             types: 'ประเภท',
             medias: 'สื่อ',
@@ -11108,6 +11138,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Medyayı İçe Aktarma',
+          alert: 'Eski medyaları içe aktarmadan önce config.json dosyanızın bir yedeğini oluşturduğunuzdan emin olun!',
           label: {
             types: 'Türler',
             medias: 'Medya',
@@ -11387,6 +11418,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Імпорт медіа',
+          alert: 'Переконайтеся, що ви створили резервну копію вашого config.json перед імпортом старих медіа!',
           label: {
             types: 'Типи',
             medias: 'ЗМІ',
@@ -11666,6 +11698,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: 'Nhập phương tiện',
+          alert: 'Hãy đảm bảo bạn đã tạo bản sao lưu của config.json trước khi nhập các phương tiện cũ!',
           label: {
             types: 'Các loại',
             medias: 'Phương tiện truyền thông',
@@ -11945,6 +11978,7 @@ module.exports = class FavoriteMedia {
         },
         import: {
           panel: '媒体导入',
+          alert: '在导入旧媒体之前，请确保已创建 config.json 的备份！',
           label: {
             types: '类型',
             medias: '媒体',
