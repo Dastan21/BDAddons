@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.24
+ * @version 1.13.25
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -3443,8 +3443,10 @@ module.exports = class FavoriteMedia {
         let type = null
         if (props.target.tagName === 'IMG' || (props.target.tagName === 'A' && props.target.nextSibling?.firstChild?.firstChild?.tagName === 'IMG')) type = 'image'
         else if (props.target.tagName === 'A' && props.target.nextSibling?.firstChild?.firstChild?.tagName === 'VIDEO') type = 'gif'
-        else if (props.target.parentElement.firstElementChild.tagName === 'VIDEO') type = 'video'
-        else if (props.target.closest('[class*="wrapperAudio_"]')) {
+        else if (props.target.parentElement.parentElement.firstElementChild.tagName === 'VIDEO') {
+          type = 'video'
+          props.target = props.target.parentElement.parentElement.firstElementChild
+        } else if (props.target.closest('[class*="wrapperAudio_"]')) {
           type = 'audio'
           props.target = props.target.closest('[class*="wrapperAudio_"]')
         } else if (props.target.closest('[class*="attachment_"]')) {
@@ -3470,8 +3472,8 @@ module.exports = class FavoriteMedia {
         } else if (data.type === 'gif') {
           data.src = props.target.nextSibling.firstChild?.src ?? props.target.nextSibling.firstChild?.firstChild?.src
         } else if (data.type === 'video') {
-          data.url = props.target.parentElement.firstElementChild.src
-          data.poster = props.target.parentElement.firstElementChild.poster
+          data.url = props.target.src
+          data.poster = props.target.poster
         } else if (data.type === 'audio') {
           data.url = props.target.querySelector('audio').firstElementChild?.src
         } else if (data.type === 'file') {
