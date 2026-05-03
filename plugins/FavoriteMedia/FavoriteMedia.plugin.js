@@ -1,11 +1,12 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.26
+ * @version 1.13.27
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
  * @donate https://ko-fi.com/dastan
+ * @runAt idle
  */
 
 /* global BdApi */
@@ -170,7 +171,7 @@ const classes = {
   },
 }
 
-const plugin = BdApi.Plugins.get('FavoriteMedia')
+let plugin = {}
 
 const MessageStore = BdApi.Webpack.getStore('SearchMessageStore')
 const ChannelStore = BdApi.Webpack.getStore('ChannelStore')
@@ -205,8 +206,10 @@ const FileModule = BdApi.Webpack.getByStrings('fileName', 'fileSize', 'renderAdj
 const FileRenderedModule = BdApi.Webpack.getByStrings('getObscureReason', 'mediaLayoutType', { defaultExport: false })
 const FilesUpload = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('addFiles'))
 const MessagesManager = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('sendMessage'))
-const PageControl = BdApi.Webpack.getModule(m => typeof m === 'function' && m.toString()?.includes('maxVisiblePages') && m.toString()?.includes('disablePaginationGap'), { searchExports: true })
 const RestAPI = BdApi.Webpack.getModule(m => typeof m === 'object' && m.del && m.put, { searchExports: true })
+
+let PageControl
+BdApi.Webpack.waitForModule(m => typeof m === 'function' && m.toString()?.includes('maxVisiblePages') && m.toString()?.includes('disablePaginationGap'), { searchExports: true }).then(m => PageControl = m)
 
 const canClosePicker = { context: '', value: true }
 let currentChannelId = ''
@@ -2486,7 +2489,7 @@ class MediaPicker extends BdApi.React.Component {
         role: 'img',
       },
       BdApi.React.createElement('path', {
-        fill: 'var(--icon-primary)',
+        fill: 'var(--icon-strong)',
         d: 'M15.62 17.03a9 9 0 1 1 1.41-1.41l4.68 4.67a1 1 0 0 1-1.42 1.42l-4.67-4.68ZM17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z',
         fillRule: 'evenodd',
         clipRule: 'evenodd',
@@ -3072,11 +3075,12 @@ module.exports = class FavoriteMedia {
 
     this.strings = this.getLocaleStrings()
     LocaleStore.addChangeListener(() => { this.strings = this.getLocaleStrings() })
-
-    this.settings = this.loadSettings()
   }
 
   start () {
+    plugin = BdApi.Plugins.get('FavoriteMedia')
+    this.settings = this.loadSettings()
+
     loadEPS()
 
     this.patchExpressionPicker()
@@ -3425,11 +3429,11 @@ module.exports = class FavoriteMedia {
         saveData('gif', savedGIFs)
       })
 
-      returnValue.type = MediaPicker
       returnValue.props = {
         type: 'gif',
         settings: this.settings,
       }
+      returnValue.type = MediaPicker
     })
   }
 
