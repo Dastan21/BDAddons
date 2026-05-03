@@ -1,11 +1,12 @@
 /**
  * @name HideEmbedLink
  * @description Hides embed messages link.
- * @version 2.2.6
+ * @version 2.2.7
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink
  * @donate https://ko-fi.com/dastan
+ * @runAt idle
  */
 
 /* global BdApi */
