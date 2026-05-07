@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.27
+ * @version 1.13.28
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -3298,15 +3298,15 @@ module.exports = class FavoriteMedia {
       BdApi.Logger.error(this.meta.name, 'MediaPlayer module not found')
     } else {
       BdApi.Patcher.after(this.meta.name, MediaPlayerModule.prototype, 'render', ({ props }, __, returnValue) => {
-        const type = returnValue.props.children[1].type === 'audio' ? 'audio' : 'video'
+        const type = returnValue.props.children.props.children[1].type === 'audio' ? 'audio' : 'video'
         if (!this.settings[type].enabled || !this.settings[type].showStar) return
 
-        returnValue.props.children.push(BdApi.React.createElement(MediaFavButton, {
+        returnValue.props.children.props.children.push(BdApi.React.createElement(MediaFavButton, {
           type,
           url: cleanUrl(removeProxyUrl(props.src)),
           poster: props.poster,
           uploaded: props.fileSize != null,
-          target: { current: document.querySelector(`video.${returnValue.props.children[1]?.props?.className}[src="${props.src}"]`) },
+          target: { current: document.querySelector(`video.${returnValue.props.children.props.children[1]?.props?.className}[src="${props.src}"]`) },
         }))
       })
     }
