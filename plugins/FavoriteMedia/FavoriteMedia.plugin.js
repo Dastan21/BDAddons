@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.29
+ * @version 1.13.30
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -223,7 +223,7 @@ class FMDB {
   static DB_NAME = 'FavoriteMedia'
   static STORE_NAME = 'FMCache'
 
-  async open () {
+  async open() {
     const openRequest = window.indexedDB.open(FMDB.DB_NAME, 4)
     return await new Promise((resolve, reject) => {
       openRequest.onerror = () => { reject(new Error(`Error loading database: ${FMDB.DB_NAME}`)) }
@@ -236,7 +236,7 @@ class FMDB {
     })
   }
 
-  async get (key) {
+  async get(key) {
     const db = await this.open()
     let data
     return await new Promise((resolve) => {
@@ -253,7 +253,7 @@ class FMDB {
     })
   }
 
-  async getAll () {
+  async getAll() {
     BdApi.Logger.info(plugin.name, 'Fetching all cached medias...')
     const db = await this.open()
     let data
@@ -272,7 +272,7 @@ class FMDB {
     })
   }
 
-  async getKeys () {
+  async getKeys() {
     BdApi.Logger.info(plugin.name, 'Fetching all cached medias keys...')
     const db = await this.open()
     let data
@@ -291,7 +291,7 @@ class FMDB {
     })
   }
 
-  async set (key, data) {
+  async set(key, data) {
     if (data == null) throw new Error('Data is null')
     const db = await this.open()
     const transaction = db.transaction(FMDB.STORE_NAME, 'readwrite')
@@ -301,7 +301,7 @@ class FMDB {
     transaction.oncomplete = () => { db.close() }
   }
 
-  async delete (key) {
+  async delete(key) {
     const db = await this.open()
     const transaction = db.transaction(FMDB.STORE_NAME, 'readwrite')
     const objectStore = transaction.objectStore(FMDB.STORE_NAME)
@@ -310,7 +310,7 @@ class FMDB {
     transaction.oncomplete = () => { db.close() }
   }
 
-  async clear () {
+  async clear() {
     await new Promise((resolve, reject) => {
       const deleteRequest = window.indexedDB.deleteDatabase(FMDB.DB_NAME)
       deleteRequest.onerror = () => { reject(new Error(`Error deleting database: ${FMDB.DB_NAME}`)) }
@@ -318,7 +318,7 @@ class FMDB {
     })
   }
 
-  async cache (url) {
+  async cache(url) {
     const data = await this.get(url)
     if (data != null) return
 
@@ -330,7 +330,7 @@ class FMDB {
     mediasCache[url] = URL.createObjectURL(blob)
   }
 
-  static sizeOf (bytes) {
+  static sizeOf(bytes) {
     if (bytes === 0) return '0.00 B'
     const e = Math.floor(Math.log(bytes) / Math.log(1024))
     return (bytes / Math.pow(1024, e)).toFixed(2) + ' ' + ' KMGTP'.charAt(e) + 'B'
@@ -341,13 +341,13 @@ const mediasCache = {}
 const fmdb = new FMDB()
 
 class MediaMenuItemInput extends BdApi.React.Component {
-  constructor (props) {
+  constructor(props) {
     super(props)
 
     this.inputNameRef = BdApi.React.createRef()
   }
 
-  componentDidMount () {
+  componentDidMount() {
     const media = loadData(this.props.type, { medias: [] }).medias[this.props.id]
     this.inputNameRef.current.value = media.name || ''
     this.inputNameRef.current.onkeydown = (e) => {
@@ -361,7 +361,7 @@ class MediaMenuItemInput extends BdApi.React.Component {
     }
   }
 
-  componentWillUnmount () {
+  componentWillUnmount() {
     const name = this.inputNameRef.current.value
     if (!name || name === '') return
     const typeData = loadData(this.props.type, { medias: [] })
@@ -372,7 +372,7 @@ class MediaMenuItemInput extends BdApi.React.Component {
     this.props.loadMedias()
   }
 
-  render () {
+  render() {
     return BdApi.React.createElement('div', {
       className: `${classes.container.wrapper} ${classes.medium.container} ${classes.medium.medium}`,
       role: 'menuitem',
@@ -380,20 +380,20 @@ class MediaMenuItemInput extends BdApi.React.Component {
       tabindex: '-1',
       style: { marginBottom: 4 },
     },
-    BdApi.React.createElement('input', {
-      className: classes.medium.input,
-      name: 'media-name',
-      type: 'text',
-      placeholder: plugin.instance.strings.media.placeholder[this.props.type],
-      maxlength: '40',
-      ref: this.inputNameRef,
-    })
+      BdApi.React.createElement('input', {
+        className: classes.medium.input,
+        name: 'media-name',
+        type: 'text',
+        placeholder: plugin.instance.strings.media.placeholder[this.props.type],
+        maxlength: '40',
+        ref: this.inputNameRef,
+      })
     )
   }
 }
 
 class CategoryMenuItem extends BdApi.React.Component {
-  constructor (props) {
+  constructor(props) {
     super(props)
 
     this.state = {
@@ -401,7 +401,7 @@ class CategoryMenuItem extends BdApi.React.Component {
     }
   }
 
-  render () {
+  render() {
     return BdApi.React.createElement('div', {
       className: `${classes.menu.item} ${classes.menu.labelContainer} ${classes.menu.colorDefault}${this.state.focused ? ` ${classes.menu.focused}` : ''}`,
       role: 'menuitem',
@@ -410,14 +410,14 @@ class CategoryMenuItem extends BdApi.React.Component {
       onMouseOver: () => this.setState({ focused: true }),
       onMouseOut: () => this.setState({ focused: false }),
     },
-    BdApi.React.createElement('div', { className: classes.roleCircle + ' fm-colorDot', style: { 'background-color': this.props.color || DEFAULT_BACKGROUND_COLOR } }),
-    BdApi.React.createElement('div', { className: classes.menu.label }, this.props.name)
+      BdApi.React.createElement('div', { className: classes.roleCircle + ' fm-colorDot', style: { 'background-color': this.props.color || DEFAULT_BACKGROUND_COLOR } }),
+      BdApi.React.createElement('div', { className: classes.menu.label }, this.props.name)
     )
   }
 }
 
 class MediaFavButton extends BdApi.React.Component {
-  constructor (props) {
+  constructor(props) {
     super(props)
 
     this.state = {
@@ -432,25 +432,25 @@ class MediaFavButton extends BdApi.React.Component {
     this.tooltipFavRef = BdApi.React.createRef()
   }
 
-  componentDidMount () {
+  componentDidMount() {
     this.tooltipFav = BdApi.UI.createTooltip(this.tooltipFavRef.current, this.isFavorited ? plugin.instance.strings.media.removeFromFavorites : plugin.instance.strings.media.addToFavorites, { style: 'primary' })
     Dispatcher.subscribe('FM_FAVORITE_MEDIA', this.updateFavorite)
   }
 
-  componentWillUnmount () {
+  componentWillUnmount() {
     Dispatcher.unsubscribe('FM_FAVORITE_MEDIA', this.updateFavorite)
   }
 
-  get isFavorited () {
+  get isFavorited() {
     if (!this.props.url) return false
     return loadData(this.props.type, { medias: [] }).medias.find(e => MediaFavButton.checkSameUrl(e.url, this.props.url)) !== undefined
   }
 
-  static checkSameUrl (url1, url2) {
+  static checkSameUrl(url1, url2) {
     return url1 === url2 || url1.split('?')[0] === url2.split('?')[0]
   }
 
-  static getThumbnail (type, media) {
+  static getThumbnail(type, media) {
     switch (type) {
       case 'video': return media.poster
       case 'gif': return media.src
@@ -459,15 +459,15 @@ class MediaFavButton extends BdApi.React.Component {
     }
   }
 
-  static hasPreview (type) {
+  static hasPreview(type) {
     return !['audio', 'file'].includes(type)
   }
 
-  static isPlayable (type) {
+  static isPlayable(type) {
     return ['video', 'audio'].includes(type)
   }
 
-  updateFavorite (data) {
+  updateFavorite(data) {
     if (this.props.fromPicker) return
     if (!MediaFavButton.checkSameUrl(data.url, this.props.url)) return
     const fav = this.isFavorited
@@ -475,7 +475,7 @@ class MediaFavButton extends BdApi.React.Component {
     this.tooltipFav.labelElement.textContent = fav ? plugin.instance.strings.media.removeFromFavorites : plugin.instance.strings.media.addToFavorites
   }
 
-  async changeFavorite () {
+  async changeFavorite() {
     const switchFavorite = this.state.favorited ? MediaFavButton.unfavoriteMedia : MediaFavButton.favoriteMedia
     switchFavorite(this.props).then((props) => {
       if (!props.fromPicker) this.setState({ favorited: this.isFavorited })
@@ -491,7 +491,7 @@ class MediaFavButton extends BdApi.React.Component {
     })
   }
 
-  static async getMediaDataFromProps (props) {
+  static async getMediaDataFromProps(props) {
     const dimensions = await getMediaDimensions(props)
 
     if (!['audio', 'file'].includes(props.type) && (dimensions.width === 0 || dimensions.height === 0)) {
@@ -550,7 +550,7 @@ class MediaFavButton extends BdApi.React.Component {
     }
   }
 
-  static async favoriteMedia (props) {
+  static async favoriteMedia(props) {
     // get message and source links
     const $target = props.target?.current
     if ($target != null) {
@@ -567,7 +567,7 @@ class MediaFavButton extends BdApi.React.Component {
     return props
   }
 
-  static async unfavoriteMedia (props) {
+  static async unfavoriteMedia(props) {
     const typeData = loadData(props.type, { medias: [], categories: [] })
     if (!typeData.medias.length) return
     typeData.medias = typeData.medias.filter(e => !MediaFavButton.checkSameUrl(e.url, props.url))
@@ -583,7 +583,7 @@ class MediaFavButton extends BdApi.React.Component {
     return props
   }
 
-  static async favoriteGIF (props) {
+  static async favoriteGIF(props) {
     GIFUtils.favorite({
       format: 2,
       url: props.url,
@@ -594,11 +594,11 @@ class MediaFavButton extends BdApi.React.Component {
     })
   }
 
-  static async unfavoriteGIF (props) {
+  static async unfavoriteGIF(props) {
     GIFUtils.unfavorite(props.url)
   }
 
-  static async cacheMedia (url) {
+  static async cacheMedia(url) {
     await fmdb.cache(url).then(() => {
       BdApi.Logger.info(plugin.name, 'Successfully cached media:', url)
     }).catch((err) => {
@@ -606,7 +606,7 @@ class MediaFavButton extends BdApi.React.Component {
     })
   }
 
-  static async uncacheMedia (url) {
+  static async uncacheMedia(url) {
     await fmdb.delete(url).then(() => {
       BdApi.Logger.info(plugin.name, 'Successfully uncached media:', url)
     }).catch((err) => {
@@ -614,7 +614,7 @@ class MediaFavButton extends BdApi.React.Component {
     })
   }
 
-  favButton () {
+  favButton() {
     return BdApi.React.createElement('div', {
       className: `${this.props.fromPicker ? classes.result.favButton : classes.gif.gifFavoriteButton1} ${classes.gif.gifFavoriteButton2}${this.state.favorited ? ` ${classes.gif.selected}` : ''}${this.state.pulse ? ` ${classes.gif.showPulse}` : ''}`,
       tabindex: '-1',
@@ -622,13 +622,13 @@ class MediaFavButton extends BdApi.React.Component {
       ref: this.tooltipFavRef,
       onClick: this.changeFavorite,
     },
-    BdApi.React.createElement(StarSVG, {
-      filled: this.state.favorited,
-    })
+      BdApi.React.createElement(StarSVG, {
+        filled: this.state.favorited,
+      })
     )
   }
 
-  render () {
+  render() {
     return this.props.fromPicker
       ? this.favButton()
       : BdApi.React.createElement('div', {
@@ -638,83 +638,83 @@ class MediaFavButton extends BdApi.React.Component {
 }
 
 class ColorPicker extends BdApi.React.Component {
-  constructor (props) {
+  constructor(props) {
     super(props)
 
     this.inputColorRef = BdApi.React.createRef()
   }
 
-  componentDidMount () {
+  componentDidMount() {
     this.inputColorRef.current.value = this.props.color || DEFAULT_BACKGROUND_COLOR
     this.props.setRef(this.inputColorRef)
     this.inputColorRef.current.parentNode.style['background-color'] = this.inputColorRef.current.value
   }
 
-  render () {
+  render() {
     return BdApi.React.createElement('div', {
       className: 'category-input-color',
       style: { width: '48px', height: '48px', 'border-radius': '100%' },
     },
-    BdApi.React.createElement('input', {
-      type: 'color',
-      id: 'category-input-color',
-      name: 'category-input-color',
-      ref: this.inputColorRef,
-      onChange: e => { e.target.parentNode.style['background-color'] = e.target.value },
-    })
+      BdApi.React.createElement('input', {
+        type: 'color',
+        id: 'category-input-color',
+        name: 'category-input-color',
+        ref: this.inputColorRef,
+        onChange: e => { e.target.parentNode.style['background-color'] = e.target.value },
+      })
     )
   }
 }
 
 class EmptyFavorites extends BdApi.React.Component {
-  render () {
+  render() {
     return BdApi.React.createElement('div', {
       className: classes.result.emptyHints,
     },
-    BdApi.React.createElement('div', {
-      className: classes.result.emptyHint,
-    },
-    BdApi.React.createElement('div', {
-      className: classes.result.emptyHintCard,
-    },
-    BdApi.React.createElement('svg', {
-      className: classes.result.emptyHintFavorite,
-      ariaHidden: 'false',
-      viewBox: '0 0 24 24',
-      width: '16',
-      height: '16',
-    },
-    BdApi.React.createElement('path', {
-      d: 'M0,0H24V24H0Z',
-      fill: 'none',
-    }),
-    BdApi.React.createElement('path', {
-      fill: 'currentColor',
-      d: 'M12.5,17.6l3.6,2.2a1,1,0,0,0,1.5-1.1l-1-4.1a1,1,0,0,1,.3-1l3.2-2.8A1,1,0,0,0,19.5,9l-4.2-.4a.87.87,0,0,1-.8-.6L12.9,4.1a1.05,1.05,0,0,0-1.9,0l-1.6,4a1,1,0,0,1-.8.6L4.4,9a1.06,1.06,0,0,0-.6,1.8L7,13.6a.91.91,0,0,1,.3,1l-1,4.1a1,1,0,0,0,1.5,1.1l3.6-2.2A1.08,1.08,0,0,1,12.5,17.6Z',
-    })
-    ),
-    BdApi.React.createElement('div', {
-      className: classes.result.emptyHintText,
-    }, this.props.type === 'gif' ? plugin.instance.strings.media.favoriteHint : plugin.instance.strings.media.emptyHint[this.props.type])
-    )
-    ),
-    BdApi.React.createElement('div', {
-      className: classes.result.emptyHint,
-    },
-    BdApi.React.createElement('div', {
-      className: classes.result.emptyHintCard,
-    },
-    BdApi.React.createElement('div', {
-      className: classes.result.emptyHintText,
-    }, plugin.instance.strings.category.emptyHint)
-    )
-    )
+      BdApi.React.createElement('div', {
+        className: classes.result.emptyHint,
+      },
+        BdApi.React.createElement('div', {
+          className: classes.result.emptyHintCard,
+        },
+          BdApi.React.createElement('svg', {
+            className: classes.result.emptyHintFavorite,
+            ariaHidden: 'false',
+            viewBox: '0 0 24 24',
+            width: '16',
+            height: '16',
+          },
+            BdApi.React.createElement('path', {
+              d: 'M0,0H24V24H0Z',
+              fill: 'none',
+            }),
+            BdApi.React.createElement('path', {
+              fill: 'currentColor',
+              d: 'M12.5,17.6l3.6,2.2a1,1,0,0,0,1.5-1.1l-1-4.1a1,1,0,0,1,.3-1l3.2-2.8A1,1,0,0,0,19.5,9l-4.2-.4a.87.87,0,0,1-.8-.6L12.9,4.1a1.05,1.05,0,0,0-1.9,0l-1.6,4a1,1,0,0,1-.8.6L4.4,9a1.06,1.06,0,0,0-.6,1.8L7,13.6a.91.91,0,0,1,.3,1l-1,4.1a1,1,0,0,0,1.5,1.1l3.6-2.2A1.08,1.08,0,0,1,12.5,17.6Z',
+            })
+          ),
+          BdApi.React.createElement('div', {
+            className: classes.result.emptyHintText,
+          }, this.props.type === 'gif' ? plugin.instance.strings.media.favoriteHint : plugin.instance.strings.media.emptyHint[this.props.type])
+        )
+      ),
+      BdApi.React.createElement('div', {
+        className: classes.result.emptyHint,
+      },
+        BdApi.React.createElement('div', {
+          className: classes.result.emptyHintCard,
+        },
+          BdApi.React.createElement('div', {
+            className: classes.result.emptyHintText,
+          }, plugin.instance.strings.category.emptyHint)
+        )
+      )
     )
   }
 }
 
 class CategoryModal extends BdApi.React.Component {
-  constructor (props) {
+  constructor(props) {
     super(props)
 
     this.setRef = this.setRef.bind(this)
@@ -723,58 +723,58 @@ class CategoryModal extends BdApi.React.Component {
     this.inputNameRef = BdApi.React.createRef()
   }
 
-  setRef (inputRef) {
+  setRef(inputRef) {
     this.inputColorRef = inputRef
   }
 
-  componentDidMount () {
+  componentDidMount() {
     this.props.modalRef(this)
     this.inputNameRef.current.value = this.props.name || ''
   }
 
-  componentWillUnmount () {
+  componentWillUnmount() {
     this.props.modalRef(undefined)
   }
 
-  getValues () {
+  getValues() {
     return {
       name: this.inputNameRef?.current?.value,
       color: this.inputColorRef?.current?.value,
     }
   }
 
-  render () {
+  render() {
     return BdApi.React.createElement('div', {
       className: classes.control,
     },
-    BdApi.React.createElement('div', {
-      className: classes.container.container,
-      style: { flexDirection: 'row', gap: 16 },
-    },
-    BdApi.React.createElement('div', {
-      className: `${classes.container.wrapper} ${classes.medium.container} ${classes.medium.medium}`,
-      style: { width: '100%' },
-    },
-    BdApi.React.createElement('input', {
-      className: classes.medium.input,
-      name: 'category-name',
-      type: 'text',
-      placeholder: plugin.instance.strings.category.placeholder,
-      maxlength: '20',
-      ref: this.inputNameRef,
-    })
-    ),
-    BdApi.React.createElement(ColorPicker, {
-      color: this.props.color,
-      setRef: this.setRef,
-    })
-    )
+      BdApi.React.createElement('div', {
+        className: classes.container.container,
+        style: { flexDirection: 'row', gap: 16 },
+      },
+        BdApi.React.createElement('div', {
+          className: `${classes.container.wrapper} ${classes.medium.container} ${classes.medium.medium}`,
+          style: { width: '100%' },
+        },
+          BdApi.React.createElement('input', {
+            className: classes.medium.input,
+            name: 'category-name',
+            type: 'text',
+            placeholder: plugin.instance.strings.category.placeholder,
+            maxlength: '20',
+            ref: this.inputNameRef,
+          })
+        ),
+        BdApi.React.createElement(ColorPicker, {
+          color: this.props.color,
+          setRef: this.setRef,
+        })
+      )
     )
   }
 }
 
 class ImportPanel extends BdApi.React.Component {
-  constructor (props) {
+  constructor(props) {
     super(props)
 
     this.state = {
@@ -792,11 +792,11 @@ class ImportPanel extends BdApi.React.Component {
     }
   }
 
-  componentDidMount () {
+  componentDidMount() {
     this.initImport()
   }
 
-  async initImport () {
+  async initImport() {
     for (const path of this.props.paths) {
       try {
         const conf = JSON.parse(readFileSync(path, { encoding: 'utf-8' }))
@@ -842,7 +842,7 @@ class ImportPanel extends BdApi.React.Component {
     this.setState({ loading: false })
   }
 
-  importMedias () {
+  importMedias() {
     for (const mediaType of ALL_TYPES) {
       const importTypeData = structuredClone(this.importData[mediaType])
       if (importTypeData == null) continue
@@ -884,7 +884,7 @@ class ImportPanel extends BdApi.React.Component {
     MediaPicker.fetchMediasIntoDB()
   }
 
-  get importData () {
+  get importData() {
     const data = structuredClone(this.data)
 
     for (const mediaType of Object.keys(this.data)) {
@@ -902,7 +902,7 @@ class ImportPanel extends BdApi.React.Component {
     return data
   }
 
-  get isEmpty () {
+  get isEmpty() {
     return Object.keys(this.data).reduce((t, k) => {
       t += this.data[k].medias?.length ?? 0
       t += this.data[k].categories?.length ?? 0
@@ -910,7 +910,7 @@ class ImportPanel extends BdApi.React.Component {
     }, 0) <= 0
   }
 
-  get getMediasCountLines () {
+  get getMediasCountLines() {
     const $types = []
     const $medias = []
     const $categories = []
@@ -929,37 +929,37 @@ class ImportPanel extends BdApi.React.Component {
       $types.push(BdApi.React.createElement('span', {
         className: 'fm-importValue',
       },
-      plugin.instance.strings.tabName[mediaType]
+        plugin.instance.strings.tabName[mediaType]
       ))
 
       const mediasCount = Object.keys(this.data[mediaType].medias).length
       $medias.push(BdApi.React.createElement('span', {
         className: 'fm-importValue',
       },
-      !this.isEmpty && !this.state.imported
-        ? BdApi.React.createElement('input', {
-          type: 'checkbox',
-          defaultChecked: true,
-          ref: this[`checkboxImport-medias-${mediaType}Ref`],
-          style: { visibility: mediasCount > 0 ? 'visible' : 'hidden' },
-        })
-        : null,
-      mediasCount
+        !this.isEmpty && !this.state.imported
+          ? BdApi.React.createElement('input', {
+            type: 'checkbox',
+            defaultChecked: true,
+            ref: this[`checkboxImport-medias-${mediaType}Ref`],
+            style: { visibility: mediasCount > 0 ? 'visible' : 'hidden' },
+          })
+          : null,
+        mediasCount
       ))
 
       const categoriesCount = Object.keys(this.data[mediaType].categories).length
       $categories.push(BdApi.React.createElement('span', {
         className: 'fm-importValue',
       },
-      !this.isEmpty && !this.state.imported
-        ? BdApi.React.createElement('input', {
-          type: 'checkbox',
-          defaultChecked: true,
-          ref: this[`checkboxImport-categories-${mediaType}Ref`],
-          style: { visibility: categoriesCount > 0 ? 'visible' : 'hidden' },
-        })
-        : null,
-      categoriesCount
+        !this.isEmpty && !this.state.imported
+          ? BdApi.React.createElement('input', {
+            type: 'checkbox',
+            defaultChecked: true,
+            ref: this[`checkboxImport-categories-${mediaType}Ref`],
+            style: { visibility: categoriesCount > 0 ? 'visible' : 'hidden' },
+          })
+          : null,
+        categoriesCount
       ))
     }
 
@@ -976,38 +976,38 @@ class ImportPanel extends BdApi.React.Component {
     ]
   }
 
-  render () {
+  render() {
     return !this.state.loading
       ? BdApi.React.createElement('div', {
         className: 'fm-importPanel',
       },
-      BdApi.React.createElement('div', {
-        className: 'fm-importRecap',
-      },
-      ...this.getMediasCountLines
-      ),
-      BdApi.React.createElement('div', {
-        className: 'fm-importActions',
-      },
-      BdApi.React.createElement('div', {
-        style: { color: "var(--text-feedback-critical)" }
-      },
-        plugin.instance.strings.import.alert
-      ),
-      !this.isEmpty && !this.state.imported
-        ? BdApi.React.createElement(BdApi.Components.Button, {
-          className: 'fm-importMediasButton',
-          onClick: this.importMedias,
-        }, plugin.instance.strings.import.buttonImport)
-        : null
-      )
+        BdApi.React.createElement('div', {
+          className: 'fm-importRecap',
+        },
+          ...this.getMediasCountLines
+        ),
+        BdApi.React.createElement('div', {
+          className: 'fm-importActions',
+        },
+          BdApi.React.createElement('div', {
+            style: { color: "var(--text-feedback-critical)" }
+          },
+            plugin.instance.strings.import.alert
+          ),
+          !this.isEmpty && !this.state.imported
+            ? BdApi.React.createElement(BdApi.Components.Button, {
+              className: 'fm-importMediasButton',
+              onClick: this.importMedias,
+            }, plugin.instance.strings.import.buttonImport)
+            : null
+        )
       )
       : BdApi.React.createElement(BdApi.Components.Spinner)
   }
 }
 
 class DatabasePanel extends BdApi.React.Component {
-  constructor (props) {
+  constructor(props) {
     super(props)
 
     this.state = {
@@ -1029,18 +1029,18 @@ class DatabasePanel extends BdApi.React.Component {
     this.refreshButtonRef = BdApi.React.createRef()
   }
 
-  componentDidMount () {
+  componentDidMount() {
     this.loadStats()
     Dispatcher.subscribe('FM_FETCH_INTO_DB', this.updateFetchMediasProgress)
   }
 
-  componentDidUpdate () {
+  componentDidUpdate() {
     if (this.refreshButtonRef?.current != null) {
       this.tooltipRefresh = BdApi.UI.createTooltip(this.refreshButtonRef.current, plugin.instance.strings.cache.refreshButton, { style: 'primary' })
     }
   }
 
-  componentWillUnmount () {
+  componentWillUnmount() {
     if (!plugin.instance.settings.allowCaching) {
       for (const key of Object.getOwnPropertyNames(mediasCache)) {
         delete mediasCache[key]
@@ -1050,7 +1050,7 @@ class DatabasePanel extends BdApi.React.Component {
     Dispatcher.unsubscribe('FM_FETCH_INTO_DB', this.updateFetchMediasProgress)
   }
 
-  async loadStats () {
+  async loadStats() {
     this.setState({ loadingStats: true })
     const values = await fmdb.getAll().catch((err) => {
       BdApi.Logger.error(plugin.name, err)
@@ -1065,26 +1065,26 @@ class DatabasePanel extends BdApi.React.Component {
     })
   }
 
-  getSettingsPanel () {
+  getSettingsPanel() {
     return plugin.instance.getSettingsPanel(plugin.instance.defaultSettings.find((s) => s.id === 'allowCaching'))
   }
 
-  saveSettings () {
+  saveSettings() {
     saveData('settings', plugin.instance.settings)
   }
 
-  openModalClearDatabase () {
+  openModalClearDatabase() {
     BdApi.UI.showConfirmationModal(plugin.instance.strings.cache.clear.button, plugin.instance.strings.cache.clear.confirm, {
       danger: true,
       onConfirm: this.clearDatabase,
     })
   }
 
-  updateFetchMediasProgress (data) {
+  updateFetchMediasProgress(data) {
     this.setState({ fetchMediasProgress: `${data.done}/${data.total}` })
   }
 
-  async clearDatabase () {
+  async clearDatabase() {
     await fmdb.clear().then(() => {
       BdApi.UI.showToast(plugin.instance.strings.cache.clear.success, { type: 'success' })
       this.loadStats()
@@ -1094,7 +1094,7 @@ class DatabasePanel extends BdApi.React.Component {
     })
   }
 
-  async openCacheMediasConfirm () {
+  async openCacheMediasConfirm() {
     BdApi.UI.showConfirmationModal(plugin.instance.strings.cache.cacheAll.button, plugin.instance.strings.cache.cacheAll.confirm, {
       onConfirm: () => {
         this.setState({ loadingCache: true })
@@ -1111,76 +1111,76 @@ class DatabasePanel extends BdApi.React.Component {
     })
   }
 
-  render () {
+  render() {
     return BdApi.React.createElement('div', {
       className: 'fm-databasePanel',
     },
-    BdApi.React.createElement('div', {
-      className: 'fm-settings',
-    },
-    this.getSettingsPanel()
-    ),
-    !this.state.loadingStats && !this.state.loadingCache
-      ? BdApi.React.createElement('div', {
-        className: 'fm-database',
-      },
       BdApi.React.createElement('div', {
-        className: 'fm-stats',
+        className: 'fm-settings',
       },
-      BdApi.React.createElement('div', {
-        className: 'fm-statsLines',
-      },
-      BdApi.React.createElement('div', {
-        className: 'fm-statsLine',
-      },
-      BdApi.React.createElement('span', {}, plugin.instance.strings.cache.total),
-      BdApi.React.createElement('span', {
-        className: 'fm-statsCount',
-      }, this.state.count)
+        this.getSettingsPanel()
       ),
-      BdApi.React.createElement('div', {
-        className: 'fm-statsLine',
-      },
-      BdApi.React.createElement('span', {}, plugin.instance.strings.cache.size),
-      BdApi.React.createElement('span', {
-        className: 'fm-statsCount',
-      }, this.state.size)
-      )
-      ),
-      BdApi.React.createElement('div', {
-        ref: this.refreshButtonRef,
-        className: `${classes.buttons.button} fm-refreshStatsButton fm-btn-icon`,
-        onClick: this.loadStats,
-      }, RefreshSVG())
-      ),
-      BdApi.React.createElement('div', {
-        className: 'fm-databaseActions',
-      },
-      this.state.count > 0
-        ? BdApi.React.createElement(BdApi.Components.Button, {
-          color: BdApi.Components.Button.Colors.RED,
-          className: 'fm-clearDatabaseButton',
-          onClick: this.openModalClearDatabase,
-        }, plugin.instance.strings.cache.clear.button)
-        : null,
-      BdApi.React.createElement(BdApi.Components.Button, {
-        className: 'fm-cacheDatabaseButton',
-        onClick: this.openCacheMediasConfirm,
-      }, plugin.instance.strings.cache.cacheAll.button)
-      )
-      )
-      : BdApi.React.createElement('div', {
-        className: 'fm-databaseFetchMediasProgress',
-      },
-      BdApi.React.createElement(BdApi.Components.Spinner),
-      BdApi.React.createElement('span', {}, this.state.fetchMediasProgress)
-      )
+      !this.state.loadingStats && !this.state.loadingCache
+        ? BdApi.React.createElement('div', {
+          className: 'fm-database',
+        },
+          BdApi.React.createElement('div', {
+            className: 'fm-stats',
+          },
+            BdApi.React.createElement('div', {
+              className: 'fm-statsLines',
+            },
+              BdApi.React.createElement('div', {
+                className: 'fm-statsLine',
+              },
+                BdApi.React.createElement('span', {}, plugin.instance.strings.cache.total),
+                BdApi.React.createElement('span', {
+                  className: 'fm-statsCount',
+                }, this.state.count)
+              ),
+              BdApi.React.createElement('div', {
+                className: 'fm-statsLine',
+              },
+                BdApi.React.createElement('span', {}, plugin.instance.strings.cache.size),
+                BdApi.React.createElement('span', {
+                  className: 'fm-statsCount',
+                }, this.state.size)
+              )
+            ),
+            BdApi.React.createElement('div', {
+              ref: this.refreshButtonRef,
+              className: `${classes.buttons.button} fm-refreshStatsButton fm-btn-icon`,
+              onClick: this.loadStats,
+            }, RefreshSVG())
+          ),
+          BdApi.React.createElement('div', {
+            className: 'fm-databaseActions',
+          },
+            this.state.count > 0
+              ? BdApi.React.createElement(BdApi.Components.Button, {
+                color: BdApi.Components.Button.Colors.RED,
+                className: 'fm-clearDatabaseButton',
+                onClick: this.openModalClearDatabase,
+              }, plugin.instance.strings.cache.clear.button)
+              : null,
+            BdApi.React.createElement(BdApi.Components.Button, {
+              className: 'fm-cacheDatabaseButton',
+              onClick: this.openCacheMediasConfirm,
+            }, plugin.instance.strings.cache.cacheAll.button)
+          )
+        )
+        : BdApi.React.createElement('div', {
+          className: 'fm-databaseFetchMediasProgress',
+        },
+          BdApi.React.createElement(BdApi.Components.Spinner),
+          BdApi.React.createElement('span', {}, this.state.fetchMediasProgress)
+        )
     )
   }
 }
 
 class CategoryCard extends BdApi.React.Component {
-  constructor (props) {
+  constructor(props) {
     super(props)
 
     this.state = {
@@ -1198,33 +1198,33 @@ class CategoryCard extends BdApi.React.Component {
     this.categoryRef = BdApi.React.createRef()
   }
 
-  componentDidUpdate () {
+  componentDidUpdate() {
     if (this.prev_thumbnail !== this.thumbnail) {
       this.prev_thumbnail = this.thumbnail
       this.setState({ src: getMediaFromCache(this.thumbnail) })
     }
   }
 
-  get nameColor () {
+  get nameColor() {
     const rgb = hexToRgb(this.props.color)
     const brightness = Math.round(((parseInt(rgb[0]) * 299) + (parseInt(rgb[1]) * 587) + (parseInt(rgb[2]) * 114)) / 1000)
     if (brightness > 125) return 'black'
     return 'white'
   }
 
-  get showColor () {
+  get showColor() {
     return plugin.instance.settings.hideThumbnail || (!(this.thumbnail && !this.state.thumbnailError) && !this.state.src?.startsWith('blob:'))
   }
 
-  get isGIF () {
+  get isGIF() {
     return this.props.type === 'gif'
   }
 
-  get thumbnail () {
+  get thumbnail() {
     return this.props.thumbnail ?? this.props.random_thumbnail
   }
 
-  onContextMenu (e) {
+  onContextMenu(e) {
     canClosePicker.context = 'contextmenu'
     canClosePicker.value = false
     const moveItems = []
@@ -1314,12 +1314,12 @@ class CategoryCard extends BdApi.React.Component {
     })
   }
 
-  onDragStart (e) {
+  onDragStart(e) {
     e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'category', id: this.props.id }))
     e.dataTransfer.effectAllowed = 'move'
   }
 
-  onDrop (e) {
+  onDrop(e) {
     let data = e.dataTransfer.getData('text/plain')
     try {
       data = JSON.parse(data)
@@ -1335,7 +1335,7 @@ class CategoryCard extends BdApi.React.Component {
     this.categoryRef.current.classList.remove('category-dragover')
   }
 
-  async onError () {
+  async onError() {
     BdApi.Logger.warn(plugin.name, 'Could not load media:', this.state.src, this.thumbnail)
 
     if (!plugin.instance.settings.allowCaching) return
@@ -1353,7 +1353,7 @@ class CategoryCard extends BdApi.React.Component {
     this.setState({ src: url })
   }
 
-  render () {
+  render() {
     return BdApi.React.createElement('div', {
       className: classes.result.result,
       tabindex: '-1',
@@ -1375,35 +1375,35 @@ class CategoryCard extends BdApi.React.Component {
       onDrop: this.onDrop,
       draggable: true,
     },
-    BdApi.React.createElement('div', {
-      className: classes.category.categoryFade,
-      style: { 'background-color': `${this.showColor ? (this.props.color || DEFAULT_BACKGROUND_COLOR) : ''}` },
-    }),
-    BdApi.React.createElement('div', { className: classes.category.categoryText },
-      BdApi.React.createElement('span', {
-        className: classes.category.categoryName,
-        style: this.showColor ? { color: this.nameColor, 'text-shadow': 'none' } : {},
-      }, this.props.name)
-    ),
-    !this.showColor
-      ? BdApi.React.createElement(this.isGIF && !this.state.src?.split('?')[0].endsWith('.gif') ? 'video' : 'img', {
-        className: classes.result.gif,
-        preload: 'auto',
-        autoplay: this.isGIF ? '' : undefined,
-        loop: this.isGIF ? 'true' : undefined,
-        muted: this.isGIF ? 'true' : undefined,
-        src: this.state.src,
-        height: '110px',
-        width: '100%',
-        onError: this.onError,
-      })
-      : null
+      BdApi.React.createElement('div', {
+        className: classes.category.categoryFade,
+        style: { 'background-color': `${this.showColor ? (this.props.color || DEFAULT_BACKGROUND_COLOR) : ''}` },
+      }),
+      BdApi.React.createElement('div', { className: classes.category.categoryText },
+        BdApi.React.createElement('span', {
+          className: classes.category.categoryName,
+          style: this.showColor ? { color: this.nameColor, 'text-shadow': 'none' } : {},
+        }, this.props.name)
+      ),
+      !this.showColor
+        ? BdApi.React.createElement(this.isGIF && !this.state.src?.split('?')[0].endsWith('.gif') ? 'video' : 'img', {
+          className: classes.result.gif,
+          preload: 'auto',
+          autoplay: this.isGIF ? '' : undefined,
+          loop: this.isGIF ? 'true' : undefined,
+          muted: this.isGIF ? 'true' : undefined,
+          src: this.state.src,
+          height: '110px',
+          width: '100%',
+          onError: this.onError,
+        })
+        : null
     )
   }
 }
 
 class MediaCard extends BdApi.React.Component {
-  constructor (props) {
+  constructor(props) {
     super(props)
 
     this.state = {
@@ -1421,49 +1421,54 @@ class MediaCard extends BdApi.React.Component {
     this.mediaRef = BdApi.React.createRef()
   }
 
-  get isGIF () {
+  get isGIF() {
     return this.props.type === 'gif'
   }
 
-  get tag () {
+  get tag() {
     if (this.props.type === 'file') return null
     if (this.state.showControls) return this.props.type === 'audio' ? 'audio' : 'video'
-    if (this.isGIF && !this.props.src?.split('?')[0].endsWith('.gif')) return 'video'
+    if (this.isGIF) {
+      const url = this.props.src?.split('?')[0];
+      if (url.endsWith('.webp')) return 'img'
+      if (url.endsWith('.gif')) return 'img'
+      return 'video'
+    }
     if (this.props.type === 'audio') return null
     return 'img'
   }
 
-  get src () {
+  get src() {
     if (this.props.type === 'video' && !this.state?.showControls) return this.state?.poster ?? this.props.poster
     if (this.isGIF) return this.props.src
     return this.props.url
   }
 
-  get titleIcon () {
+  get titleIcon() {
     if (this.props.type === 'audio') return MusicNoteSVG({ className: classes.category.categoryIcon, style: { overflow: 'visible' } })
     if (this.props.type === 'file') return MiniFileSVG({ className: classes.category.categoryIcon, style: { overflow: 'visible' } })
     return null
   }
 
-  get fileName () {
+  get fileName() {
     const name = this.props.name.replace(/_/gm, ' ')
     if (this.props.type === 'audio') return name
     return name + getUrlExt(this.src, this.props.type)
   }
 
-  componentDidMount () {
+  componentDidMount() {
     Dispatcher.subscribe('FM_TOGGLE_CONTROLS', this.hideControls)
     Dispatcher.subscribe('FM_SEND_MEDIA', this.sendMedia)
     this.url = this.props.url
     if (MediaFavButton.isPlayable(this.props.type) && this.tooltipControlsRef?.current) this.tooltipControls = BdApi.UI.createTooltip(this.tooltipControlsRef.current, this.state.showControls ? plugin.instance.strings.media.controls.hide : plugin.instance.strings.media.controls.show, { style: 'primary' })
   }
 
-  componentWillUnmount () {
+  componentWillUnmount() {
     Dispatcher.unsubscribe('FM_TOGGLE_CONTROLS', this.hideControls)
     Dispatcher.unsubscribe('FM_SEND_MEDIA', this.sendMedia)
   }
 
-  componentDidUpdate () {
+  componentDidUpdate() {
     if (!MediaFavButton.checkSameUrl(this.url, this.props.url)) {
       if (this.state.showControls) this.changeControls(false)
       this.setState({ src: null, poster: null }, () => {
@@ -1478,7 +1483,7 @@ class MediaCard extends BdApi.React.Component {
     this.url = this.props.url
   }
 
-  async changeControls (force) {
+  async changeControls(force) {
     this.setState((previousState) => {
       const newControls = force !== undefined ? force : !previousState.showControls
 
@@ -1502,16 +1507,16 @@ class MediaCard extends BdApi.React.Component {
     })
   }
 
-  hideControls () {
+  hideControls() {
     if (this.state.showControls) this.changeControls(false)
   }
 
-  onDragStart (e) {
+  onDragStart(e) {
     e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'media', url: this.props.url }))
     e.dataTransfer.effectAllowed = 'move'
   }
 
-  async sendMedia (e) {
+  async sendMedia(e) {
     const sendMedia = e.type === 'FM_SEND_MEDIA'
     if (sendMedia) {
       if (e.mediaId !== this.props.id) return
@@ -1546,7 +1551,7 @@ class MediaCard extends BdApi.React.Component {
     }
   }
 
-  async onError (e) {
+  async onError(e) {
     if (e.target.tagName !== 'IMG' || mediasCache[this.src] != null) return
 
     BdApi.Logger.warn(plugin.name, 'Could not load media:', this.src)
@@ -1563,7 +1568,7 @@ class MediaCard extends BdApi.React.Component {
     this.setState({ src: url })
   }
 
-  render () {
+  render() {
     return BdApi.React.createElement('div', {
       className: classes.result.result,
       tabindex: '-1',
@@ -1581,74 +1586,74 @@ class MediaCard extends BdApi.React.Component {
       onDragStart: this.onDragStart,
       draggable: true,
     },
-    MediaFavButton.isPlayable(this.props.type)
-      ? BdApi.React.createElement('div', {
-        className: `show-controls ${classes.gif.size}${this.state.showControls ? ` ${classes.gif.selected} active` : ''}`,
-        tabindex: '-1',
-        role: 'button',
-        ref: this.tooltipControlsRef,
-        onClick: () => this.changeControls(),
-      },
-      BdApi.React.createElement('svg', {
-        className: classes.gif.icon,
-        ariaHidden: 'false',
-        viewBox: '0 0 780 780',
-        width: '16',
-        height: '16',
-      },
-      BdApi.React.createElement('path', { fill: 'currentColor', d: 'M490.667,405.333h-56.811C424.619,374.592,396.373,352,362.667,352s-61.931,22.592-71.189,53.333H21.333C9.557,405.333,0,414.891,0,426.667S9.557,448,21.333,448h270.144c9.237,30.741,37.483,53.333,71.189,53.333s61.931-22.592,71.189-53.333h56.811c11.797,0,21.333-9.557,21.333-21.333S502.464,405.333,490.667,405.333zM362.667,458.667c-17.643,0-32-14.357-32-32s14.357-32,32-32s32,14.357,32,32S380.309,458.667,362.667,458.667z' }),
-      BdApi.React.createElement('path', { fill: 'currentColor', d: 'M490.667,64h-56.811c-9.259-30.741-37.483-53.333-71.189-53.333S300.736,33.259,291.477,64H21.333C9.557,64,0,73.557,0,85.333s9.557,21.333,21.333,21.333h270.144C300.736,137.408,328.96,160,362.667,160s61.931-22.592,71.189-53.333h56.811c11.797,0,21.333-9.557,21.333-21.333S502.464,64,490.667,64z M362.667,117.333c-17.643,0-32-14.357-32-32c0-17.643,14.357-32,32-32s32,14.357,32,32C394.667,102.976,380.309,117.333,362.667,117.333z' }),
-      BdApi.React.createElement('path', { fill: 'currentColor', d: 'M490.667,234.667H220.523c-9.259-30.741-37.483-53.333-71.189-53.333s-61.931,22.592-71.189,53.333H21.333C9.557,234.667,0,244.224,0,256c0,11.776,9.557,21.333,21.333,21.333h56.811c9.259,30.741,37.483,53.333,71.189,53.333s61.931-22.592,71.189-53.333h270.144c11.797,0,21.333-9.557,21.333-21.333C512,244.224,502.464,234.667,490.667,234.667zM149.333,288c-17.643,0-32-14.357-32-32s14.357-32,32-32c17.643,0,32,14.357,32,32S166.976,288,149.333,288z' })
-      )
-      )
-      : null,
-    BdApi.React.createElement(MediaFavButton, {
-      type: this.props.type,
-      url: this.props.url,
-      poster: this.props.poster,
-      fromPicker: true,
-    }),
-    this.tag != null
-      ? BdApi.React.createElement(this.tag, {
-        className: classes.result.gif,
-        preload: 'auto',
-        autoplay: this.isGIF ? '' : undefined,
-        loop: this.isGIF ? 'true' : undefined,
-        muted: this.isGIF ? 'true' : undefined,
-        src: this.state.src,
-        poster: this.state.poster,
-        width: this.props.positions.width,
-        height: this.props.positions.height,
-        ref: this.mediaRef,
-        controls: this.state.showControls,
-        controlsList: "nofullscreen",
-        style: !MediaFavButton.hasPreview(this.props.type) ? { position: 'absolute', bottom: '0', left: '0', 'z-index': '2' } : null,
-        draggable: false,
-        onError: this.onError,
-      })
-      : null,
-    !MediaFavButton.hasPreview(this.props.type)
-      ? BdApi.React.createElement('div', {
-        className: classes.category.categoryFade,
-        style: { 'background-color': DEFAULT_BACKGROUND_COLOR },
-      })
-      : null,
-    !MediaFavButton.hasPreview(this.props.type)
-      ? BdApi.React.createElement('div', {
-        className: classes.category.categoryText,
-        style: { top: this.state.showControls ? '-50%' : null },
-      },
-      this.titleIcon,
-      BdApi.React.createElement('span', { className: classes.category.categoryName },
-        BdApi.React.createElement('div', {}, this.fileName))
-      )
-      : null
+      MediaFavButton.isPlayable(this.props.type)
+        ? BdApi.React.createElement('div', {
+          className: `show-controls ${classes.gif.size}${this.state.showControls ? ` ${classes.gif.selected} active` : ''}`,
+          tabindex: '-1',
+          role: 'button',
+          ref: this.tooltipControlsRef,
+          onClick: () => this.changeControls(),
+        },
+          BdApi.React.createElement('svg', {
+            className: classes.gif.icon,
+            ariaHidden: 'false',
+            viewBox: '0 0 780 780',
+            width: '16',
+            height: '16',
+          },
+            BdApi.React.createElement('path', { fill: 'currentColor', d: 'M490.667,405.333h-56.811C424.619,374.592,396.373,352,362.667,352s-61.931,22.592-71.189,53.333H21.333C9.557,405.333,0,414.891,0,426.667S9.557,448,21.333,448h270.144c9.237,30.741,37.483,53.333,71.189,53.333s61.931-22.592,71.189-53.333h56.811c11.797,0,21.333-9.557,21.333-21.333S502.464,405.333,490.667,405.333zM362.667,458.667c-17.643,0-32-14.357-32-32s14.357-32,32-32s32,14.357,32,32S380.309,458.667,362.667,458.667z' }),
+            BdApi.React.createElement('path', { fill: 'currentColor', d: 'M490.667,64h-56.811c-9.259-30.741-37.483-53.333-71.189-53.333S300.736,33.259,291.477,64H21.333C9.557,64,0,73.557,0,85.333s9.557,21.333,21.333,21.333h270.144C300.736,137.408,328.96,160,362.667,160s61.931-22.592,71.189-53.333h56.811c11.797,0,21.333-9.557,21.333-21.333S502.464,64,490.667,64z M362.667,117.333c-17.643,0-32-14.357-32-32c0-17.643,14.357-32,32-32s32,14.357,32,32C394.667,102.976,380.309,117.333,362.667,117.333z' }),
+            BdApi.React.createElement('path', { fill: 'currentColor', d: 'M490.667,234.667H220.523c-9.259-30.741-37.483-53.333-71.189-53.333s-61.931,22.592-71.189,53.333H21.333C9.557,234.667,0,244.224,0,256c0,11.776,9.557,21.333,21.333,21.333h56.811c9.259,30.741,37.483,53.333,71.189,53.333s61.931-22.592,71.189-53.333h270.144c11.797,0,21.333-9.557,21.333-21.333C512,244.224,502.464,234.667,490.667,234.667zM149.333,288c-17.643,0-32-14.357-32-32s14.357-32,32-32c17.643,0,32,14.357,32,32S166.976,288,149.333,288z' })
+          )
+        )
+        : null,
+      BdApi.React.createElement(MediaFavButton, {
+        type: this.props.type,
+        url: this.props.url,
+        poster: this.props.poster,
+        fromPicker: true,
+      }),
+      this.tag != null
+        ? BdApi.React.createElement(this.tag, {
+          className: classes.result.gif,
+          preload: 'auto',
+          autoplay: this.isGIF ? '' : undefined,
+          loop: this.isGIF ? 'true' : undefined,
+          muted: this.isGIF ? 'true' : undefined,
+          src: this.state.src,
+          poster: this.state.poster,
+          width: this.props.positions.width,
+          height: this.props.positions.height,
+          ref: this.mediaRef,
+          controls: this.state.showControls,
+          controlsList: "nofullscreen",
+          style: !MediaFavButton.hasPreview(this.props.type) ? { position: 'absolute', bottom: '0', left: '0', 'z-index': '2' } : null,
+          draggable: false,
+          onError: this.onError,
+        })
+        : null,
+      !MediaFavButton.hasPreview(this.props.type)
+        ? BdApi.React.createElement('div', {
+          className: classes.category.categoryFade,
+          style: { 'background-color': DEFAULT_BACKGROUND_COLOR },
+        })
+        : null,
+      !MediaFavButton.hasPreview(this.props.type)
+        ? BdApi.React.createElement('div', {
+          className: classes.category.categoryText,
+          style: { top: this.state.showControls ? '-50%' : null },
+        },
+          this.titleIcon,
+          BdApi.React.createElement('span', { className: classes.category.categoryName },
+            BdApi.React.createElement('div', {}, this.fileName))
+        )
+        : null
     )
   }
 }
 
 class RenderList extends BdApi.React.Component {
-  render () {
+  render() {
     return BdApi.React.createElement('div', {
       children: this.props.items.map((itemProps, i) => BdApi.React.createElement(this.props.component, {
         ...itemProps,
@@ -1663,7 +1668,7 @@ class RenderList extends BdApi.React.Component {
 class MediaPicker extends BdApi.React.Component {
   static HEIGHT = 400
 
-  constructor (props) {
+  constructor(props) {
     super({ ...props, type: props.type.replace('fm-', '') })
 
     this.state = {
@@ -1702,7 +1707,7 @@ class MediaPicker extends BdApi.React.Component {
     this.endStickerRef = BdApi.React.createRef()
   }
 
-  componentDidMount () {
+  componentDidMount() {
     this.inputRef?.current?.focus()
     this.setState({ contentWidth: this.contentRef?.current?.clientWidth })
     Dispatcher.subscribe('FM_UPDATE_MEDIAS', this.loadMedias)
@@ -1711,7 +1716,7 @@ class MediaPicker extends BdApi.React.Component {
     this.createButtonsTooltips()
   }
 
-  componentDidUpdate () {
+  componentDidUpdate() {
     if (this.type !== this.props.type) {
       this.type = this.props.type
       this.setState({
@@ -1726,35 +1731,35 @@ class MediaPicker extends BdApi.React.Component {
     this.createButtonsTooltips()
   }
 
-  componentWillUnmount () {
+  componentWillUnmount() {
     Dispatcher.unsubscribe('FM_UPDATE_MEDIAS', this.loadMedias)
     Dispatcher.unsubscribe('FM_UPDATE_CATEGORIES', this.loadCategories)
     Dispatcher.dispatch({ type: 'FM_PICKER_BUTTON_ACTIVE' })
   }
 
-  createButtonsTooltips () {
+  createButtonsTooltips() {
     if (this.databaseButton == null && this.databaseButtonRef?.current != null) this.databaseButton = BdApi.UI.createTooltip(this.databaseButtonRef.current, plugin.instance.strings.cache.panel, { style: 'primary' })
     if (this.importButton == null && this.importButtonRef?.current != null) this.importButton = BdApi.UI.createTooltip(this.importButtonRef.current, plugin.instance.strings.import.panel, { style: 'primary' })
     if (this.settingsButton == null && this.settingsButtonRef?.current != null) this.settingsButton = BdApi.UI.createTooltip(this.settingsButtonRef.current, plugin.instance.strings.settings.panel, { style: 'primary' })
     if (this.mediasCounter == null && this.mediasCounterRef?.current != null) this.mediasCounter = BdApi.UI.createTooltip(this.mediasCounterRef.current, plugin.instance.strings.mediasCounter, { style: 'primary' })
   }
 
-  clearSearch () {
+  clearSearch() {
     if (this.inputRef?.current) this.inputRef.current.value = ''
     this.setState({ textFilter: '' })
   }
 
-  get numberOfColumns () {
+  get numberOfColumns() {
     return Math.floor(this.state.contentWidth / 200)
   }
 
-  setContentHeight (height) {
+  setContentHeight(height) {
     this.contentHeight = height
     if (this.contentRef?.current) this.contentRef.current.style.height = `${this.contentHeight}px`
     if (this.endStickerRef?.current) this.endStickerRef.current.style.top = `${this.contentHeight + 12}px`
   }
 
-  get heights () {
+  get heights() {
     const cols = this.numberOfColumns
     const heights = Array.from({ length: cols }).fill(0)
     const categoriesLen = this.currentPageCategories.length
@@ -1764,7 +1769,7 @@ class MediaPicker extends BdApi.React.Component {
     return heights
   }
 
-  setCategory (category) {
+  setCategory(category) {
     if (!category) {
       this.loadCategories()
       this.loadMedias()
@@ -1774,37 +1779,37 @@ class MediaPicker extends BdApi.React.Component {
     this.clearSearch()
   }
 
-  listWithId (list) {
+  listWithId(list) {
     return list.map((e, i) => ({ ...e, id: i }))
   }
 
-  filterCondition (name, filter) {
+  filterCondition(name, filter) {
     name = name.replace(/(_|-)/gm, ' ')
     filter = filter.replace(/(_|-)/gm, ' ')
     for (const f of filter.split(' ').filter(e => e)) { if (!name.includes(f)) return false }
     return true
   }
 
-  get filteredCategories () {
+  get filteredCategories() {
     const filter = this.state.textFilter
     if (!filter) return this.categoriesInCategory()
     return this.state.categories.filter(c => this.filterCondition(c.name.toLowerCase(), filter.toString().toLowerCase()))
   }
 
-  get filteredMedias () {
+  get filteredMedias() {
     const filter = this.state.textFilter
     if (!filter) return this.mediasInCategory.reverse()
     return this.listWithId(this.state.medias).filter(m => this.filterCondition(m.name.toLowerCase(), filter.toString().toLowerCase())).reverse()
   }
 
-  get currentPageCategories () {
+  get currentPageCategories() {
     if (PageControl == null) return this.filteredCategories
 
     const start = plugin.instance.settings.maxMediasPerPage * (this.state.page - 1)
     return this.filteredCategories.slice(start, start + plugin.instance.settings.maxMediasPerPage)
   }
 
-  get currentPageMedias () {
+  get currentPageMedias() {
     if (PageControl == null) return this.filteredMedias
 
     let offset = this.currentPageCategories.length
@@ -1817,7 +1822,7 @@ class MediaPicker extends BdApi.React.Component {
     return this.filteredMedias.slice(start, start + plugin.instance.settings.maxMediasPerPage)
   }
 
-  get positionedCategories () {
+  get positionedCategories() {
     const thumbnails = this.randomThumbnails
     const categories = this.currentPageCategories
     const width = this.state.contentWidth || 200
@@ -1834,12 +1839,12 @@ class MediaPicker extends BdApi.React.Component {
     return categories
   }
 
-  get positionedMedias () {
+  get positionedMedias() {
     const heights = this.heights
     const width = this.state.contentWidth || 200
     const n = Math.floor(width / 200)
     const offset = this.currentPageCategories.length
-    const placed = Array.from({ length: n})
+    const placed = Array.from({ length: n })
     placed.fill(false)
     placed.fill(true, 0, offset % n)
     const itemWidth = (width - (12 * (n - 1))) / n
@@ -1886,12 +1891,12 @@ class MediaPicker extends BdApi.React.Component {
     return medias
   }
 
-  categoriesInCategory () {
+  categoriesInCategory() {
     if (!this.state.category) return this.state.categories.filter(m => m.category_id === undefined)
     return this.state.categories.filter(m => m.category_id === this.state.category.id)
   }
 
-  get mediasInCategory () {
+  get mediasInCategory() {
     if (!this.state.category) {
       if (!plugin.instance.settings.hideUnsortedMedias) return this.listWithId(this.state.medias)
       else return this.listWithId(this.state.medias).filter(m => m.category_id === undefined)
@@ -1899,11 +1904,11 @@ class MediaPicker extends BdApi.React.Component {
     return this.listWithId(this.state.medias).filter(m => m.category_id === this.state.category.id)
   }
 
-  static categoryHasSubcategories (type, categoryId) {
+  static categoryHasSubcategories(type, categoryId) {
     return loadData(type, { categories: [] }).categories.some((c) => c.category_id === categoryId)
   }
 
-  static openCategoryModal (type, op, values, categoryId) {
+  static openCategoryModal(type, op, values, categoryId) {
     let modal
     BdApi.UI.showConfirmationModal(op === 'create' ? plugin.instance.strings.category.create : plugin.instance.strings.category.edit,
       BdApi.React.createElement(CategoryModal, {
@@ -1922,7 +1927,7 @@ class MediaPicker extends BdApi.React.Component {
     )
   }
 
-  static async downloadCategory (props) {
+  static async downloadCategory(props) {
     const { filePaths } = await BdApi.UI.openDialog({ openDirectory: true, openFile: false })
     if (!filePaths?.[0]) return
 
@@ -1964,7 +1969,7 @@ class MediaPicker extends BdApi.React.Component {
     BdApi.UI.showToast(plugin.instance.strings.category.success.download, { type: 'success' })
   }
 
-  static async createFolder (folder) {
+  static async createFolder(folder) {
     return await new Promise((resolve, reject) => {
       mkdir(folder, {}, (err) => {
         if (err) {
@@ -1975,7 +1980,7 @@ class MediaPicker extends BdApi.React.Component {
     })
   }
 
-  static async downloadMedia (media, type) {
+  static async downloadMedia(media, type) {
     media = structuredClone(media)
 
     const ext = type === 'gif' ? '.gif' : getUrlExt(media.url, type)
@@ -2000,7 +2005,7 @@ class MediaPicker extends BdApi.React.Component {
     }
   }
 
-  onContextMenu (e) {
+  onContextMenu(e) {
     canClosePicker.context = 'contextmenu'
     canClosePicker.value = false
 
@@ -2029,18 +2034,18 @@ class MediaPicker extends BdApi.React.Component {
         type: 'group',
         items,
       }]), {
-        onClose: () => {
-          canClosePicker.context = 'contextmenu'
-          canClosePicker.value = true
-        },
-      })
+      onClose: () => {
+        canClosePicker.context = 'contextmenu'
+        canClosePicker.value = true
+      },
+    })
   }
 
-  resetScroll () {
+  resetScroll() {
     this.pickerScrollRef?.current?.scroll(0, 0)
   }
 
-  static changeCategoryCategory (type, id, categoryId) {
+  static changeCategoryCategory(type, id, categoryId) {
     const typeData = loadData(type, { medias: [] })
     const index = typeData.categories.findIndex(c => c.id === id)
     if (index < 0) return
@@ -2050,7 +2055,7 @@ class MediaPicker extends BdApi.React.Component {
     Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
   }
 
-  static changeMediaCategory (type, url, categoryId) {
+  static changeMediaCategory(type, url, categoryId) {
     const typeData = loadData(type, { medias: [], categories: [] })
     const index = typeData.medias.findIndex(m => MediaFavButton.checkSameUrl(m.url, url))
     if (index < 0) return
@@ -2065,7 +2070,7 @@ class MediaPicker extends BdApi.React.Component {
     Dispatcher.dispatch({ type: 'FM_UPDATE_MEDIAS' })
   }
 
-  static removeCategoryCategory (type, categoryId) {
+  static removeCategoryCategory(type, categoryId) {
     const typeData = loadData(type, { categories: [] })
     const index = typeData.categories.findIndex(m => m.id === categoryId)
     if (index < 0) return
@@ -2075,7 +2080,7 @@ class MediaPicker extends BdApi.React.Component {
     Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
   }
 
-  static removeMediaCategory (type, mediaId) {
+  static removeMediaCategory(type, mediaId) {
     const typeData = loadData(type, { medias: [], categories: [] })
     delete typeData.medias[mediaId].category_id
     typeData.categories.forEach((c) => {
@@ -2088,7 +2093,7 @@ class MediaPicker extends BdApi.React.Component {
     Dispatcher.dispatch({ type: 'FM_UPDATE_MEDIAS' })
   }
 
-  static setCategoryThumbnail (type, url, categoryId) {
+  static setCategoryThumbnail(type, url, categoryId) {
     const typeData = loadData(type, { categories: [] })
     const index = typeData.categories.findIndex(m => m.id === categoryId)
     if (index < 0) return
@@ -2098,7 +2103,7 @@ class MediaPicker extends BdApi.React.Component {
     Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
   }
 
-  static unsetCategoryThumbnail (type, categoryId) {
+  static unsetCategoryThumbnail(type, categoryId) {
     const typeData = loadData(type, { categories: [] })
     const index = typeData.categories.findIndex(m => m.id === categoryId)
     if (index < 0) return
@@ -2108,7 +2113,7 @@ class MediaPicker extends BdApi.React.Component {
     Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
   }
 
-  categoriesItems (media) {
+  categoriesItems(media) {
     return this.state.categories
       .filter(c => c.id !== (media.category_id) && c.id !== MediaPicker.getMediaCategoryId(this.props.type, media.id))
       .map(c => ({
@@ -2120,15 +2125,15 @@ class MediaPicker extends BdApi.React.Component {
       }))
   }
 
-  static getMediaCategoryId (type, mediaId) {
+  static getMediaCategoryId(type, mediaId) {
     return loadData(type, { medias: [] }).medias[mediaId]?.category_id
   }
 
-  static getCategoryThumbnail (type, categoryId) {
+  static getCategoryThumbnail(type, categoryId) {
     return loadData(type, { categories: [] }).categories.find(c => c.id === categoryId)?.thumbnail
   }
 
-  get randomThumbnails () {
+  get randomThumbnails() {
     const thumbnails = []
     for (let c = 0; c < this.state.categories.length; c++) {
       const id = this.state.categories[c].id
@@ -2142,15 +2147,15 @@ class MediaPicker extends BdApi.React.Component {
     return thumbnails
   }
 
-  loadCategories () {
+  loadCategories() {
     this.setState({ categories: loadData(this.props.type, { categories: [] }).categories })
   }
 
-  loadMedias () {
+  loadMedias() {
     this.setState({ medias: loadData(this.props.type, { medias: [] }).medias })
   }
 
-  backCategory () {
+  backCategory() {
     if (this.state.textFilter && !this.state.category) {
       this.clearSearch()
       return
@@ -2164,7 +2169,7 @@ class MediaPicker extends BdApi.React.Component {
     this.resetScroll()
   }
 
-  async uploadMedia (mediaId, spoiler = false) {
+  async uploadMedia(mediaId, spoiler = false) {
     const media = structuredClone(this.state.medias[mediaId])
     if (media == null) return
 
@@ -2180,11 +2185,11 @@ class MediaPicker extends BdApi.React.Component {
     EPS.closeExpressionPicker()
   }
 
-  sendMedia (e, mediaId) {
+  sendMedia(e, mediaId) {
     Dispatcher.dispatch({ type: 'FM_SEND_MEDIA', e, mediaId })
   }
 
-  onMediaContextMenu (e, mediaId) {
+  onMediaContextMenu(e, mediaId) {
     const media = loadData(this.props.type, { medias: [] }).medias[mediaId]
     const items = [{
       id: 'media-input',
@@ -2273,7 +2278,7 @@ class MediaPicker extends BdApi.React.Component {
     })
   }
 
-  static async openImportModal () {
+  static async openImportModal() {
     const { filePaths } = await BdApi.UI.openDialog({
       defaultPath: BdApi.Plugins.folder,
       multiSelections: true,
@@ -2286,19 +2291,19 @@ class MediaPicker extends BdApi.React.Component {
       BdApi.React.createElement(ImportPanel, {
         paths: filePaths,
       }), {
-        confirmText: null,
-        cancelText: null,
-      })
+      confirmText: null,
+      cancelText: null,
+    })
   }
 
-  static async openDatabasePanel () {
+  static async openDatabasePanel() {
     BdApi.UI.showConfirmationModal(plugin.instance.strings.cache.panel, BdApi.React.createElement(DatabasePanel), {
       confirmText: null,
       cancelText: null,
     })
   }
 
-  static async fetchMediasIntoDB () {
+  static async fetchMediasIntoDB() {
     const time = new Date().getTime()
     const mediasUrlToCache = []
     const keys = await fmdb.getKeys()
@@ -2337,7 +2342,7 @@ class MediaPicker extends BdApi.React.Component {
     return totalCached
   }
 
-  static async refreshUrls (urls) {
+  static async refreshUrls(urls) {
     const wait = async (delay = 1000) => { await new Promise((resolve) => { setTimeout(resolve) }, delay) }
 
     const ret = []
@@ -2363,7 +2368,7 @@ class MediaPicker extends BdApi.React.Component {
     return ret
   }
 
-  static async refreshMediasUrls (type, medias, categories) {
+  static async refreshMediasUrls(type, medias, categories) {
     const urls = [
       ...medias.map(m => m.url),
       ...medias.filter(m => m.poster != null).map(m => m.poster),
@@ -2402,242 +2407,242 @@ class MediaPicker extends BdApi.React.Component {
     }
   }
 
-  render () {
+  render() {
     return BdApi.React.createElement('div', {
       id: `fm-${this.props.type}-picker-tab-panel`,
       role: 'tabpanel',
       'aria-labelledby': `fm-${this.props.type}-picker-tab`,
       className: `${classes.gutter.container} fm-pickerContainer`,
     },
-    BdApi.React.createElement('div', {
-      className: `${classes.gutter.header} fm-header`,
-    },
-    BdApi.React.createElement('div', {
-      className: `${classes.h5} fm-headerRight`,
-    },
-    BdApi.React.createElement('span', {
-      ref: this.mediasCounterRef,
-      className: 'fm-mediasCounter',
-    }, this.filteredMedias.length),
-    BdApi.React.createElement('div', {
-      ref: this.databaseButtonRef,
-      className: `${classes.buttons.button} fm-databaseButton fm-buttonIcon`,
-      onClick: MediaPicker.openDatabasePanel,
-    }, DatabaseSVG()),
-    BdApi.React.createElement('div', {
-      ref: this.importButtonRef,
-      className: `${classes.buttons.button} fm-importButton fm-buttonIcon`,
-      onClick: MediaPicker.openImportModal,
-    }, ImportSVG()),
-    BdApi.React.createElement('div', {
-      ref: this.settingsButtonRef,
-      className: `${classes.buttons.button} fm-settingsButton fm-buttonIcon`,
-      onClick: () => Dispatcher.dispatch({ type: 'FM_OPEN_SETTINGS' }),
-    }, CogSVG())
-    ),
-    BdApi.React.createElement('div', {
-      className: `${classes.flex.flex} ${classes.flex.horizontal} ${classes.flex.justifyStart} ${classes.flex.alignCenter} ${classes.flex.noWrap}`,
-      style: { flex: '1 1 auto' },
-    },
-    this.state.category || (this.state.textFilter && !this.state.category)
-      ? BdApi.React.createElement('div', {
-        className: classes.gutter.backButton,
-        role: 'button',
-        tabindex: '0',
-        onClick: this.backCategory,
-      },
-      BdApi.React.createElement('svg', {
-        ariaHidden: true,
-        width: '24',
-        height: '24',
-        viewBox: '0 0 24 24',
-        fill: 'none',
-        role: 'img'
-      },
-      BdApi.React.createElement('path', {
-        fill: 'currentColor',
-        d: 'M3.3 11.3a1 1 0 0 0 0 1.4l5 5a1 1 0 0 0 1.4-1.4L6.42 13H20a1 1 0 1 0 0-2H6.41l3.3-3.3a1 1 0 0 0-1.42-1.4l-5 5Z',
-      })
-      )
-      )
-      : null,
-    BdApi.React.createElement('div', {
-      className: `${classes.control2.container}`,
-    },
-    BdApi.React.createElement('div', {
-      className: `${classes.control2.control}`,
-    },
-    BdApi.React.createElement('div', {
-      className: `${classes.container.container}`,
-    },
-    this.state.category
-      ? BdApi.React.createElement('h5', {
-        className: `${classes.h5} ${classes.gutter.searchHeader}`,
-      }, this.state.category.name)
-      : null,
-    !this.state.category
-      ? BdApi.React.createElement('div', {
-        className: `${classes.container.wrapper} ${classes.medium.container} ${classes.medium.medium} ${classes.medium.hasLeading}`,
-      },
       BdApi.React.createElement('div', {
-        className: classes.medium.icon,
-        onClick: this.clearSearch,
+        className: `${classes.gutter.header} fm-header`,
       },
-      BdApi.React.createElement('svg', {
-        ariaHidden: true,
-        width: '16',
-        height: '16',
-        viewBox: '0 0 24 24',
-        fill: 'none',
-        role: 'img',
-      },
-      BdApi.React.createElement('path', {
-        fill: 'var(--icon-strong)',
-        d: 'M15.62 17.03a9 9 0 1 1 1.41-1.41l4.68 4.67a1 1 0 0 1-1.42 1.42l-4.67-4.68ZM17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z',
-        fillRule: 'evenodd',
-        clipRule: 'evenodd',
-      })
+        BdApi.React.createElement('div', {
+          className: `${classes.h5} fm-headerRight`,
+        },
+          BdApi.React.createElement('span', {
+            ref: this.mediasCounterRef,
+            className: 'fm-mediasCounter',
+          }, this.filteredMedias.length),
+          BdApi.React.createElement('div', {
+            ref: this.databaseButtonRef,
+            className: `${classes.buttons.button} fm-databaseButton fm-buttonIcon`,
+            onClick: MediaPicker.openDatabasePanel,
+          }, DatabaseSVG()),
+          BdApi.React.createElement('div', {
+            ref: this.importButtonRef,
+            className: `${classes.buttons.button} fm-importButton fm-buttonIcon`,
+            onClick: MediaPicker.openImportModal,
+          }, ImportSVG()),
+          BdApi.React.createElement('div', {
+            ref: this.settingsButtonRef,
+            className: `${classes.buttons.button} fm-settingsButton fm-buttonIcon`,
+            onClick: () => Dispatcher.dispatch({ type: 'FM_OPEN_SETTINGS' }),
+          }, CogSVG())
+        ),
+        BdApi.React.createElement('div', {
+          className: `${classes.flex.flex} ${classes.flex.horizontal} ${classes.flex.justifyStart} ${classes.flex.alignCenter} ${classes.flex.noWrap}`,
+          style: { flex: '1 1 auto' },
+        },
+          this.state.category || (this.state.textFilter && !this.state.category)
+            ? BdApi.React.createElement('div', {
+              className: classes.gutter.backButton,
+              role: 'button',
+              tabindex: '0',
+              onClick: this.backCategory,
+            },
+              BdApi.React.createElement('svg', {
+                ariaHidden: true,
+                width: '24',
+                height: '24',
+                viewBox: '0 0 24 24',
+                fill: 'none',
+                role: 'img'
+              },
+                BdApi.React.createElement('path', {
+                  fill: 'currentColor',
+                  d: 'M3.3 11.3a1 1 0 0 0 0 1.4l5 5a1 1 0 0 0 1.4-1.4L6.42 13H20a1 1 0 1 0 0-2H6.41l3.3-3.3a1 1 0 0 0-1.42-1.4l-5 5Z',
+                })
+              )
+            )
+            : null,
+          BdApi.React.createElement('div', {
+            className: `${classes.control2.container}`,
+          },
+            BdApi.React.createElement('div', {
+              className: `${classes.control2.control}`,
+            },
+              BdApi.React.createElement('div', {
+                className: `${classes.container.container}`,
+              },
+                this.state.category
+                  ? BdApi.React.createElement('h5', {
+                    className: `${classes.h5} ${classes.gutter.searchHeader}`,
+                  }, this.state.category.name)
+                  : null,
+                !this.state.category
+                  ? BdApi.React.createElement('div', {
+                    className: `${classes.container.wrapper} ${classes.medium.container} ${classes.medium.medium} ${classes.medium.hasLeading}`,
+                  },
+                    BdApi.React.createElement('div', {
+                      className: classes.medium.icon,
+                      onClick: this.clearSearch,
+                    },
+                      BdApi.React.createElement('svg', {
+                        ariaHidden: true,
+                        width: '16',
+                        height: '16',
+                        viewBox: '0 0 24 24',
+                        fill: 'none',
+                        role: 'img',
+                      },
+                        BdApi.React.createElement('path', {
+                          fill: 'var(--icon-strong)',
+                          d: 'M15.62 17.03a9 9 0 1 1 1.41-1.41l4.68 4.67a1 1 0 0 1-1.42 1.42l-4.67-4.68ZM17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z',
+                          fillRule: 'evenodd',
+                          clipRule: 'evenodd',
+                        })
+                      ),
+                    ),
+                    BdApi.React.createElement('input', {
+                      className: classes.medium.input,
+                      placeholder: plugin.instance.strings.searchItem[this.props.type],
+                      autofocus: true,
+                      type: 'text',
+                      ref: this.inputRef,
+                      onChange: e => {
+                        this.setState({ textFilter: e.target.value })
+                        this.resetScroll()
+                      },
+                    }),
+                    this.state.textFilter && !this.state.category
+                      ? BdApi.React.createElement('div', {
+                        className: classes.medium.clearButton,
+                        role: 'button',
+                        tabindex: '0',
+                        onClick: this.clearSearch,
+                      },
+                        BdApi.React.createElement('svg', {
+                          ariaHidden: true,
+                          width: '16',
+                          height: '16',
+                          viewBox: '0 0 24 24',
+                          fill: 'none',
+                          role: 'img'
+                        },
+                          BdApi.React.createElement('circle', {
+                            cx: '12',
+                            cy: '12',
+                            r: '10',
+                            fill: 'transparent'
+                          }),
+                          BdApi.React.createElement('path', {
+                            fill: 'currentColor',
+                            d: 'M12 23a11 11 0 1 0 0-22 11 11 0 0 0 0 22Zm4.7-15.7a1 1 0 0 0-1.4 0L12 10.58l-3.3-3.3a1 1 0 0 0-1.4 1.42L10.58 12l-3.3 3.3a1 1 0 1 0 1.42 1.4L12 13.42l3.3 3.3a1 1 0 0 0 1.4-1.42L13.42 12l3.3-3.3a1 1 0 0 0 0-1.4Z',
+                            fillRule: 'evenodd',
+                            clipRule: 'evenodd',
+                          })
+                        )
+                      )
+                      : null,
+                  )
+                  : null
+              )
+            )
+          )
+        )
       ),
-      ),
-      BdApi.React.createElement('input', {
-        className: classes.medium.input,
-        placeholder: plugin.instance.strings.searchItem[this.props.type],
-        autofocus: true,
-        type: 'text',
-        ref: this.inputRef,
-        onChange: e => {
-          this.setState({ textFilter: e.target.value })
-          this.resetScroll()
-        },
-      }),
-      this.state.textFilter && !this.state.category
-      ? BdApi.React.createElement('div', {
-        className: classes.medium.clearButton,
-        role: 'button',
-        tabindex: '0',
-        onClick: this.clearSearch,
-      },
-      BdApi.React.createElement('svg', {
-        ariaHidden: true,
-        width: '16',
-        height: '16',
-        viewBox: '0 0 24 24',
-        fill: 'none',
-        role: 'img'
-      },
-      BdApi.React.createElement('circle', {
-        cx: '12',
-        cy: '12',
-        r: '10',
-        fill: 'transparent'
-      }),
-      BdApi.React.createElement('path', {
-        fill: 'currentColor',
-        d: 'M12 23a11 11 0 1 0 0-22 11 11 0 0 0 0 22Zm4.7-15.7a1 1 0 0 0-1.4 0L12 10.58l-3.3-3.3a1 1 0 0 0-1.4 1.42L10.58 12l-3.3 3.3a1 1 0 1 0 1.42 1.4L12 13.42l3.3 3.3a1 1 0 0 0 1.4-1.42L13.42 12l3.3-3.3a1 1 0 0 0 0-1.4Z',
-        fillRule: 'evenodd',
-        clipRule: 'evenodd',
-      })
-      )
-      )
-      : null,
-      )
-      : null
-    )
-    )
-    )
-    )
-    ),
-    BdApi.React.createElement('div', {
-      className: `${classes.gutter.content} fm-pickerContent`,
-      style: { height: '100%' },
-    },
-    BdApi.React.createElement('div', {
-      ref: this.pickerScrollRef,
-      className: `${classes.category.container} ${classes.scroller.thin} ${classes.scroller.fade} fm-pickerContentContainer`,
-      style: { overflow: 'hidden scroll', 'padding-right': '0' },
-      onContextMenu: this.onContextMenu,
-    },
-    BdApi.React.createElement('div', {
-      className: `${classes.scroller.content} fm-pickerContentContainerContent`,
-    },
-    BdApi.React.createElement('div', {
-      style: { position: 'absolute', left: '12px', top: '12px', width: 'calc(100% - 16px)' },
-      ref: this.contentRef,
-    },
-    !this.state.category && (this.state.categories.length + this.state.medias.length === 0)
-      ? BdApi.React.createElement(EmptyFavorites, { type: this.props.type })
-      : null,
-    this.state.categories.length > 0 && this.state.contentWidth
-      ? BdApi.React.createElement(RenderList, {
-        component: CategoryCard,
-        items: this.positionedCategories,
-        componentProps: {
-          type: this.props.type,
-          setCategory: this.setCategory,
-          length: this.filteredCategories.length,
-        },
-      })
-      : null,
-    this.state.medias.length > 0 && this.state.contentWidth
-      ? BdApi.React.createElement(RenderList, {
-        component: MediaCard,
-        items: this.positionedMedias,
-        componentProps: {
-          type: this.props.type,
-          onMediaContextMenu: this.onMediaContextMenu,
-          settings: this.props.settings,
-        },
-      })
-      : null
-    ),
-    this.state.categories.length > 0 || this.state.medias.length > 0
-      ? BdApi.React.createElement('div', {
-        style: {
-          position: 'absolute',
-          left: '12px',
-          top: `${this.contentHeight + 12}px`,
-          width: 'calc(100% - 16px)',
-          height: '220px',
-        },
-        ref: this.endStickerRef,
-      },
       BdApi.React.createElement('div', {
-        className: classes.result.endContainer,
-        style: {
-          position: 'sticky',
-          top: '0px',
-          left: '0px',
-          width: '100%',
-          height: '220px',
-        },
-      })
-      )
-      : null
-    )
-    ),
-    PageControl != null
-      ? BdApi.React.createElement('div', {
-        className: 'fm-pageControl',
+        className: `${classes.gutter.content} fm-pickerContent`,
+        style: { height: '100%' },
       },
-      BdApi.React.createElement(PageControl, {
-        currentPage: this.state.page,
-        maxVisiblePages: 5,
-        onPageChange: (page) => {
-          this.setState({ page: Number(page) })
-          this.resetScroll()
+        BdApi.React.createElement('div', {
+          ref: this.pickerScrollRef,
+          className: `${classes.category.container} ${classes.scroller.thin} ${classes.scroller.fade} fm-pickerContentContainer`,
+          style: { overflow: 'hidden scroll', 'padding-right': '0' },
+          onContextMenu: this.onContextMenu,
         },
-        pageSize: plugin.instance.settings.maxMediasPerPage,
-        totalCount: this.filteredCategories.length + this.filteredMedias.length,
-      })
+          BdApi.React.createElement('div', {
+            className: `${classes.scroller.content} fm-pickerContentContainerContent`,
+          },
+            BdApi.React.createElement('div', {
+              style: { position: 'absolute', left: '12px', top: '12px', width: 'calc(100% - 16px)' },
+              ref: this.contentRef,
+            },
+              !this.state.category && (this.state.categories.length + this.state.medias.length === 0)
+                ? BdApi.React.createElement(EmptyFavorites, { type: this.props.type })
+                : null,
+              this.state.categories.length > 0 && this.state.contentWidth
+                ? BdApi.React.createElement(RenderList, {
+                  component: CategoryCard,
+                  items: this.positionedCategories,
+                  componentProps: {
+                    type: this.props.type,
+                    setCategory: this.setCategory,
+                    length: this.filteredCategories.length,
+                  },
+                })
+                : null,
+              this.state.medias.length > 0 && this.state.contentWidth
+                ? BdApi.React.createElement(RenderList, {
+                  component: MediaCard,
+                  items: this.positionedMedias,
+                  componentProps: {
+                    type: this.props.type,
+                    onMediaContextMenu: this.onMediaContextMenu,
+                    settings: this.props.settings,
+                  },
+                })
+                : null
+            ),
+            this.state.categories.length > 0 || this.state.medias.length > 0
+              ? BdApi.React.createElement('div', {
+                style: {
+                  position: 'absolute',
+                  left: '12px',
+                  top: `${this.contentHeight + 12}px`,
+                  width: 'calc(100% - 16px)',
+                  height: '220px',
+                },
+                ref: this.endStickerRef,
+              },
+                BdApi.React.createElement('div', {
+                  className: classes.result.endContainer,
+                  style: {
+                    position: 'sticky',
+                    top: '0px',
+                    left: '0px',
+                    width: '100%',
+                    height: '220px',
+                  },
+                })
+              )
+              : null
+          )
+        ),
+        PageControl != null
+          ? BdApi.React.createElement('div', {
+            className: 'fm-pageControl',
+          },
+            BdApi.React.createElement(PageControl, {
+              currentPage: this.state.page,
+              maxVisiblePages: 5,
+              onPageChange: (page) => {
+                this.setState({ page: Number(page) })
+                this.resetScroll()
+              },
+              pageSize: plugin.instance.settings.maxMediasPerPage,
+              totalCount: this.filteredCategories.length + this.filteredMedias.length,
+            })
+          )
+          : null
       )
-      : null
-    )
     )
   }
 }
 
 class MediaButton extends BdApi.React.Component {
-  constructor (props) {
+  constructor(props) {
     super(props)
 
     this.state = {
@@ -2650,12 +2655,12 @@ class MediaButton extends BdApi.React.Component {
     this.buttonRef = BdApi.React.createRef()
   }
 
-  get isActive () {
+  get isActive() {
     const EPSState = EPS.useExpressionPickerStore.getState()
     return EPSState.activeView === this.props.type && EPSState.activeViewType?.analyticsName === this.props.pickerType?.analyticsName
   }
 
-  changeActive () {
+  changeActive() {
     if (this.isActive) {
       currentChannelId = this.props.channelId
       currentTextareaInput = findTextareaInput(this.buttonRef?.current)
@@ -2663,69 +2668,69 @@ class MediaButton extends BdApi.React.Component {
     this.setState({ active: this.isActive })
   }
 
-  checkPicker () {
+  checkPicker() {
     const EPSState = EPS.useExpressionPickerStore.getState()
     canClosePicker.context = 'mediabutton'
     canClosePicker.value = EPSState.activeView == null
   }
 
-  componentDidMount () {
+  componentDidMount() {
     Dispatcher.subscribe('FM_PICKER_BUTTON_ACTIVE', this.changeActive)
   }
 
-  componentWillUnmount () {
+  componentWillUnmount() {
     Dispatcher.unsubscribe('FM_PICKER_BUTTON_ACTIVE', this.changeActive)
   }
 
-  render () {
+  render() {
     return BdApi.React.createElement('div', {
       className: `${classes.textarea.buttons} fm-buttonContainer fm-${this.props.type}`,
       ref: this.buttonRef,
     },
-    BdApi.React.createElement('button', {
-      className: `${classes.look.button} ${classes.look.lookBlank} ${classes.look.colorBrand} ${classes.look.grow}${this.state.active ? ` ${classes.icon.active}` : ''} fm-button`,
-      tabindex: '0',
-      type: 'button',
-      onMouseDown: this.checkPicker,
-      onClick: () => {
-        const EPSState = EPS.useExpressionPickerStore.getState()
-        const typeId = `fm-${this.props.type}`
-        if (EPSState.activeView === typeId && EPSState.activeViewType?.analyticsName !== this.props.pickerType?.analyticsName) {
-          EPS.toggleExpressionPicker(typeId, this.props.pickerType ?? EPSState.activeViewType, this.props.channelId)
-        }
-        EPS.toggleExpressionPicker(typeId, this.props.pickerType ?? EPSConstants.NORMAL, this.props.channelId)
+      BdApi.React.createElement('button', {
+        className: `${classes.look.button} ${classes.look.lookBlank} ${classes.look.colorBrand} ${classes.look.grow}${this.state.active ? ` ${classes.icon.active}` : ''} fm-button`,
+        tabindex: '0',
+        type: 'button',
+        onMouseDown: this.checkPicker,
+        onClick: () => {
+          const EPSState = EPS.useExpressionPickerStore.getState()
+          const typeId = `fm-${this.props.type}`
+          if (EPSState.activeView === typeId && EPSState.activeViewType?.analyticsName !== this.props.pickerType?.analyticsName) {
+            EPS.toggleExpressionPicker(typeId, this.props.pickerType ?? EPSState.activeViewType, this.props.channelId)
+          }
+          EPS.toggleExpressionPicker(typeId, this.props.pickerType ?? EPSConstants.NORMAL, this.props.channelId)
+        },
       },
-    },
-    BdApi.React.createElement('div', {
-      className: `${classes.look.contents} ${classes.textarea.button} ${classes.icon.button} fm-buttonContent`,
-    },
-    BdApi.React.createElement('div', {
-      className: `${classes.icon.buttonWrapper} fm-buttonWrapper`,
-      style: { opacity: '1', transform: 'none' },
-    },
-    this.props.type === 'image' ? ImageSVG() : null,
-    this.props.type === 'video' ? VideoSVG() : null,
-    this.props.type === 'audio' ? AudioSVG() : null,
-    this.props.type === 'file' ? FileSVG() : null
-    )
-    )
-    )
+        BdApi.React.createElement('div', {
+          className: `${classes.look.contents} ${classes.textarea.button} ${classes.icon.button} fm-buttonContent`,
+        },
+          BdApi.React.createElement('div', {
+            className: `${classes.icon.buttonWrapper} fm-buttonWrapper`,
+            style: { opacity: '1', transform: 'none' },
+          },
+            this.props.type === 'image' ? ImageSVG() : null,
+            this.props.type === 'video' ? VideoSVG() : null,
+            this.props.type === 'audio' ? AudioSVG() : null,
+            this.props.type === 'file' ? FileSVG() : null
+          )
+        )
+      )
     )
   }
 }
 
-function getMediaFromCache (key) {
+function getMediaFromCache(key) {
   if (!plugin.instance.settings.allowCaching) return key
   return mediasCache[key] ?? key
 }
 
-function getUrlName (url) {
+function getUrlName(url) {
   // tenor case, otherwise it would always return 'tenor'
   if (url.startsWith('https://tenor.com/view/') || url.startsWith('https://media.tenor.com/view/')) return url.match(/view\/(.*)-gif-/)?.[1]
   return url.replace(/(\.|\/)([^./]*)$/gm, '').split('/').pop()
 }
 
-function getUrlExt (url, type) {
+function getUrlExt(url, type) {
   const ext = url.match(/\.([0-9a-z]+)(?=[?#])|(\.)(?:[\w]+)$/gmi)?.[0]
   if (ext != null) return ext
   return {
@@ -2736,7 +2741,7 @@ function getUrlExt (url, type) {
   }[type] ?? ''
 }
 
-function cleanUrl (url) {
+function cleanUrl(url) {
   if (url == null) return
   try {
     const urlObj = new URL(url)
@@ -2752,13 +2757,13 @@ function cleanUrl (url) {
   }
 }
 
-function removeProxyUrl (url) {
+function removeProxyUrl(url) {
   const tmpUrl = url?.split('https/')[1]
   if (tmpUrl == null) return url
   return 'https://' + tmpUrl
 }
 
-async function sendInTextarea (clear = false) {
+async function sendInTextarea(clear = false) {
   return await new Promise((resolve, reject) => {
     try {
       const enterEvent = new window.KeyboardEvent('keydown', { charCode: 13, keyCode: 13, bubbles: true })
@@ -2773,7 +2778,7 @@ async function sendInTextarea (clear = false) {
   })
 }
 
-function uploadFile (type, buffer, media) {
+function uploadFile(type, buffer, media) {
   // if the textarea has not been patched, file uploading will fail
   if (currentTextareaInput == null || !document.body.contains(currentTextareaInput)) return BdApi.Logger.error(plugin.name, 'Could not find current textarea, upload file canceled.')
 
@@ -2790,7 +2795,7 @@ function uploadFile (type, buffer, media) {
   })
 }
 
-async function fetchMedia (media) {
+async function fetchMedia(media) {
   media = structuredClone(media)
 
   let mediaBuffer = await fmdb.get(media.url)
@@ -2818,22 +2823,22 @@ async function fetchMedia (media) {
   return new Uint8Array(mediaBuffer)
 }
 
-function findTextareaInput ($button = document.getElementsByClassName(classes.textarea.buttons).item(0)) {
+function findTextareaInput($button = document.getElementsByClassName(classes.textarea.buttons).item(0)) {
   return $button?.closest(`.${classes.textarea.channelTextArea}`)?.querySelector('[role="textbox"]')
 }
 
-function findSpoilerButton () {
+function findSpoilerButton() {
   return currentTextareaInput?.closest(`.${classes.textarea.channelTextArea}`)?.querySelector(`.${classes.upload.actionBarContainer} [role="button"]:first-child`)
 }
 
-function findMessageIds ($target) {
+function findMessageIds($target) {
   if ($target == null) return [null, null]
   const ids = $target.closest('[id^="chat-messages-"]')?.getAttribute('id').split('-')?.slice(2)
   if (ids == null) return [null, null]
   return ids
 }
 
-function findMessageLink ($target) {
+function findMessageLink($target) {
   if ($target == null) return
   try {
     const [channelId, messageId] = findMessageIds($target)
@@ -2847,7 +2852,7 @@ function findMessageLink ($target) {
   }
 }
 
-function findSourceLink ($target, url) {
+function findSourceLink($target, url) {
   if ($target == null) return
   try {
     const [channelId, messageId] = findMessageIds($target)
@@ -2863,7 +2868,7 @@ function findSourceLink ($target, url) {
   }
 }
 
-async function getMediaDimensions (props) {
+async function getMediaDimensions(props) {
   if (props.width > 0 && props.height > 0) return { width: props.width, height: props.height }
 
   const dimensions = { width: 0, height: 0 }
@@ -2894,7 +2899,7 @@ async function getMediaDimensions (props) {
   })
 }
 
-function loadEPS () {
+function loadEPS() {
   if (EPSModules == null) {
     BdApi.Logger.warn(plugin.name, 'Failed to load module ExpressionPickerStore')
     return
@@ -2913,7 +2918,7 @@ function loadEPS () {
   })
 }
 
-function categoryValidator (type, name, color, id) {
+function categoryValidator(type, name, color, id) {
   if (!name || typeof name !== 'string') return { error: 'error', message: plugin.instance.strings.category.error.needName }
   if (name.length > 20) return { error: 'error', message: plugin.instance.strings.category.error.invalidNameLength }
   if (!color || typeof color !== 'string' || !color.startsWith('#')) return { error: 'error', message: plugin.instance.strings.category.error.wrongColor }
@@ -2922,13 +2927,13 @@ function categoryValidator (type, name, color, id) {
   return typeData
 }
 
-function getNewCategoryId (categories = []) {
+function getNewCategoryId(categories = []) {
   const id = Math.max(...categories.map(c => c.id))
   if (isNaN(id) || id < 1) return 1
   return id + 1
 }
 
-function createCategory (type, { name, color }, categoryId) {
+function createCategory(type, { name, color }, categoryId) {
   const res = categoryValidator(type, name, color)
   if (res.error) {
     BdApi.Logger.error(plugin.name, res.error)
@@ -2948,7 +2953,7 @@ function createCategory (type, { name, color }, categoryId) {
   return true
 }
 
-function editCategory (type, { name, color }, id) {
+function editCategory(type, { name, color }, id) {
   const res = categoryValidator(type, name, color, id)
   if (res.error) {
     BdApi.Logger.error(plugin.name, res.error)
@@ -2963,7 +2968,7 @@ function editCategory (type, { name, color }, id) {
   return true
 }
 
-function moveCategory (type, id, inc) {
+function moveCategory(type, id, inc) {
   const typeData = loadData(type, { categories: [], medias: [] })
   const oldCategory = typeData.categories.find((c) => c.id === id)
   if (oldCategory == null) return
@@ -2984,7 +2989,7 @@ function moveCategory (type, id, inc) {
   Dispatcher.dispatch({ type: 'FM_UPDATE_CATEGORIES' })
 }
 
-function deleteCategory (type, id) {
+function deleteCategory(type, id) {
   const typeData = loadData(type, { categories: [], medias: [] })
   if (typeData.categories.find(c => c.id === id) === undefined) {
     BdApi.UI.showToast(plugin.instance.strings.category.error.invalidCategory, { type: 'error' })
@@ -3003,7 +3008,7 @@ function deleteCategory (type, id) {
   return true
 }
 
-function hexToRgb (hex) {
+function hexToRgb(hex) {
   const bigint = parseInt(hex.replace('#', ''), 16)
   const r = (bigint >> 16) & 255
   const g = (bigint >> 8) & 255
@@ -3012,7 +3017,7 @@ function hexToRgb (hex) {
   return [r, g, b]
 }
 
-function observe (selector, callback, options = {}, root = document) {
+function observe(selector, callback, options = {}, root = document) {
   if (typeof options.append === 'function') {
     root = options
     options = {}
@@ -3028,16 +3033,16 @@ function observe (selector, callback, options = {}, root = document) {
 }
 
 // https://github.com/zerebos/BDPluginLibrary/blob/a375c48d7af5e1a000ce0d97a6cbbcf77a9461cc/src/modules/reacttools.js#L46
-function getOwnerInstance (node, { include, exclude = ['Popout', 'Tooltip', 'Scroller', 'BackgroundFlash'], filter = _ => _ } = {}) {
+function getOwnerInstance(node, { include, exclude = ['Popout', 'Tooltip', 'Scroller', 'BackgroundFlash'], filter = _ => _ } = {}) {
   if (node === undefined) return undefined
   const excluding = include === undefined
   const nameFilter = excluding ? exclude : include
-  function getDisplayName (owner) {
+  function getDisplayName(owner) {
     const type = owner.type
     if (!type) return null
     return type.displayName || type.name || null
   }
-  function classFilter (owner) {
+  function classFilter(owner) {
     const name = getDisplayName(owner)
     return (name !== null && !!(nameFilter.includes(name) ^ excluding))
   }
@@ -3052,7 +3057,7 @@ function getOwnerInstance (node, { include, exclude = ['Popout', 'Tooltip', 'Scr
   return null
 }
 
-function loadData (key, defaultData) {
+function loadData(key, defaultData) {
   defaultData = structuredClone(defaultData)
 
   const data = BdApi.Data.load(plugin.name, key)
@@ -3068,19 +3073,19 @@ function loadData (key, defaultData) {
   return data
 }
 
-function saveData (key, data) {
+function saveData(key, data) {
   BdApi.Data.save(plugin.name, key, data)
 }
 
 module.exports = class FavoriteMedia {
-  constructor (meta) {
+  constructor(meta) {
     this.meta = meta
 
     this.strings = this.getLocaleStrings()
     LocaleStore.addChangeListener(() => { this.strings = this.getLocaleStrings() })
   }
 
-  async start () {
+  async start() {
     plugin = BdApi.Plugins.get('FavoriteMedia')
     this.settings = this.loadSettings()
 
@@ -3110,7 +3115,7 @@ module.exports = class FavoriteMedia {
     saveData('version', this.meta.version)
   }
 
-  stop () {
+  stop() {
     this.contextMenu?.()
     BdApi.Patcher.unpatchAll(this.meta.name)
     Dispatcher.dispatch({ type: 'FM_UNPATCH_ALL' })
@@ -3120,11 +3125,11 @@ module.exports = class FavoriteMedia {
     BdApi.DOM.removeStyle(this.meta.name)
   }
 
-  getLocaleStrings () {
+  getLocaleStrings() {
     return structuredClone(this.translations[LocaleStore.locale.toLowerCase().split('-')[0]])
   }
 
-  loadSettings () {
+  loadSettings() {
     const settingsData = loadData('settings', {})
     const settings = structuredClone(this.defaultSettings)
     this.prepareSettings(settings, settingsData)
@@ -3146,7 +3151,7 @@ module.exports = class FavoriteMedia {
     return settingsData
   }
 
-  prepareSettings (settings = [], settingsData = {}, settingsStrings = {}) {
+  prepareSettings(settings = [], settingsData = {}, settingsStrings = {}) {
     for (const setting of settings) {
       if (setting.type !== 'category') {
         if (!Object.hasOwn(settingsData, setting.id)) {
@@ -3168,7 +3173,7 @@ module.exports = class FavoriteMedia {
     }
   }
 
-  getSettingsPanel (settings) {
+  getSettingsPanel(settings) {
     settings = structuredClone(settings ?? this.defaultSettings)
     settings = Array.isArray(settings) ? settings : [settings]
 
@@ -3188,7 +3193,7 @@ module.exports = class FavoriteMedia {
     })
   }
 
-  openSettings () {
+  openSettings() {
     const settingsTitle = this.meta.name + ' Settings'
     BdApi.UI.showConfirmationModal(settingsTitle, this.getSettingsPanel(), {
       confirmText: null,
@@ -3207,7 +3212,7 @@ module.exports = class FavoriteMedia {
     }, 100)
   }
 
-  MediaTab (mediaType, elementType) {
+  MediaTab(mediaType, elementType) {
     const mediaTypeId = `fm-${mediaType}`
     const selected = mediaTypeId === EPS.useExpressionPickerStore.getState().activeView
     return BdApi.React.createElement(elementType, {
@@ -3220,7 +3225,7 @@ module.exports = class FavoriteMedia {
     }, plugin.instance.strings.tabName[mediaType])
   }
 
-  async patchExpressionPicker () {
+  async patchExpressionPicker() {
     if (ExpressionPicker == null) {
       BdApi.Logger.error(this.meta.name, 'ExpressionPicker module not found')
       return
@@ -3260,7 +3265,7 @@ module.exports = class FavoriteMedia {
   }
 
   // https://github.com/Strencher/BetterDiscordStuff/blob/7333c41514bb97fe509e2258abc628a2080b5cf8/InvisibleTyping/InvisibleTyping.plugin.js#L418-L437
-  patchChannelTextArea () {
+  patchChannelTextArea() {
     if (ChannelTextArea?.type?.render == null) {
       BdApi.Logger.error(this.meta.name, 'ChannelTextArea module not found')
       return
@@ -3296,7 +3301,7 @@ module.exports = class FavoriteMedia {
     })
   }
 
-  async patchMedias () {
+  async patchMedias() {
     // Videos & Audios
     const MediaPlayerModule = await BdApi.Webpack.waitForModule(m => m.Types?.VIDEO, { searchExports: true })
     if (MediaPlayerModule == null) {
@@ -3386,14 +3391,14 @@ module.exports = class FavoriteMedia {
     }
   }
 
-  patchClosePicker () {
+  patchClosePicker() {
     BdApi.Patcher.instead(this.meta.name, EPSModules, closeExpressionPickerKey, (_, __, originalFunction) => {
       if (canClosePicker.value) originalFunction()
       if (canClosePicker.context === 'mediabutton') canClosePicker.value = true
     })
   }
 
-  async waitGIFPicker () {
+  async waitGIFPicker() {
     return new Promise((resolve, reject) => {
       const unpatch = () => { reject(new Error('Plugin stopped')) }
       Dispatcher.subscribe('FM_UNPATCH_ALL', unpatch)
@@ -3405,11 +3410,11 @@ module.exports = class FavoriteMedia {
     })
   }
 
-  async patchGIFTab () {
+  async patchGIFTab() {
     let GIFPicker = null
     try {
       GIFPicker = await this.waitGIFPicker()
-    } catch(err) {
+    } catch (err) {
       BdApi.Logger.error(this.meta.name, 'GIFPicker module not found')
       return
     }
@@ -3446,7 +3451,7 @@ module.exports = class FavoriteMedia {
     })
   }
 
-  patchMessageContextMenu () {
+  patchMessageContextMenu() {
     this.contextMenu = BdApi.ContextMenu.patch('message', (returnValue, props) => {
       if (props == null || returnValue.props?.children?.props?.children?.find(e => e?.props?.id === 'favoriteMedia')) return
 
@@ -3674,11 +3679,11 @@ module.exports = class FavoriteMedia {
     })
   }
 
-  isFavorited (type, url) {
+  isFavorited(type, url) {
     return loadData(type, { medias: [] }).medias.find((e) => MediaFavButton.checkSameUrl(e.url, url)) !== undefined
   }
 
-  get css () {
+  get css() {
     return `
       .category-input-color > input[type='color'] {
         opacity: 0;
@@ -3893,11 +3898,11 @@ module.exports = class FavoriteMedia {
     `
   }
 
-  get changelogs () {
+  get changelogs() {
     return []
   }
 
-  get defaultSettings () {
+  get defaultSettings() {
     return [
       {
         type: 'switch',
@@ -4146,7 +4151,7 @@ module.exports = class FavoriteMedia {
     ]
   }
 
-  get translations () {
+  get translations() {
     return {
       bg: { // Bulgarian
         tabName: {
