@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.30
+ * @version 1.13.31
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -1569,6 +1569,8 @@ class MediaCard extends BdApi.React.Component {
   }
 
   render() {
+    const GifCaptioner = BdApi.Plugins.isEnabled("GifCaptioner") ? BdApi.Plugins.get("GifCaptioner").instance : null
+
     return BdApi.React.createElement('div', {
       className: classes.result.result,
       tabindex: '-1',
@@ -1613,6 +1615,14 @@ class MediaCard extends BdApi.React.Component {
         poster: this.props.poster,
         fromPicker: true,
       }),
+      GifCaptioner?.CaptionButton ?
+        BdApi.React.createElement(GifCaptioner.CaptionButton, {
+          onClick: (e) => {
+            e.stopPropagation()
+            GifCaptioner.captionGif(this.state.src, this.tag === "img")
+          }
+        })
+        : null,
       this.tag != null
         ? BdApi.React.createElement(this.tag, {
           className: classes.result.gif,
