@@ -1615,7 +1615,7 @@ class MediaCard extends BdApi.React.Component {
         poster: this.props.poster,
         fromPicker: true,
       }),
-      GifCaptioner?.CaptionButton ?
+      this.isGIF && GifCaptioner?.CaptionButton ?
         BdApi.React.createElement(GifCaptioner.CaptionButton, {
           onClick: (e) => {
             e.stopPropagation()
