@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.32
+ * @version 1.13.33
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -205,7 +205,7 @@ const GIFUtils = (() => {
 const ChannelTextArea = Object.values(BdApi.Webpack.getModule((m) => Object.values(m).some((e) => {
   let str = e?.type?.render?.toString?.();
   if (!str) return false;
-  return str.includes("pendingScheduledMessage") && str.includes(".CHANNEL_TEXT_AREA");
+  return str.includes("scheduledMessageDraft") && str.includes(".CHANNEL_TEXT_AREA");
 })))?.find((e) => e.type)
 const Permissions = BdApi.Webpack.getByKeys('computePermissions')
 const PermissionsConstants = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('ADD_REACTIONS'), { searchExports: true })
