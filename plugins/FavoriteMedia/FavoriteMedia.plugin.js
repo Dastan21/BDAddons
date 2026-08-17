@@ -213,9 +213,6 @@ const FilesUpload = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('addFil
 const MessagesManager = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('sendMessage'))
 const RestAPI = BdApi.Webpack.getModule(m => typeof m === 'object' && m.del && m.put, { searchExports: true })
 
-let PageControl
-BdApi.Webpack.waitForModule(m => typeof m === 'function' && m.toString()?.includes('maxVisiblePages') && m.toString()?.includes('disablePaginationGap'), { searchExports: true }).then(m => PageControl = m)
-
 const canClosePicker = { context: '', value: true }
 let currentChannelId = ''
 let currentTextareaInput = null
@@ -1677,6 +1674,72 @@ class RenderList extends BdApi.React.Component {
   }
 }
 
+function PagerButton(props) {
+  const page = Number(props.page)
+  const active = props.currentPage === page
+  return BdApi.React.createElement('button', {
+    type: 'button',
+    className: `fm-pageButton${active ? ' active' : ''}`,
+    disabled: props.disabled,
+    onClick: props.onClick,
+    style: {
+      minWidth: '32px',
+      height: '28px',
+      padding: '0 10px',
+      border: 'none',
+      borderRadius: '999px',
+      background: active ? 'var(--brand-experiment)' : 'transparent',
+      color: active ? 'var(--white-500)' : 'var(--interactive-normal)',
+      cursor: props.disabled ? 'default' : 'pointer',
+      opacity: props.disabled ? 0.5 : 1,
+      fontWeight: active ? 600 : 500,
+    },
+  }, props.label)
+}
+
+function Pager({ currentPage, totalPages, onPageChange }) {
+  if (totalPages <= 1) return null
+
+  const maxVisiblePages = 5
+  const pages = []
+  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2))
+  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
+
+  if (endPage - startPage + 1 < maxVisiblePages) {
+    startPage = Math.max(1, endPage - maxVisiblePages + 1)
+  }
+
+  for (let page = startPage; page <= endPage; page++) {
+    pages.push(page)
+  }
+
+  return BdApi.React.createElement('div', { className: 'fm-pageControl' },
+    BdApi.React.createElement('div', { className: 'fm-pageControlInner' },
+      BdApi.React.createElement(PagerButton, {
+        page: 1,
+        currentPage,
+        label: '‹',
+        disabled: currentPage <= 1,
+        onClick: () => onPageChange(Math.max(1, currentPage - 1)),
+      }),
+      pages.map((page) => BdApi.React.createElement(PagerButton, {
+        key: page,
+        page,
+        currentPage,
+        label: String(page),
+        onClick: () => onPageChange(page),
+      })),
+      BdApi.React.createElement(PagerButton, {
+        page: totalPages,
+        currentPage,
+        label: '›',
+        disabled: currentPage >= totalPages,
+        onClick: () => onPageChange(Math.min(totalPages, currentPage + 1)),
+      })
+    )
+  )
+}
+
 class MediaPicker extends BdApi.React.Component {
   static HEIGHT = 400
 
@@ -1814,24 +1877,31 @@ class MediaPicker extends BdApi.React.Component {
     return this.listWithId(this.state.medias).filter(m => this.filterCondition(m.name.toLowerCase(), filter.toString().toLowerCase())).reverse()
   }
 
-  get currentPageCategories() {
-    if (PageControl == null) return this.filteredCategories
+  get pageSize() {
+    return Math.max(1, Number(plugin.instance.settings.maxMediasPerPage) || 1)
+  }
 
-    const start = plugin.instance.settings.maxMediasPerPage * (this.state.page - 1)
-    return this.filteredCategories.slice(start, start + plugin.instance.settings.maxMediasPerPage)
+  get totalPageCount() {
+    const total = this.filteredCategories.length + this.filteredMedias.length
+    return Math.max(1, Math.ceil(total / this.pageSize))
+  }
+
+  get currentPageCategories() {
+    const start = this.pageSize * (this.state.page - 1)
+    return this.filteredCategories.slice(start, start + this.pageSize)
   }
 
   get currentPageMedias() {
-    if (PageControl == null) return this.filteredMedias
-
     let offset = this.currentPageCategories.length
-    if (offset >= plugin.instance.settings.maxMediasPerPage) return []
+    if (offset >= this.pageSize) return []
 
-    else if (offset > 0) return this.filteredMedias.slice(0, plugin.instance.settings.maxMediasPerPage - offset)
+    if (offset > 0) {
+      return this.filteredMedias.slice(0, this.pageSize - offset)
+    }
 
-    offset = (plugin.instance.settings.maxMediasPerPage * Math.floor(this.filteredCategories.length / plugin.instance.settings.maxMediasPerPage) + (plugin.instance.settings.maxMediasPerPage - this.filteredCategories.length % plugin.instance.settings.maxMediasPerPage)) % plugin.instance.settings.maxMediasPerPage
-    const start = offset + (this.state.page - 1 - Math.ceil(this.filteredCategories.length / plugin.instance.settings.maxMediasPerPage)) * plugin.instance.settings.maxMediasPerPage
-    return this.filteredMedias.slice(start, start + plugin.instance.settings.maxMediasPerPage)
+    const totalCategoryPages = Math.ceil(this.filteredCategories.length / this.pageSize)
+    const start = (this.state.page - 1 - totalCategoryPages) * this.pageSize
+    return this.filteredMedias.slice(start, start + this.pageSize)
   }
 
   get positionedCategories() {
@@ -2632,21 +2702,15 @@ class MediaPicker extends BdApi.React.Component {
               : null
           )
         ),
-        PageControl != null
-          ? BdApi.React.createElement('div', {
-            className: 'fm-pageControl',
-          },
-            BdApi.React.createElement(PageControl, {
-              currentPage: this.state.page,
-              maxVisiblePages: 5,
-              onPageChange: (page) => {
-                this.setState({ page: Number(page) })
-                this.resetScroll()
-              },
-              pageSize: plugin.instance.settings.maxMediasPerPage,
-              totalCount: this.filteredCategories.length + this.filteredMedias.length,
-            })
-          )
+        this.totalPageCount > 1
+          ? BdApi.React.createElement(Pager, {
+            currentPage: this.state.page,
+            totalPages: this.totalPageCount,
+            onPageChange: (page) => {
+              this.setState({ page: Number(page) })
+              this.resetScroll()
+            },
+          })
           : null
       )
     )
@@ -3411,28 +3475,57 @@ module.exports = class FavoriteMedia {
   }
 
   async waitGIFPicker() {
+    const pluginName = this.meta.name
+
     return new Promise((resolve, reject) => {
-      const unpatch = () => { reject(new Error('Plugin stopped')) }
-      Dispatcher.subscribe('FM_UNPATCH_ALL', unpatch)
-      observe('#gif-picker-tab-panel', ($el) => {
-        if ($el == null) return
+      const unpatch = () => { cleanup(); reject(new Error('Plugin stopped')) }
+      const cleanup = () => {
         Dispatcher.unsubscribe('FM_UNPATCH_ALL', unpatch)
-        resolve(getOwnerInstance($el))
+        if (observer) observer.disconnect()
+      }
+      const selectors = ['#gif-picker-tab-panel', '[id*="gif-picker"]', '[class*="gif-picker"]', '[class*="gifPicker"]', '[data-testid*="gif"]', '[aria-label*="GIF"]']
+      let observer = null
+      const resolvePicker = () => {
+        const node = selectors
+          .map((selector) => document.querySelector(selector))
+          .find((el) => el != null)
+
+        if (node == null) return false
+
+        cleanup()
+        resolve(getOwnerInstance(node) ?? node)
+        return true
+      }
+
+      Dispatcher.subscribe('FM_UNPATCH_ALL', unpatch)
+      if (resolvePicker()) return
+
+      observer = new MutationObserver(() => {
+        if (resolvePicker()) return
       })
+      observer.observe(document.body, { childList: true, subtree: true })
+
+      setTimeout(() => {
+        if (!resolvePicker()) {
+          cleanup()
+          resolve(null)
+        }
+      }, 15000)
     })
   }
 
   async patchGIFTab() {
+    const pluginName = this.meta.name
     let GIFPicker = null
     try {
       GIFPicker = await this.waitGIFPicker()
     } catch (err) {
-      BdApi.Logger.error(this.meta.name, 'GIFPicker module not found')
+      BdApi.Logger.warn(pluginName, 'GIF picker hook stopped before loading')
       return
     }
 
     if (GIFPicker == null) {
-      BdApi.Logger.error(this.meta.name, 'GIFPicker module not found')
+      BdApi.Logger.warn(pluginName, 'GIFPicker module not found — skipping GIF favorites integration')
       return
     }
 
@@ -3448,7 +3541,7 @@ module.exports = class FavoriteMedia {
           const foundGIF = savedGIFs.medias.find((g) => MediaFavButton.checkSameUrl(g.url, data.url))
           newGIFs.push(foundGIF ?? data)
         }).catch((err) => {
-          BdApi.Logger.warn(this.meta.name, err.message)
+          BdApi.Logger.warn(pluginName, err.message)
         })
       })).then(() => {
         savedGIFs.medias = newGIFs
