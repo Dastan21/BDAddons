@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.33
+ * @version 1.13.34
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -28,6 +28,7 @@ const CogSVG = () => BdApi.React.createElement('svg', { className: classes.icon.
 const MusicNoteSVG = (props) => BdApi.React.createElement('svg', { className: classes.icon.icon, ariaHidden: false, viewBox: '0 0 500 500', width: '16', height: '16', ...props }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M328.712,264.539c12.928-21.632,21.504-48.992,23.168-76.064c1.056-17.376-2.816-35.616-11.2-52.768c-13.152-26.944-35.744-42.08-57.568-56.704c-16.288-10.912-31.68-21.216-42.56-35.936l-1.952-2.624c-6.432-8.64-13.696-18.432-14.848-26.656c-1.152-8.32-8.704-14.24-16.96-13.76c-8.384,0.576-14.88,7.52-14.88,15.936v285.12c-13.408-8.128-29.92-13.12-48-13.12c-44.096,0-80,28.704-80,64s35.904,64,80,64s80-28.704,80-64V165.467c24.032,9.184,63.36,32.576,74.176,87.2c-2.016,2.976-3.936,6.176-6.176,8.736c-5.856,6.624-5.216,16.736,1.44,22.56c6.592,5.888,16.704,5.184,22.56-1.44c4.288-4.864,8.096-10.56,11.744-16.512C328.04,265.563,328.393,265.083,328.712,264.539z' }))
 const MiniFileSVG = (props) => BdApi.React.createElement('svg', { className: classes.icon.icon, ariaHidden: false, viewBox: '-32 0 512 512', width: '16', height: '16', ...props }, BdApi.React.createElement('path', { fill: 'currentColor', d: 'M96 448Q81 448 73 440 64 431 64 416L64 96Q64 81 73 73 81 64 96 64L217 64Q240 64 256 80L368 192Q384 208 384 231L384 416Q384 431 376 440 367 448 352 448L96 448ZM336 400L336 240 208 240 208 112 112 112 112 400 336 400Z' }))
 const RefreshSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, ariaHidden: 'false', viewBox: '0 0 24 24', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', d: 'M3 12C3 16.9706 7.02944 21 12 21C14.3051 21 16.4077 20.1334 18 18.7083L21 16M21 12C21 7.02944 16.9706 3 12 3C9.69494 3 7.59227 3.86656 6 5.29168L3 8M21 21V16M21 16H16M3 3V8M3 8H8' }))
+const ArrowSVG = () => BdApi.React.createElement('svg', { className: classes.icon.icon, ariaHidden: 'false', viewBox: '0 0 24 24', width: '24', height: '24' }, BdApi.React.createElement('path', { fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', d: 'M8.3 3.3a1 1 0 0 0 0 1.4l7.29 7.3-7.3 7.3a1 1 0 1 0 1.42 1.4l8-8a1 1 0 0 0 0-1.4l-8-8a1 1 0 0 0-1.42 0Z' }))
 
 const classesFilters = {
   icon: ['icon', 'active', 'buttonWrapper'],
@@ -212,9 +213,6 @@ const PermissionsConstants = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKey
 const FilesUpload = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('addFiles'))
 const MessagesManager = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('sendMessage'))
 const RestAPI = BdApi.Webpack.getModule(m => typeof m === 'object' && m.del && m.put, { searchExports: true })
-
-let PageControl
-BdApi.Webpack.waitForModule(m => typeof m === 'function' && m.toString()?.includes('maxVisiblePages') && m.toString()?.includes('disablePaginationGap'), { searchExports: true }).then(m => PageControl = m)
 
 const canClosePicker = { context: '', value: true }
 let currentChannelId = ''
@@ -1815,15 +1813,11 @@ class MediaPicker extends BdApi.React.Component {
   }
 
   get currentPageCategories() {
-    if (PageControl == null) return this.filteredCategories
-
     const start = plugin.instance.settings.maxMediasPerPage * (this.state.page - 1)
     return this.filteredCategories.slice(start, start + plugin.instance.settings.maxMediasPerPage)
   }
 
   get currentPageMedias() {
-    if (PageControl == null) return this.filteredMedias
-
     let offset = this.currentPageCategories.length
     if (offset >= plugin.instance.settings.maxMediasPerPage) return []
 
@@ -1914,6 +1908,10 @@ class MediaPicker extends BdApi.React.Component {
       else return this.listWithId(this.state.medias).filter(m => m.category_id === undefined)
     }
     return this.listWithId(this.state.medias).filter(m => m.category_id === this.state.category.id)
+  }
+
+  get totalPages() {
+    return Math.ceil((this.filteredCategories.length + this.filteredMedias.length) / plugin.instance.settings.maxMediasPerPage)
   }
 
   static categoryHasSubcategories(type, categoryId) {
@@ -2632,22 +2630,68 @@ class MediaPicker extends BdApi.React.Component {
               : null
           )
         ),
-        PageControl != null
-          ? BdApi.React.createElement('div', {
-            className: 'fm-pageControl',
+        this.totalPages > 1 ?
+          BdApi.React.createElement(PageControl, {
+            currentPage: this.state.page,
+            onPageChange: (page) => {
+              this.setState({ page: Number(page) })
+              this.resetScroll()
+            },
+            totalPages: this.totalPages,
+          }) : null
+      )
+    )
+  }
+}
+
+class PageControl extends BdApi.React.Component {
+  constructor(props) {
+    super(props)
+
+    this.state = {
+      page: props.currentPage,
+    }
+
+    this.changePage = this.changePage.bind(this)
+  }
+
+  changePage(page) {
+    if (page < 1 || page > this.props.totalPages) return
+
+    this.setState({ page })
+    this.props.onPageChange(page)
+  }
+
+  render() {
+    return BdApi.React.createElement('div', {
+      className: 'fm-pageControl-container',
+    },
+      BdApi.React.createElement('div', {
+        className: 'fm-pageControl',
+      },
+        BdApi.React.createElement('button', {
+          className: 'fm-pageControl-button fm-pageControl-button-prev',
+          disabled: this.state.page === 1,
+          onClick: () => {
+            this.changePage(this.state.page - 1)
           },
-            BdApi.React.createElement(PageControl, {
-              currentPage: this.state.page,
-              maxVisiblePages: 5,
-              onPageChange: (page) => {
-                this.setState({ page: Number(page) })
-                this.resetScroll()
-              },
-              pageSize: plugin.instance.settings.maxMediasPerPage,
-              totalCount: this.filteredCategories.length + this.filteredMedias.length,
-            })
-          )
-          : null
+        },
+          ArrowSVG()),
+        BdApi.React.createElement('span', {
+          className: 'fm-pageControl-pages',
+          onClick: () => {
+            this.changePage(this.state.page - 1)
+          },
+        },
+          this.state.page + " / " + this.props.totalPages),
+        BdApi.React.createElement('button', {
+          className: 'fm-pageControl-button fm-pageControl-button-next',
+          disabled: this.state.page === this.props.totalPages,
+          onClick: () => {
+            this.changePage(this.state.page + 1)
+          },
+        },
+          ArrowSVG()),
       )
     )
   }
@@ -3785,7 +3829,7 @@ module.exports = class FavoriteMedia {
       .fm-header .fm-mediasCounter {
         padding: 6px 7px;
       }
-      .fm-pageControl {
+      .fm-pageControl-container {
         width: 100%;
         position: absolute;
         display: flex;
@@ -3794,17 +3838,51 @@ module.exports = class FavoriteMedia {
         pointer-events: none;
         z-index: 10;
       }
-      .fm-pageControl > div {
+      .fm-pageControl {
         width: auto;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        padding: 4px;
         margin-top: 0;
         background-color: var(--background-base-lowest);
         border-top-left-radius: 8px;
         border-top-right-radius: 8px;
         pointer-events: all;
       }
-      .fm-pageControl > div > nav {
-        padding: 8px 0;
-        height: 28px;
+      .fm-pageControl > .fm-pageControl-pages {
+        min-width: 36px;
+        display: inline-block;
+        font-size: 16px;
+        font-weight: 500;
+        text-align: center;
+        color: var(--text-strong);
+      }
+      .fm-pageControl > .fm-pageControl-button {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0;
+        padding: 0;
+        color: var(--text-strong);
+        background-color: transparent;
+        border: none;
+        border-radius: 4px;
+        transition-duration: .2s;
+      }
+      .fm-pageControl > .fm-pageControl-button:hover {
+        background-color: var(--background-mod-normal);
+        color: var(--interactive-text-hover);
+      }
+      .fm-pageControl > .fm-pageControl-button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .fm-pageControl > .fm-pageControl-button.fm-pageControl-button-prev {
+        transform: rotate(180deg);
       }
       .fm-databasePanel {
         height: 100%;
