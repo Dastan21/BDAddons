@@ -1,7 +1,7 @@
 /**
  * @name HideEmbedLink
  * @description Hides embed messages link.
- * @version 2.2.8
+ * @version 2.2.9
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/HideEmbedLink
@@ -152,82 +152,91 @@ module.exports = class HideEmbedLink {
   }
 
   patchMessageContent() {
-    const MessageContentModule = BdApi.Webpack.getModule(m => m.type != null && Object.keys(m).some(key => m[key]?.toString?.().includes('contentRef')))
-    if (MessageContentModule?.type == null) {
-      BdApi.Logger.error(this.meta.name, 'Cannot find MessageContent module')
-      return
-    }
+    BdApi.Webpack.waitForModule(m => m.type != null && Object.keys(m).some(key => m[key]?.toString?.().includes('contentRef'))).then((MessageContentModule) => {
+      if (MessageContentModule?.type == null) {
+        BdApi.Logger.error(this.meta.name, 'Cannot find MessageContent module')
+        return
+      }
 
-    BdApi.Patcher.after(this.meta.name, MessageContentModule, 'type', (_, [props], ret) => {
-      if (!props?.message?.embeds.length) return
+      BdApi.Patcher.after(this.meta.name, MessageContentModule, 'type', (_, [props], ret) => {
+        if (!props?.message?.embeds.length) return
 
-      let hasEmbeds = false
-      ret.props.children.find(c => Array.isArray(c))?.forEach(m => {
-        if (m.props && this.hasEmbed(m, props.message.embeds)) {
-          hasEmbeds = true
-          m.props.className = 'hel-embedLink'
-        }
+        let hasEmbeds = false
+        ret.props.children.find(c => Array.isArray(c))?.forEach(m => {
+          if (m.props && this.hasEmbed(m, props.message.embeds)) {
+            hasEmbeds = true
+            m.props.className = 'hel-embedLink'
+          }
+        })
+        if (!hasEmbeds) return
+
+        props.message.showLinks = props.message.showLinks ?? false
+        let i = 0
+        ret.props.children.find(c => Array.isArray(c))?.forEach((m) => {
+          if (props.message.showLinks == null || m.props == null || !this.hasEmbed(m, props.message.embeds)) return
+
+          const index = Math.min(i, props.message.embeds.length - 1)
+          const isMedia = props.message.embeds[index].rawDescription == null && props.message.embeds[index].rawTitle == null
+          const hide = hideLinksCache[`${props.message.id}_${index}_${m.props.href}`] ?? (isMedia || (!isMedia && !this.settings.hideMediasOnly))
+          if (hide) m.props.className += ' hel-hideLink'
+          i++
+        })
       })
-      if (!hasEmbeds) return
-
-      props.message.showLinks = props.message.showLinks ?? false
-      let i = 0
-      ret.props.children.find(c => Array.isArray(c))?.forEach((m) => {
-        if (props.message.showLinks == null || m.props == null || !this.hasEmbed(m, props.message.embeds)) return
-
-        const index = Math.min(i, props.message.embeds.length - 1)
-        const isMedia = props.message.embeds[index].rawDescription == null && props.message.embeds[index].rawTitle == null
-        const hide = hideLinksCache[`${props.message.id}_${index}_${m.props.href}`] ?? (isMedia || (!isMedia && !this.settings.hideMediasOnly))
-        if (hide) m.props.className += ' hel-hideLink'
-        i++
-      })
+    }).catch((err) => {
+      BdApi.Logger.error(this.meta.name, 'Cannot find MessageContent module', err)
     })
   }
 
   patchEmbed() {
-    const EmbedModule = BdApi.Webpack.getModule(m => m.prototype?.constructor?.toString().includes('renderSuppressButton'), { searchExports: true })
-    if (EmbedModule?.prototype?.render == null) {
-      BdApi.Logger.error(this.meta.name, 'Cannot find Embed module')
-      return
-    }
+    BdApi.Webpack.waitForModule(m => m.prototype?.constructor?.toString().includes('renderSuppressButton'), { searchExports: true }).then((EmbedModule) => {
+      if (EmbedModule?.prototype?.render == null) {
+        BdApi.Logger.error(this.meta.name, 'Cannot find Embed module')
+        return
+      }
 
-    BdApi.Patcher.after(this.meta.name, EmbedModule.prototype, 'render', (t, _, ret) => {
-      if (t.props.embed.url == null) return
+      BdApi.Patcher.after(this.meta.name, EmbedModule.prototype, 'render', (t, _, ret) => {
+        if (t.props.embed.url == null) return
 
-      const messageId = t.props['aria-hel-id']
-      const url = t.props['aria-hel-url']
-      const index = t.props['aria-hel-index']
-      ret.props['aria-hel-id'] = messageId
-      ret.props['aria-hel-url'] = url
-      ret.props['aria-hel-index'] = index
-      if (messageId == null || url == null) return
+        const messageId = t.props['aria-hel-id']
+        const url = t.props['aria-hel-url']
+        const index = t.props['aria-hel-index']
+        ret.props['aria-hel-id'] = messageId
+        ret.props['aria-hel-url'] = url
+        ret.props['aria-hel-index'] = index
+        if (messageId == null || url == null) return
 
-      ret.props.children?.props?.children?.props?.children?.unshift(BdApi.React.createElement(EyeIcon, { messageId, url, index }))
+        ret.props.children?.props?.children?.props?.children?.unshift(BdApi.React.createElement(EyeIcon, { messageId, url, index }))
+      })
+    }).catch((err) => {
+      BdApi.Logger.error(this.meta.name, 'Cannot find MessageContent module', err)
     })
   }
 
   patchMessageAccessories() {
-    const MessageAccessoriesModule = BdApi.Webpack.getModule(m => m.prototype?.constructor?.toString().includes('attachmentToDelete'), { searchExports: true })
-    if (MessageAccessoriesModule?.prototype?.render == null) {
-      BdApi.Logger.error(this.meta.name, 'Cannot find MessageAccessories module')
-      return
-    }
+    BdApi.Webpack.waitForModule(m => m.prototype?.constructor?.toString().includes('attachmentToDelete'), { searchExports: true }).then((MessageAccessoriesModule) => {
+      if (MessageAccessoriesModule?.prototype?.render == null) {
+        BdApi.Logger.error(this.meta.name, 'Cannot find MessageAccessories module')
+        return
+      }
 
-    BdApi.Patcher.after(this.meta.name, MessageAccessoriesModule.prototype, 'render', (t, _, ret) => {
-      if (t.props?.message?.content == null || t.props.message.content === '') return
+      BdApi.Patcher.after(this.meta.name, MessageAccessoriesModule.prototype, 'render', (t, _, ret) => {
+        if (t.props?.message?.content == null || t.props.message.content === '') return
 
-      const embeds = ret.props?.children?.find(c => Array.isArray(c) && c?.[0]?.key?.startsWith('embed'))
-      if (embeds == null || embeds?.length < 1) return
+        const embeds = ret.props?.children?.find(c => Array.isArray(c) && c?.[0]?.key?.startsWith('embed'))
+        if (embeds == null || embeds?.length < 1) return
 
-      embeds.forEach((e, i) => {
-        if (e.props?.children?.props == null) return
+        embeds.forEach((e, i) => {
+          if (e.props?.children?.props == null) return
 
-        e.props.children.props['aria-hel-id'] = t.props.message.id
-        e.props.children.props['aria-hel-url'] = Array
-          .from(document.querySelectorAll(`div[id='message-content-${t.props.message.id}'] a.hel-embedLink`))
-          .find(link => this.isValid(link.getAttribute('href'), [t.props.message.embeds[i].url]))?.getAttribute('href')
-        e.props.children.props['aria-hel-index'] = i
+          e.props.children.props['aria-hel-id'] = t.props.message.id
+          e.props.children.props['aria-hel-url'] = Array
+            .from(document.querySelectorAll(`div[id='message-content-${t.props.message.id}'] a.hel-embedLink`))
+            .find(link => this.isValid(link.getAttribute('href'), [t.props.message.embeds[i].url]))?.getAttribute('href')
+          e.props.children.props['aria-hel-index'] = i
+        })
       })
+    }).catch((err) => {
+      BdApi.Logger.error(this.meta.name, 'Cannot find MessageAccessories module', err)
     })
   }
 
