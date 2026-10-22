@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.37
+ * @version 1.13.38
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -563,7 +563,10 @@ class MediaFavButton extends BdApi.React.Component {
     if (props.type === 'gif') await MediaFavButton.favoriteGIF(data)
     typeData.medias.push(data)
     saveData(props.type, typeData)
-    if (plugin.instance.settings.allowCaching) MediaFavButton.cacheMedia(data.url)
+    if (plugin.instance.settings.allowCaching) {
+      if (data.poster != null) MediaFavButton.cacheMedia(data.poster)
+      MediaFavButton.cacheMedia(data.url)
+    }
     return props
   }
 
@@ -579,7 +582,10 @@ class MediaFavButton extends BdApi.React.Component {
     })
     saveData(props.type, typeData)
     if (props.fromPicker) Dispatcher.dispatch({ type: 'FM_UPDATE_MEDIAS' })
-    if (plugin.instance.settings.allowCaching) MediaFavButton.uncacheMedia(props.url)
+    if (plugin.instance.settings.allowCaching) {
+      if (props.poster != null) MediaFavButton.uncacheMedia(props.poster)
+      MediaFavButton.uncacheMedia(props.url)
+    }
     return props
   }
 
@@ -1522,10 +1528,9 @@ class MediaCard extends BdApi.React.Component {
       if (e.mediaId !== this.props.id) return
       e = e.e
     }
-    if (['path', 'svg'].includes(e.target.tagName)) return
+    if (['path', 'svg'].includes(e.target.tagName) || this.state.showControls) return
 
     e.preventDefault()
-    this.hideControls()
 
     if (!sendMedia && (this.props.type === 'audio' || this.props.settings[this.props.type].alwaysUploadFile)) {
       const [refreshedUrl] = await MediaPicker.refreshUrls([this.props.url])
@@ -1594,6 +1599,7 @@ class MediaCard extends BdApi.React.Component {
           tabindex: '-1',
           role: 'button',
           ref: this.tooltipControlsRef,
+          title: this.state.showControls ? plugin.instance.strings.media.controls.hide : plugin.instance.strings.media.controls.show,
           onClick: () => this.changeControls(),
         },
           BdApi.React.createElement('svg', {
@@ -1625,7 +1631,7 @@ class MediaCard extends BdApi.React.Component {
         : null,
       this.tag != null
         ? BdApi.React.createElement(this.tag, {
-          className: classes.result.gif,
+          className: `${classes.result.gif} ${this.state.showControls ? 'no-send' : ''}`,
           preload: 'auto',
           autoplay: this.isGIF ? '' : undefined,
           loop: this.isGIF ? 'true' : undefined,
@@ -3254,18 +3260,8 @@ module.exports = class FavoriteMedia {
     BdApi.UI.showConfirmationModal(settingsTitle, this.getSettingsPanel(), {
       confirmText: null,
       cancelText: null,
+      size: 'bd-modal-medium',
     })
-
-    // No modal size option available
-    setTimeout(() => {
-      document.querySelectorAll('.bd-modal-header h1').forEach(($el) => {
-        if ($el.textContent !== settingsTitle) return
-
-        const modalRoot = $el.closest('.bd-modal-root')
-        modalRoot.classList.remove('bd-modal-small')
-        modalRoot.classList.add('bd-modal-medium')
-      })
-    }, 100)
   }
 
   MediaTab(mediaType, elementType) {
@@ -3334,7 +3330,7 @@ module.exports = class FavoriteMedia {
       const chatBar = BdApi.Utils.findInTree(returnValue, (e) => e?.className?.includes('sansAttachButton'), { walkable: ['children', 'props'] })
       if (!chatBar) return
 
-      const textAreaState = BdApi.Utils.findInTree(chatBar, (e) => e?.props?.channel, { walkable: ['children'] })
+      const textAreaState = BdApi.Utils.findInTree(chatBar, (e) => e?.props?.channel, { walkable: ['children', 'props'] })
       if (!textAreaState) return
 
       currentChannelId = SelectedChannelStore.getChannelId()
@@ -3483,6 +3479,10 @@ module.exports = class FavoriteMedia {
     BdApi.Patcher.after(this.meta.name, GIFPicker.constructor.prototype, 'renderContent', (_this, _, returnValue) => {
       if (!this.settings.gif.enabled || _this.state.resultType !== 'Favorites') return
       if (!Array.isArray(returnValue.props.data)) return
+
+      const $header = document.getElementById('gif-picker-tab-panel')?.querySelector('*>[class^="header_"]')
+      if ($header != null) $header.style.display = 'none'
+
       const favorites = [...returnValue.props.data].reverse()
       const savedGIFs = loadData('gif', { medias: [] })
       const newGIFs = []
@@ -3785,6 +3785,9 @@ module.exports = class FavoriteMedia {
         -webkit-transform: none;
         transform: none;
       }
+      .${classes.result.result} > .${classes.result.gif}.no-send {
+        cursor: auto;
+      }
       .${classes.result.result} > .${classes.result.gif}:focus {
         outline: none;
       }
@@ -3885,16 +3888,11 @@ module.exports = class FavoriteMedia {
         transform: rotate(180deg);
       }
       .fm-databasePanel {
-        height: 100%;
         width: 100%;
         display: flex;
         flex-direction: column;
         gap: 16px;
         padding-top: 16px;
-      }
-      .fm-databasePanel > * {
-        height: 100%;
-        width: 100%;
       }
       .fm-databasePanel > button {
         width: fit-content;
