@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.38
+ * @version 1.13.39
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -53,7 +53,6 @@ const classesFilters = {
     return BdApi.Webpack.getAllByKeys('wrapper', 'container').find(m => Object.keys(m).length === 2)
   },
   medium: ['md', 'hasLeading', 'container'],
-  textMd: ['text-md/normal', 'heading-md/bold', 'display-md'],
   scroller: ['disableScrollAnchor', 'thin', 'fade'],
   look: ['button', 'lookBlank', 'colorBrand'],
   upload: ['actionBarContainer', 'actionBar', 'upload'],
@@ -67,7 +66,7 @@ async function loadClasses() {
     if (typeof classesFilters[key] === 'function') {
       classModules[key] = await classesFilters[key]()
     } else {
-      classModules[key] = await BdApi.Webpack.waitForModule(BdApi.Webpack.Filters.byKeys(...classesFilters[key]))
+      classModules[key] = await BdApi.Webpack.getByKeys(...classesFilters[key])
     }
   }
 
@@ -151,7 +150,6 @@ async function loadClasses() {
       container: classModules.medium.container,
       medium: classModules.medium.md,
       hasLeading: classModules.medium.hasLeading,
-      text: classModules.textMd["text-md/normal"],
       icon: classModules.medium.icon,
       input: classModules.medium.input,
       clearButton: classModules.medium.clearButton,
@@ -2498,7 +2496,7 @@ class MediaPicker extends BdApi.React.Component {
                   : null,
                 !this.state.category
                   ? BdApi.React.createElement('div', {
-                    className: `${classes.container.wrapper} ${classes.medium.container} ${classes.medium.medium} ${classes.medium.text} ${classes.medium.hasLeading}`,
+                    className: `${classes.container.wrapper} ${classes.medium.container} ${classes.medium.medium} ${classes.medium.hasLeading}`,
                   },
                     BdApi.React.createElement('div', {
                       className: classes.medium.icon,
