@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.39
+ * @version 1.13.40
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -37,7 +37,7 @@ const classesFilters = {
   role: ['roleCircle', 'dot'],
   gif: ['icon', 'gifFavoriteButton', 'selected'],
   gif2: ['container', 'gifFavoriteButton', 'giftCodeContainer'],
-  embed: ['embed', 'embedMedia', 'embedImage'],
+  embed: ['embedMedia', 'embedVideo', 'embedImage'],
   file: ['size', 'file', 'fileInner'],
   image: ['clickable', 'imageWrapper', 'imageAccessory'],
   control: ['container', 'label', 'control'],
@@ -2451,7 +2451,7 @@ class MediaPicker extends BdApi.React.Component {
           BdApi.React.createElement('div', {
             ref: this.settingsButtonRef,
             className: `${classes.buttons.button} fm-settingsButton fm-buttonIcon`,
-            onClick: () => Dispatcher.dispatch({ type: 'FM_OPEN_SETTINGS' }),
+            onClick: () => BdApi.Plugins.openSettings(plugin.id),
           }, CogSVG())
         ),
         BdApi.React.createElement('div', {
@@ -3159,9 +3159,6 @@ module.exports = class FavoriteMedia {
     this.patchChannelTextArea()
     this.patchMedias()
 
-    this.openSettings = this.openSettings.bind(this)
-    Dispatcher.subscribe('FM_OPEN_SETTINGS', this.openSettings)
-
     BdApi.DOM.addStyle(this.meta.name, this.css)
 
     const savedVersion = loadData('version')
@@ -3179,7 +3176,6 @@ module.exports = class FavoriteMedia {
     this.contextMenu?.()
     BdApi.Patcher.unpatchAll(this.meta.name)
     Dispatcher.dispatch({ type: 'FM_UNPATCH_ALL' })
-    Dispatcher.unsubscribe('FM_OPEN_SETTINGS', this.openSettings)
     Object.keys(mediasCache).forEach((url) => URL.revokeObjectURL(url))
 
     BdApi.DOM.removeStyle(this.meta.name)
@@ -3250,15 +3246,6 @@ module.exports = class FavoriteMedia {
         }
         saveData('settings', settingsData)
       },
-    })
-  }
-
-  openSettings() {
-    const settingsTitle = this.meta.name + ' Settings'
-    BdApi.UI.showConfirmationModal(settingsTitle, this.getSettingsPanel(), {
-      confirmText: null,
-      cancelText: null,
-      size: 'bd-modal-medium',
     })
   }
 
