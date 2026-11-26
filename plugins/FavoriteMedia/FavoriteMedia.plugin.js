@@ -1,7 +1,7 @@
 /**
  * @name FavoriteMedia
  * @description Allows to favorite GIFs, images, videos, audios and files.
- * @version 1.13.40
+ * @version 1.13.41
  * @author Dastan
  * @authorId 310450863845933057
  * @source https://github.com/Dastan21/BDAddons/blob/main/plugins/FavoriteMedia
@@ -189,7 +189,7 @@ const LocaleStore = BdApi.Webpack.getStore('LocaleStore')
 const ElectronModule = BdApi.Webpack.getByKeys('setBadge')
 const Dispatcher = BdApi.Webpack.getByKeys('dispatch', 'subscribe', { searchExports: true })
 const ComponentDispatch = BdApi.Webpack.getAllByKeys('safeDispatch', 'dispatchToLastSubscribed', { searchExports: true })?.find(m => m.options?.logger != null)
-const ExpressionPicker = BdApi.Webpack.getModule(m => m.type?.toString?.().includes("onSelectGIF") && m.type?.toString?.().includes("hideGifFavorites"), { searchExports: true })
+const ExpressionPickerWrapper = BdApi.Webpack.getBySource('hideGifFavorites', 'onSelectGIF')
 const EPS = {}
 const EPSModules = BdApi.Webpack.getModule(BdApi.Webpack.Filters.bySource("lastActiveView", "isSearchSuggestion"))
 const EPSConstants = BdApi.Webpack.getModule(BdApi.Webpack.Filters.byKeys('FORUM_CHANNEL_GUIDELINES', 'CREATE_FORUM_POST'), { searchExports: true })
@@ -3263,40 +3263,47 @@ module.exports = class FavoriteMedia {
   }
 
   async patchExpressionPicker() {
-    if (ExpressionPicker == null) {
-      BdApi.Logger.error(this.meta.name, 'ExpressionPicker module not found')
+    if (ExpressionPickerWrapper == null) {
+      BdApi.Logger.error(this.meta.name, 'ExpressionPickerWrapper module not found')
       return
     }
 
+    this.patchTypes = new WeakSet()
+
     // https://github.com/TheLazySquid/BetterDiscordPlugins/blob/8b7c749c0eb6bea4af66894ead609939c800a5ce/plugins/ImageFolder/ImageFolder.plugin.js#L1252
-    BdApi.Patcher.after(this.meta.name, ExpressionPicker, 'type', (_, __, returnValue) => {
-      if (returnValue.props?.children?.props?.children == null) return returnValue
+    BdApi.Patcher.after(this.meta.name, ExpressionPickerWrapper, 'A', (_, __, returnValue) => {
+      if (returnValue?.type == null || this.patchTypes.has(returnValue.type)) return returnValue
+      this.patchTypes.add(returnValue.type)
 
-      const unpatch = BdApi.Patcher.after(this.meta.name, returnValue.props.children.props, "children", (_, __, returnValue) => {
-        unpatch();
-        if (returnValue == null) return returnValue;
+      BdApi.Patcher.after(this.meta.name, returnValue.type, 'type', (_, __, returnValue) => {
+        if (returnValue.props?.children?.props?.children == null) return returnValue
 
-        const body = BdApi.Utils.findInTree(returnValue, (el) => el?.[0]?.type === "nav", { walkable: ["props", "children"] })
-        const head = BdApi.Utils.findInTree(body, (el) => el?.[0]?.props?.["aria-selected"] !== void 0, { walkable: ["props", "children"] })
-        if (head == null || body == null) return returnValue
+        const unpatch = BdApi.Patcher.after(this.meta.name, returnValue.props.children.props, "children", (_, __, returnValue) => {
+          unpatch()
+          if (returnValue == null) return returnValue
 
-        try {
-          const elementType = head[0].type.type
-          if (this.settings.image.enabled) head.push(this.MediaTab('image', elementType))
-          if (this.settings.video.enabled) head.push(this.MediaTab('video', elementType))
-          if (this.settings.audio.enabled) head.push(this.MediaTab('audio', elementType))
-          if (this.settings.file.enabled) head.push(this.MediaTab('file', elementType))
+          const body = BdApi.Utils.findInTree(returnValue, (el) => Array.isArray(el) && el.some(c => c?.type === "nav"), { walkable: ["props", "children"] })
+          const head = BdApi.Utils.findInTree(body, (el) => Array.isArray(el) && el.some(e => e?.props?.["aria-selected"] !== void 0), { walkable: ["props", "children"] })
+          if (head == null || body == null) return returnValue
 
-          const activeMediaPickerType = EPS.useExpressionPickerStore.getState().activeView.replace('fm-', '')
-          if (ALL_TYPES.includes(activeMediaPickerType)) {
-            body.push(BdApi.React.createElement(MediaPicker, {
-              type: activeMediaPickerType,
-              settings: this.settings,
-            }))
+          try {
+            const elementType = head[0].type.type
+            if (this.settings.image.enabled) head.push(this.MediaTab('image', elementType))
+            if (this.settings.video.enabled) head.push(this.MediaTab('video', elementType))
+            if (this.settings.audio.enabled) head.push(this.MediaTab('audio', elementType))
+            if (this.settings.file.enabled) head.push(this.MediaTab('file', elementType))
+
+            const activeMediaPickerType = EPS.useExpressionPickerStore.getState().activeView.replace('fm-', '')
+            if (ALL_TYPES.includes(activeMediaPickerType)) {
+              body.push(BdApi.React.createElement(MediaPicker, {
+                type: activeMediaPickerType,
+                settings: this.settings,
+              }))
+            }
+          } catch (err) {
+            BdApi.Logger.error(this.meta.name, 'Error in ExpressionPicker patch:', err.message ?? err)
           }
-        } catch (err) {
-          BdApi.Logger.error(this.meta.name, 'Error in ExpressionPicker patch:', err.message ?? err)
-        }
+        })
       })
     })
   }
